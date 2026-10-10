@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Span Focus</title>
+  
+  <!-- Configuration PWA & Plein écran iOS / Android -->
+  <meta name="theme-color" content="#0d0d0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Focus">
+
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.07);
+      --text-main: #f4f4f6;
+      --text-muted: #71717a;
+      --accent: #e4e4e7;
+      --accent-active: #ffffff;
+      --streak: #e2b340;
+      --danger: #ef4444;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top, 24px) 20px env(safe-area-inset-bottom, 24px);
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      padding-top: 12px;
+    }
+
+    /* En-tête : Marque & Passerelle Plan */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .brand-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .brand-app {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+
+    .plan-bridge-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .plan-bridge-btn:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Bloc Macro-contexte (simule le bloc de calendrier en cours) */
+    .context-pill {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .context-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .context-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #6366f1;
+    }
+
+    .context-time {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Zone Timer & Cadence */
+    .timer-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0 12px;
+      position: relative;
+    }
+
+    .time-display {
+      font-size: 78px;
+      font-weight: 200;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      margin-bottom: 24px;
+      color: var(--accent-active);
+    }
+
+    /* Sélecteur de durées rapides */
+    .preset-pills {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .preset-pill {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .preset-pill.active {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+    }
+
+    /* Boutons de contrôle */
+    .controls {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .btn-main {
+      background: var(--text-main);
+      color: var(--bg);
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 38px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn-main:active {
+      transform: scale(0.96);
+    }
+
+    .btn-reset {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .btn-reset:hover {
+      color: var(--text-main);
+    }
+
+    /* Section To-do & Micro-exécution */
+    .tasks-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .task-input-container {
+      display: flex;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 6px 8px 6px 14px;
+    }
+
+    .task-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 14px;
+      width: 100%;
+      user-select: text;
+    }
+
+    .task-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-add {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1.5px solid var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .task-item.completed .checkbox {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkbox svg {
+      display: none;
+      width: 12px;
+      height: 12px;
+      stroke: var(--bg);
+      stroke-width: 2.5;
+    }
+
+    .task-item.completed .checkbox svg {
+      display: block;
+    }
+
+    .task-text {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-main);
+      transition: color 0.15s ease;
+    }
+
+    .task-item.completed .task-text {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 14px;
+      opacity: 0.4;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-delete:hover {
+      opacity: 1;
+      color: var(--danger);
+    }
+
+    /* Section Tracking / Habitudes intégrées */
+    .track-footer {
+      margin-top: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .track-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .track-metrics {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-streak {
+      color: var(--streak);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <span class="brand-name">Span</span>
+        <span class="brand-app">Focus</span>
+      </div>
+      <button class="plan-bridge-btn" onclick="alert('Passerelle vers Span Plan en cours d\'intégration...')">
+        <span>Plan</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </header>
+
+    <!-- Macro context -->
+    <div class="context-pill">
+      <div class="context-title">
+        <div class="context-dot"></div>
+        <span>Session d'Approfondissement</span>
+      </div>
+      <span class="context-time">Bloc actif • Termine à 11:30</span>
+    </div>
+
+    <!-- Timer -->
+    <section class="timer-section">
+      <div class="preset-pills">
+        <button class="preset-pill active" onclick="setTimerDuration(25)">25m</button>
+        <button class="preset-pill" onclick="setTimerDuration(50)">50m</button>
+        <button class="preset-pill" onclick="setTimerDuration(15)">15m</button>
+      </div>
+
+      <div class="time-display" id="timeDisplay">25:00</div>
+
+      <div class="controls">
+        <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Démarrer</button>
+        <button class="btn-reset" onclick="resetTimer()" title="Réinitialiser">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Tasks -->
+    <section class="tasks-section">
+      <div class="section-header">
+        <span class="section-title">Micro-Tâches</span>
+        <span class="section-title" id="taskCount" style="font-weight: 400;">0 complétée(s)</span>
+      </div>
+
+      <div class="task-input-container">
+        <input type="text" class="task-input" id="taskInput" placeholder="Ajouter une tâche directe..." onkeydown="handleInputKey(event)">
+        <button class="btn-add" onclick="addTask()">Ajouter</button>
+      </div>
+
+      <ul class="task-list" id="taskList"></ul>
+    </section>
+
+    <!-- Habit & Tracking Metrics -->
+    <div class="track-footer">
+      <span class="track-label">Suivi du jour</span>
+      <div class="track-metrics">
+        <div class="metric-streak">
+          <span>🔥</span>
+          <span id="streakCount">1 j</span>
+        </div>
+        <div style="color: var(--accent);" id="totalTimeTracked">
+          0h 25m
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- GESTION DU TIMER ---
+    let durationMinutes = 25;
+    let totalSeconds = durationMinutes * 60;
+    let timerInterval = null;
+    let isRunning = false;
+
+    const display = document.getElementById('timeDisplay');
+    const toggleBtn = document.getElementById('btnToggle');
+
+    function updateDisplay() {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      display.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      document.title = `${display.textContent} — Span Focus`;
+    }
+
+    function setTimerDuration(mins) {
+      if (isRunning) toggleTimer();
+      durationMinutes = mins;
+      totalSeconds = mins * 60;
+      updateDisplay();
+
+      document.querySelectorAll('.preset-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.startsWith(mins));
+      });
+    }
+
+    function toggleTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        toggleBtn.textContent = 'Reprendre';
+        isRunning = false;
+      } else {
+        isRunning = true;
+        toggleBtn.textContent = 'Pause';
+        timerInterval = setInterval(() => {
+          if (totalSeconds > 0) {
+            totalSeconds--;
+            updateDisplay();
+          } else {
+            clearInterval(timerInterval);
+            isRunning = false;
+            toggleBtn.textContent = 'Terminé';
+            alert('Session de focus achevée !');
+            resetTimer();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      totalSeconds = durationMinutes * 60;
+      toggleBtn.textContent = 'Démarrer';
+      updateDisplay();
+    }
+
+    // --- GESTION DES TÂCHES (STORAGE LOCAL) ---
+    let tasks = JSON.parse(localStorage.getItem('span_focus_tasks')) || [
+      { text: "Rédiger les spécifications minimalistes", completed: false },
+      { text: "Organiser les blocs pour la semaine", completed: true }
+    ];
+
+    function saveTasks() {
+      localStorage.setItem('span_focus_tasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      let completedCount = 0;
+
+      tasks.forEach((task, index) => {
+        if (task.completed) completedCount++;
+
+        const li = document.createElement('li');
+        li.className = `task-item ${task.completed ? 'completed' : ''}`;
+        
+        li.innerHTML = `
+          <div class="task-left" onclick="toggleTask(${index})">
+            <div class="checkbox">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="task-text">${task.text}</span>
+          </div>
+          <button class="btn-delete" onclick="deleteTask(${index})" title="Supprimer">✕</button>
+        `;
+        list.appendChild(li);
+      });
+
+      document.getElementById('taskCount').textContent = `${completedCount}/${tasks.length} complétée(s)`;
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      tasks.unshift({ text: text, completed: false });
+      input.value = '';
+      saveTasks();
+    }
+
+    function handleInputKey(e) {
+      if (e.key === 'Enter') addTask();
+    }
+
+    function toggleTask(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+    }
+
+    // Initialisation
+    updateDisplay();
+    renderTasks();
+  </script>
+</body>
+</html>
