@@ -1,43 +1,83 @@
 let audioCtx = null;
 let noiseNode = null;
+let soundMode = localStorage.getItem('span_sound_mode') || 'auto'; // 'auto' | 'on' | 'off'
 let isNoisePlaying = false;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-function toggleBrownNoise() {
-  initAudio();
-  if (isNoisePlaying) {
-    noiseNode.stop();
-    noiseNode.disconnect();
-    isNoisePlaying = false;
-    document.getElementById('soundBtn').classList.remove('active');
-  } else {
-    const bufferSize = audioCtx.sampleRate * 2;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      data[i] = (lastOut + (0.02 * white)) / 1.02;
-      lastOut = data[i];
-      data[i] *= 3.5;
-    }
-    noiseNode = audioCtx.createBufferSource();
-    noiseNode.buffer = buffer;
-    noiseNode.loop = true;
-    
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 400;
+function updateSoundButtonUI() {
+  const btn = document.getElementById('soundBtn');
+  const label = document.getElementById('soundLabel');
+  const icon = document.getElementById('soundIcon');
 
-    noiseNode.connect(filter);
-    filter.connect(audioCtx.destination);
-    noiseNode.start();
-    isNoisePlaying = true;
-    document.getElementById('soundBtn').classList.add('active');
+  if (soundMode === 'auto') {
+    label.textContent = 'Auto';
+    icon.textContent = '🎧';
+    btn.classList.add('active');
+  } else if (soundMode === 'on') {
+    label.textContent = 'On';
+    icon.textContent = '🎧';
+    btn.classList.add('active');
+  } else {
+    label.textContent = 'Off';
+    icon.textContent = '🔇';
+    btn.classList.remove('active');
   }
+}
+
+function cycleSoundMode() {
+  if (soundMode === 'auto') soundMode = 'on';
+  else if (soundMode === 'on') soundMode = 'off';
+  else soundMode = 'auto';
+
+  localStorage.setItem('span_sound_mode', soundMode);
+  updateSoundButtonUI();
+
+  if (soundMode === 'on') {
+    startNoise();
+  } else if (soundMode === 'off') {
+    stopNoise();
+  } else if (soundMode === 'auto') {
+    if (isRunning && !isBreakSession) startNoise();
+    else stopNoise();
+  }
+}
+
+function startNoise() {
+  if (isNoisePlaying) return;
+  initAudio();
+
+  const bufferSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let lastOut = 0.0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    data[i] = (lastOut + (0.02 * white)) / 1.02;
+    lastOut = data[i];
+    data[i] *= 3.5;
+  }
+  noiseNode = audioCtx.createBufferSource();
+  noiseNode.buffer = buffer;
+  noiseNode.loop = true;
+  
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 400;
+
+  noiseNode.connect(filter);
+  filter.connect(audioCtx.destination);
+  noiseNode.start();
+  isNoisePlaying = true;
+}
+
+function stopNoise() {
+  if (!isNoisePlaying || !noiseNode) return;
+  noiseNode.stop();
+  noiseNode.disconnect();
+  isNoisePlaying = false;
 }
 
 function playBell() {
@@ -52,4 +92,12 @@ function playBell() {
   gain.connect(audioCtx.destination);
   osc.start();
   osc.stop(audioCtx.currentTime + 3);
+}
+
+// Synchro automatique avec le timer
+function handleTimerAudioSync(running, isBreak) {
+  if (soundMode === 'auto') {
+    if (running && !isBreak) startNoise();
+    else stopNoise();
+  }
 }
