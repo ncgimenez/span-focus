@@ -4,10 +4,13 @@ let secondsLeft = durationMinutes * 60;
 let elapsedSeconds = 0;
 let isRunning = false;
 let isOvertime = false;
+let isBreakSession = false;
 let timerInterval = null;
 
 const display = document.getElementById('timeDisplay');
 const toggleBtn = document.getElementById('btnToggle');
+const ringCircle = document.getElementById('ringProgress');
+const circumference = 2 * Math.PI * 118; // ~741.4
 
 function updateDisplay() {
   let secToFormat = timerMode === 'stopwatch' ? elapsedSeconds : Math.abs(secondsLeft);
@@ -18,16 +21,24 @@ function updateDisplay() {
   display.textContent = formatted;
   document.title = `${isRunning ? '▶ ' : '⏸ '}${formatted} — Span Focus`;
 
-  const progress = timerMode === 'stopwatch' ? Math.min(elapsedSeconds / 3600, 1) : 1 - (secondsLeft / (durationMinutes * 60));
-  const curve = 28 - (progress * 12);
-  const leaf = document.getElementById('growthLeaf');
-  if (leaf) leaf.setAttribute('d', `M20 28 C20 28 ${16 + progress * 6} ${curve} 20 ${18 - progress * 4}`);
+  // Mise à jour de l'anneau circulaire
+  let progress = 0;
+  if (timerMode === 'stopwatch') {
+    progress = (elapsedSeconds % 3600) / 3600;
+  } else {
+    progress = 1 - (secondsLeft / (durationMinutes * 60));
+  }
+  progress = Math.max(0, Math.min(1, progress));
+  
+  const offset = circumference * (1 - progress);
+  if (ringCircle) ringCircle.style.strokeDashoffset = offset;
 }
 
 function setTimerMode(mode) {
   if (isRunning) toggleTimer();
   timerMode = mode;
   isOvertime = false;
+  isBreakSession = false;
   display.classList.remove('overtime');
 
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
@@ -48,11 +59,12 @@ function setTimerMode(mode) {
   }
 }
 
-function setDuration(mins) {
+function setDuration(mins, isBreak = false) {
   if (isRunning) toggleTimer();
   durationMinutes = mins;
   secondsLeft = mins * 60;
   isOvertime = false;
+  isBreakSession = isBreak;
   display.classList.remove('overtime');
   updateDisplay();
 
@@ -66,6 +78,7 @@ function toggleTimer() {
     clearInterval(timerInterval);
     toggleBtn.textContent = 'Resume';
     isRunning = false;
+    handleTimerAudioSync(false, isBreakSession);
   } else {
     if (isOvertime) {
       confirmCompletedSession();
@@ -73,6 +86,8 @@ function toggleTimer() {
     }
     isRunning = true;
     toggleBtn.textContent = 'Pause';
+    handleTimerAudioSync(true, isBreakSession);
+
     timerInterval = setInterval(() => {
       if (timerMode === 'stopwatch') {
         elapsedSeconds++;
@@ -80,7 +95,7 @@ function toggleTimer() {
       } else {
         secondsLeft--;
         if (secondsLeft >= 0) {
-          logFocusedSecond();
+          if (!isBreakSession) logFocusedSecond();
         } else {
           if (!isOvertime) {
             isOvertime = true;
@@ -100,6 +115,7 @@ function confirmCompletedSession() {
   isRunning = false;
   isOvertime = false;
   display.classList.remove('overtime');
+  handleTimerAudioSync(false, isBreakSession);
   alert('Focus session recorded!');
   resetTimer();
 }
@@ -112,5 +128,6 @@ function resetTimer() {
   secondsLeft = durationMinutes * 60;
   elapsedSeconds = 0;
   toggleBtn.textContent = 'Start';
+  handleTimerAudioSync(false, isBreakSession);
   updateDisplay();
 }
