@@ -1,4 +1,4 @@
-let dailyTargetSeconds = 4 * 25 * 60; // 100 min
+let dailyTargetMinutes = parseInt(localStorage.getItem('span_daily_target_minutes')) || 100;
 let trackingData = JSON.parse(localStorage.getItem('span_tracking')) || {
   totalSecondsToday: 0,
   categories: { Code: 0, Study: 0, Write: 0, Admin: 0 }
@@ -19,9 +19,17 @@ function logFocusedSecond() {
 }
 
 function updateGoalBar() {
-  const pct = Math.min(Math.round((trackingData.totalSecondsToday / dailyTargetSeconds) * 100), 100);
+  const targetSec = dailyTargetMinutes * 60;
+  const pct = Math.min(Math.round((trackingData.totalSecondsToday / targetSec) * 100), 100);
   document.getElementById('goalPercent').textContent = `${pct}%`;
   document.getElementById('goalBar').style.width = `${pct}%`;
+}
+
+function updateDailyGoalTarget(val) {
+  dailyTargetMinutes = parseInt(val);
+  localStorage.setItem('span_daily_target_minutes', dailyTargetMinutes);
+  document.getElementById('targetDisplaySummary').textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes/25)} blocks)`;
+  updateGoalBar();
 }
 
 function toggleChartUnit() {
@@ -37,8 +45,8 @@ function renderChart() {
   const legend = document.getElementById('pieLegend');
 
   if (total === 0) {
-    pie.style.background = 'conic-gradient(rgba(255,255,255,0.1) 0deg 360deg)';
-    legend.innerHTML = '<span style="color:var(--text-muted)">No sessions logged yet</span>';
+    pie.style.background = 'conic-gradient(rgba(255,255,255,0.08) 0deg 360deg)';
+    legend.innerHTML = '<span style="color:var(--text-muted)">No sessions recorded today</span>';
     return;
   }
 
@@ -66,14 +74,19 @@ function renderChart() {
   pie.style.background = `conic-gradient(${gradientSteps.join(', ')})`;
 }
 
-// Backup JSON
+// Clic sur la barre de goal -> redirection fluide vers Track
+function goToTrackView() {
+  switchView('stats', document.getElementById('nav-btn-stats'));
+}
+
+// Export / Import
 function exportData() {
-  const exportObject = { tasks, trackingData, activeTask, version: "1.0" };
+  const exportObject = { tasks, trackingData, activeTask, dailyTargetMinutes, version: "1.1" };
   const blob = new Blob([JSON.stringify(exportObject, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `span-focus-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `span-focus-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -88,13 +101,14 @@ function importData(event) {
       if (imported.tasks) tasks = imported.tasks;
       if (imported.trackingData) trackingData = imported.trackingData;
       if (imported.activeTask) activeTask = imported.activeTask;
+      if (imported.dailyTargetMinutes) dailyTargetMinutes = imported.dailyTargetMinutes;
       saveTasks();
       localStorage.setItem('span_tracking', JSON.stringify(trackingData));
       updateGoalBar();
       renderChart();
-      alert('Backup imported successfully!');
-    } catch (err) {
-      alert('Invalid JSON file.');
+      alert('Preferences imported!');
+    } catch {
+      alert('Invalid file format.');
     }
   };
   reader.readAsText(file);
