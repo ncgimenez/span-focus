@@ -1,7 +1,7 @@
 {
   "name": "Span Focus",
   "short_name": "Focus",
-  "description": "Chronomètre minimaliste, tâches et suivi de focus par Span.",
+  "description": "Minimalist timer, tasks and focus tracker by Span."
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0d0f",
