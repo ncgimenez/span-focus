@@ -11,400 +11,123 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Focus">
 
-  <style>
-    :root {
-      --bg: #0d0d0f;
-      --card-bg: rgba(255, 255, 255, 0.03);
-      --card-border: rgba(255, 255, 255, 0.07);
-      --text-main: #f4f4f6;
-      --text-muted: #71717a;
-      --accent: #e4e4e7;
-      --accent-active: #ffffff;
-      --streak: #e2b340;
-      --danger: #ef4444;
-      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text-main);
-      font-family: var(--font);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 80px);
-      overflow-x: hidden;
-    }
-
-    .app-container {
-      width: 100%;
-      max-width: 440px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding-bottom: 70px;
-    }
-
-    /* HEADER GLOBAL UNIQUE */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 4px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-    }
-
-    .brand-name {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    .brand-app {
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      color: var(--accent);
-    }
-
-    .plan-bridge-btn {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-
-    /* GESTION DES VUES */
-    .view-content {
-      display: none;
-      flex-direction: column;
-      gap: 20px;
-      animation: fadeIn 0.15s ease;
-    }
-
-    .view-content.active {
-      display: flex;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* BARRE DE NAVIGATION EN BAS (FOOTER FIXE) */
-    .nav-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 64px;
-      background: rgba(13, 13, 15, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid var(--card-border);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      z-index: 100;
-    }
-
-    .nav-items {
-      width: 100%;
-      max-width: 440px;
-      display: flex;
-      justify-content: space-around;
-    }
-
-    .nav-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 500;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      transition: color 0.15s ease;
-    }
-
-    .nav-btn.active {
-      color: var(--text-main);
-    }
-
-    /* ÉLÉMENTS DE LA VUE FOCUS (TIMER) */
-    .context-pill {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-    }
-
-    .context-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #6366f1;
-      display: inline-block;
-      margin-right: 6px;
-    }
-
-    .timer-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 30px 0;
-    }
-
-    .time-display {
-      font-size: 80px;
-      font-weight: 200;
-      letter-spacing: -0.04em;
-      font-variant-numeric: tabular-nums;
-      margin-bottom: 24px;
-    }
-
-    .preset-pills {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-
-    .preset-pill {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 13px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-
-    .preset-pill.active {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-    }
-
-    .controls {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .btn-main {
-      background: var(--text-main);
-      color: var(--bg);
-      border: none;
-      font-size: 15px;
-      font-weight: 600;
-      padding: 14px 38px;
-      border-radius: 30px;
-      cursor: pointer;
-    }
-
-    .btn-reset {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
-    /* ÉLÉMENTS DE LA VUE TÂCHES */
-    .task-input-container {
-      display: flex;
-      gap: 8px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 6px 8px 6px 14px;
-    }
-
-    .task-input {
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text-main);
-      font-size: 14px;
-      width: 100%;
-      user-select: text;
-    }
-
-    .btn-add {
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: var(--text-main);
-      font-size: 13px;
-      padding: 8px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .task-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .task-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      padding: 14px;
-      border-radius: 14px;
-    }
-
-    .task-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-    }
-
-    .checkbox {
-      width: 18px;
-      height: 18px;
-      border-radius: 6px;
-      border: 1.5px solid var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .task-item.completed .checkbox {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .task-item.completed .task-text {
-      color: var(--text-muted);
-      text-decoration: line-through;
-    }
-
-    .btn-delete {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-    }
-
-    /* ÉLÉMENTS DE LA VUE STATS */
-    .stat-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .stat-val {
-      font-size: 32px;
-      font-weight: 300;
-      color: var(--text-main);
-    }
-
-    .stat-sub {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
   <div class="app-container">
-    <!-- HEADER GLOBAL (présent partout, modifiable à un seul endroit) -->
+    <!-- HEADER -->
     <header>
       <div class="brand">
         <span class="brand-name">Span</span>
         <span class="brand-app" id="headerTitle">Focus</span>
       </div>
-      <button class="plan-bridge-btn" onclick="alert('Coming soon!')">Plan ↗</button>
+      <div class="header-actions">
+        <button class="icon-btn" id="soundBtn" onclick="toggleBrownNoise()" title="Brown Noise Generator">
+          <span>🎧</span>
+          <span id="soundLabel">Sound</span>
+        </button>
+        <button class="plan-bridge-btn" onclick="alert('Span Plan integration coming soon!')">Plan ↗</button>
+      </div>
     </header>
 
-    <!-- VUE 1 : FOCUS (TIMER) -->
+    <!-- PROGRESSION QUOTIDIENNE -->
+    <div class="goal-tracker">
+      <div class="goal-meta">
+        <span>Daily Goal</span>
+        <span id="goalPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="goalBar"></div>
+      </div>
+    </div>
+
+    <!-- VUE 1 : FOCUS -->
     <div id="view-focus" class="view-content active">
-      <div class="context-pill">
-        <div><span class="context-dot"></span>Active Session</div>
-        <span style="color: var(--text-muted); font-size: 12px;">Active Block</span>
+      <div class="spotlight-card" id="spotlightCard" style="display: none;">
+        <div class="spotlight-info">
+          <span class="spotlight-label">Active Focus</span>
+          <span class="spotlight-title" id="spotlightText">Task name</span>
+        </div>
+        <div class="spotlight-actions">
+          <button class="btn-spotlight-action" onclick="completeSpotlightTask()">Done ✓</button>
+          <button class="btn-spotlight-action" onclick="dismissSpotlightTask()">↩ List</button>
+        </div>
       </div>
 
       <section class="timer-section">
-        <div class="preset-pills">
-          <button class="preset-pill active" onclick="setTimerDuration(25)">25m</button>
-          <button class="preset-pill" onclick="setTimerDuration(50)">50m</button>
-          <button class="preset-pill" onclick="setTimerDuration(15)">15m</button>
+        <div class="mode-switch">
+          <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
+          <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
+          <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
         </div>
+
+        <div class="preset-pills" id="presetPills">
+          <button class="preset-pill active" onclick="setDuration(25)">25m</button>
+          <button class="preset-pill" onclick="setDuration(50)">50m</button>
+          <button class="preset-pill" onclick="setDuration(5)">5m break</button>
+        </div>
+
+        <svg class="focus-growth-svg" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+          <path id="growthLeaf" d="M20 28 C20 28 20 22 20 18" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>
+        </svg>
+
         <div class="time-display" id="timeDisplay">25:00</div>
+
         <div class="controls">
           <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
-          <button class="btn-reset" onclick="resetTimer()">↺</button>
+          <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
         </div>
       </section>
     </div>
 
-    <!-- VUE 2 : TÂCHES -->
+    <!-- VUE 2 : TASKS -->
     <div id="view-tasks" class="view-content">
       <div class="task-input-container">
-        <input type="text" class="task-input" id="taskInput" placeholder="Add a micro-task..." onkeydown="if(event.key==='Enter') addTask()">
+        <input type="text" class="task-input" id="taskInput" placeholder="Add task... (Enter)" onkeydown="if(event.key==='Enter') addTask()">
+        <select class="category-select" id="taskCategory">
+          <option value="Code">Code</option>
+          <option value="Study">Study</option>
+          <option value="Write">Write</option>
+          <option value="Admin">Admin</option>
+        </select>
         <button class="btn-add" onclick="addTask()">Add</button>
       </div>
+
       <ul class="task-list" id="taskList"></ul>
+      <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 4px;">
+        Shortcuts: ↑ / ↓ select • Space: timer • Enter: complete • Tab: edit • D: delete
+      </div>
     </div>
 
-    <!-- VUE 3 : STATS / HABITUDES -->
+    <!-- VUE 3 : TRACK / STATS -->
     <div id="view-stats" class="view-content">
       <div class="stat-card">
-        <div class="stat-sub">Focus time today</div>
-        <div class="stat-val" id="statsTime">25 min</div>
+        <div class="stat-header">
+          <span class="stat-sub">Category Breakdown</span>
+          <button class="toggle-unit-btn" id="btnToggleUnit" onclick="toggleChartUnit()">Show: Time</button>
+        </div>
+        <div class="pie-container">
+          <div class="pie-chart" id="pieChart"></div>
+          <div class="pie-legend" id="pieLegend"></div>
+        </div>
       </div>
+
       <div class="stat-card">
-        <div class="stat-sub">Current streak (Habits)</div>
-        <div class="stat-val" style="color: var(--streak);">🔥 1 day</div>
+        <div class="stat-sub">Data & Cloud Backup (JSON)</div>
+        <div class="backup-section">
+          <button class="btn-backup" onclick="exportData()">Download Backup</button>
+          <label class="btn-backup" style="cursor: pointer;">
+            Import Backup
+            <input type="file" id="importFileInput" style="display: none;" onchange="importData(event)">
+          </label>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- NAVIGATION FIXE DU BAS -->
+  <!-- NAVIGATION BAR -->
   <nav class="nav-bar">
     <div class="nav-items">
       <button class="nav-btn active" onclick="switchView('focus', this)">
@@ -422,116 +145,11 @@
     </div>
   </nav>
 
-  <script>
-    // --- GESTION DU ROUTAGE INTERNE (ONGETS) ---
-    function switchView(viewName, btnElement) {
-      document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-      document.getElementById(`view-${viewName}`).classList.add('active');
-      btnElement.classList.add('active');
-
-      const titles = { focus: 'Focus', tasks: 'Tasks', stats: 'Track' };
-      document.getElementById('headerTitle').textContent = titles[viewName];
-    }
-
-    // --- TIMER ---
-    let durationMinutes = 25;
-    let totalSeconds = durationMinutes * 60;
-    let timerInterval = null;
-    let isRunning = false;
-
-    function updateDisplay() {
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      document.getElementById('timeDisplay').textContent = 
-        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-
-    function setTimerDuration(mins) {
-      if (isRunning) toggleTimer();
-      durationMinutes = mins;
-      totalSeconds = mins * 60;
-      updateDisplay();
-      document.querySelectorAll('.preset-pill').forEach(b => b.classList.toggle('active', b.textContent.startsWith(mins)));
-    }
-
-    function toggleTimer() {
-      const btn = document.getElementById('btnToggle');
-      if (isRunning) {
-        clearInterval(timerInterval);
-        btn.textContent = 'Resume';
-        isRunning = false;
-      } else {
-        isRunning = true;
-        btn.textContent = 'Pause';
-        timerInterval = setInterval(() => {
-          if (totalSeconds > 0) {
-            totalSeconds--;
-            updateDisplay();
-          } else {
-            clearInterval(timerInterval);
-            isRunning = false;
-            btn.textContent = 'Done';
-            alert('Session completed!');
-            resetTimer();
-          }
-        }, 1000);
-      }
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      isRunning = false;
-      totalSeconds = durationMinutes * 60;
-      document.getElementById('btnToggle').textContent = 'Start';
-      updateDisplay();
-    }
-
-    // --- TÂCHES & LOCALSTORAGE ---
-    let tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-      { text: "Plan weekly blocks", completed: false }
-    ];
-
-    function renderTasks() {
-      const list = document.getElementById('taskList');
-      list.innerHTML = '';
-      tasks.forEach((task, i) => {
-        const li = document.createElement('li');
-        li.className = `task-item ${task.completed ? 'completed' : ''}`;
-        li.innerHTML = `
-          <div class="task-left" onclick="toggleTask(${i})">
-            <div class="checkbox">${task.completed ? '✓' : ''}</div>
-            <span class="task-text">${task.text}</span>
-          </div>
-          <button class="btn-delete" onclick="deleteTask(${i})">✕</button>
-        `;
-        list.appendChild(li);
-      });
-      localStorage.setItem('span_tasks', JSON.stringify(tasks));
-    }
-
-    function addTask() {
-      const input = document.getElementById('taskInput');
-      const val = input.value.trim();
-      if (!val) return;
-      tasks.unshift({ text: val, completed: false });
-      input.value = '';
-      renderTasks();
-    }
-
-    function toggleTask(i) {
-      tasks[i].completed = !tasks[i].completed;
-      renderTasks();
-    }
-
-    function deleteTask(i) {
-      tasks.splice(i, 1);
-      renderTasks();
-    }
-
-    updateDisplay();
-    renderTasks();
-  </script>
+  <!-- SCRIPTS DÉCOUPÉS -->
+  <script src="js/audio.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
