@@ -408,8 +408,3 @@ window.addEventListener('keydown', (e) => {
     if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
   }
 });
-
-// Initialisation au chargement de la page
-window.addEventListener('DOMContentLoaded', () => {
-  updateCategoryDOMNames();
-});
