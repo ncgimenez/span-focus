@@ -1049,3 +1049,31 @@ input[type="range"] {
 .btn-spotlight-action.mini:hover {
   color: var(--text-main);
 }
+
+/* Édition inline du minuteur */
+.time-display.editable {
+  cursor: pointer;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.3);
+}
+
+.custom-time-input {
+  display: none;
+  font-size: 64px;
+  font-weight: 200;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  text-align: center;
+  width: 140px;
+  outline: none;
+  font-family: inherit;
+  z-index: 5;
+}
+
+/* Masquer les flèches haut/bas des inputs numériques */
+.custom-time-input::-webkit-outer-spin-button,
+.custom-time-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
