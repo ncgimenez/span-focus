@@ -15,7 +15,7 @@ function logFocusedSecond() {
     localStorage.setItem('span_tracking', JSON.stringify(trackingData));
     updateGoalBar();
     renderChart();
-    if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTE CETTE LIGNE
+    if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTER ICI
   }
 }
 
