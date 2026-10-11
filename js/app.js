@@ -95,29 +95,26 @@ document.addEventListener('touchstart', (e) => {
   isHorizontalGesture = null;
 }, { passive: true });
 
-const appContainer = document.querySelector('.app-container');
-
 document.addEventListener('touchmove', (e) => {
   touchDiffX = e.touches[0].clientX - touchStartX;
   touchDiffY = e.touches[0].clientY - touchStartY;
 
-  if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 10 || Math.abs(touchDiffY) > 10)) {
+  if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 8 || Math.abs(touchDiffY) > 8)) {
     isHorizontalGesture = Math.abs(touchDiffX) > Math.abs(touchDiffY);
   }
 
-  // Fait descendre visuellement toute l'interface en suivant le doigt
-  if (isHorizontalGesture === false && touchDiffY > 0 && appContainer) {
-    const pullDistance = Math.min(touchDiffY * 0.4, 70); // Résistance élastique
-    appContainer.style.transform = `translateY(${pullDistance}px)`;
-    appContainer.style.transition = 'none';
+  // Étirement élastique visible sur tout l'écran
+  if (isHorizontalGesture === false && touchDiffY > 0) {
+    const pullDistance = Math.min(touchDiffY * 0.45, 90);
+    document.body.style.transition = 'none';
+    document.body.style.transform = `translateY(${pullDistance}px)`;
   }
 }, { passive: true });
 
 document.addEventListener('touchend', () => {
-  if (appContainer) {
-    appContainer.style.transition = 'transform 0.25s ease';
-    appContainer.style.transform = 'translateY(0px)';
-  }
+  document.body.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+  document.body.style.transform = 'translateY(0px)';
+
 
   if (isHorizontalGesture === true && Math.abs(touchDiffX) > 50) {
     if (touchDiffX < 0 && activeTabIndex < appViews.length - 1) {
