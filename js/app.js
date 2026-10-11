@@ -81,3 +81,31 @@ function handleSwipeGesture() {
   }
 }
 
+// Pull-to-refresh personnalisé pour mobile
+let touchStartY = 0;
+let touchDiffY = 0;
+
+window.addEventListener('touchstart', (e) => {
+  if (window.scrollY === 0) {
+    touchStartY = e.touches[0].clientY;
+  } else {
+    touchStartY = 0;
+  }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+  if (touchStartY === 0) return;
+  const currentY = e.touches[0].clientY;
+  touchDiffY = currentY - touchStartY;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+  // Si on tire vers le bas de plus de 80px alors qu'on est tout en haut
+  if (touchDiffY > 80 && window.scrollY === 0) {
+    if (navigator.vibrate) navigator.vibrate(15);
+    window.location.reload();
+  }
+  touchStartY = 0;
+  touchDiffY = 0;
+});
+
