@@ -46,119 +46,105 @@
     <!-- CONTENEUR DU SLIDER -->
     <div class="views-viewport">
       <div class="views-slider" id="viewsSlider">
+
         <!-- VUE 1 : FOCUS -->
         <div id="view-focus" class="view-panel">
-          <!-- tout le contenu actuel de focus -->
+          <div class="spotlight-container">
+            <div class="spotlight-card" id="spotlightCard" style="display: none;">
+              <div class="spotlight-info">
+                <span class="spotlight-label">Active Focus</span>
+                <span class="spotlight-title" id="spotlightText">Task name</span>
+              </div>
+              <div class="spotlight-actions">
+                <button class="btn-spotlight-action" onclick="completeSpotlightTask()">Done ✓</button>
+                <button class="btn-spotlight-action" onclick="dismissSpotlightTask()">↩</button>
+              </div>
+            </div>
+
+            <button class="spotlight-empty-btn" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
+              <span>+ Select a task to focus on</span>
+            </button>
+
+            <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
+          </div>
+
+          <!-- TIMER SECTION -->
+          <section class="timer-section">
+            <div class="mode-switch">
+              <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
+              <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
+              <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
+            </div>
+
+            <div class="preset-pills" id="presetPills">
+              <button class="preset-pill active" onclick="setDuration(25)">25m</button>
+              <button class="preset-pill" onclick="setDuration(50)">50m</button>
+              <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+            </div>
+
+            <div class="timer-circle-wrapper">
+              <svg class="timer-ring-svg" viewBox="0 0 260 260">
+                <circle class="ring-bg" cx="130" cy="130" r="118" />
+                <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
+              </svg>
+              <div class="time-display" id="timeDisplay">25:00</div>
+            </div>
+
+            <div class="controls">
+              <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
+              <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+            </div>
+          </section>
         </div>
 
         <!-- VUE 2 : TASKS -->
         <div id="view-tasks" class="view-panel">
-          <!-- tout le contenu actuel de tasks -->
+          <div class="task-input-container">
+            <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
+            <select class="category-select" id="taskCategory">
+              <option value="Code">Code</option>
+              <option value="Study">Study</option>
+              <option value="Write">Write</option>
+              <option value="Admin">Admin</option>
+            </select>
+            <button class="btn-add" onclick="addTask()">Add</button>
+          </div>
+
+          <ul class="task-list" id="taskList"></ul>
+          <div class="shortcuts-legend">
+            Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
+          </div>
         </div>
 
         <!-- VUE 3 : TRACK / STATS -->
         <div id="view-stats" class="view-panel">
-          <!-- tout le contenu actuel de track -->
-        </div>
-      </div>
-    </div>
-
-    
-    <!-- VUE 1 : FOCUS -->
-    <div id="view-focus" class="view-content active">
-      <div class="spotlight-container">
-        <div class="spotlight-card" id="spotlightCard" style="display: none;">
-          <div class="spotlight-info">
-            <span class="spotlight-label">Active Focus</span>
-            <span class="spotlight-title" id="spotlightText">Task name</span>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-sub">Daily Target</span>
+              <span id="targetDisplaySummary" style="font-size: 13px; font-weight: 600;">100 min</span>
+            </div>
+            <div class="target-setting-row">
+              <input type="range" id="goalRangeInput" min="25" max="360" step="25" value="100" oninput="updateDailyGoalTarget(this.value)">
+              <div class="target-labels">
+                <span>25m (1 block)</span>
+                <span>2h</span>
+                <span>4h+</span>
+              </div>
+            </div>
           </div>
-          <div class="spotlight-actions">
-            <button class="btn-spotlight-action" onclick="completeSpotlightTask()">Done ✓</button>
-            <button class="btn-spotlight-action" onclick="dismissSpotlightTask()">↩</button>
-          </div>
-        </div>
 
-        <button class="spotlight-empty-btn" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
-          <span>+ Select a task to focus on</span>
-        </button>
-
-        <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
-      </div>
-
-      <!-- TIMER SECTION -->
-      <section class="timer-section">
-        <div class="mode-switch">
-          <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
-          <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
-          <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
-        </div>
-
-        <div class="preset-pills" id="presetPills">
-          <button class="preset-pill active" onclick="setDuration(25)">25m</button>
-          <button class="preset-pill" onclick="setDuration(50)">50m</button>
-          <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
-        </div>
-
-        <div class="timer-circle-wrapper">
-          <svg class="timer-ring-svg" viewBox="0 0 260 260">
-            <circle class="ring-bg" cx="130" cy="130" r="118" />
-            <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
-          </svg>
-          <div class="time-display" id="timeDisplay">25:00</div>
-        </div>
-
-        <div class="controls">
-          <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
-          <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-        </div>
-      </section>
-    </div>
-
-    <!-- VUE 2 : TASKS -->
-    <div id="view-tasks" class="view-content">
-      <div class="task-input-container">
-        <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
-        <select class="category-select" id="taskCategory">
-          <option value="Code">Code</option>
-          <option value="Study">Study</option>
-          <option value="Write">Write</option>
-          <option value="Admin">Admin</option>
-        </select>
-        <button class="btn-add" onclick="addTask()">Add</button>
-      </div>
-
-      <ul class="task-list" id="taskList"></ul>
-      <div class="shortcuts-legend">
-        Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
-      </div>
-    </div>
-
-    <!-- VUE 3 : TRACK / STATS -->
-    <div id="view-stats" class="view-content">
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-sub">Daily Target</span>
-          <span id="targetDisplaySummary" style="font-size: 13px; font-weight: 600;">100 min</span>
-        </div>
-        <div class="target-setting-row">
-          <input type="range" id="goalRangeInput" min="25" max="360" step="25" value="100" oninput="updateDailyGoalTarget(this.value)">
-          <div class="target-labels">
-            <span>25m (1 block)</span>
-            <span>2h</span>
-            <span>4h+</span>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-sub">Category Breakdown</span>
+              <button class="toggle-unit-btn" id="btnToggleUnit" onclick="toggleChartUnit()">Show: Time</button>
+            </div>
+            <div class="pie-container">
+              <div class="pie-chart" id="pieChart"></div>
+              <div class="pie-legend" id="pieLegend"></div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="stat-card">
-        <div class="stat-header">
-          <span class="stat-sub">Category Breakdown</span>
-          <button class="toggle-unit-btn" id="btnToggleUnit" onclick="toggleChartUnit()">Show: Time</button>
-        </div>
-        <div class="pie-container">
-          <div class="pie-chart" id="pieChart"></div>
-          <div class="pie-legend" id="pieLegend"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -257,7 +243,6 @@
     </div>
   </nav>
 
-  
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/audio.js?v=1.2"></script>
