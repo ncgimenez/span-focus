@@ -8,7 +8,6 @@ let editingTaskId = null;
 let editingCategory = 'Code';
 let editingEstimate = 1;
 
-// Normalisation des tâches existantes (text -> title)
 tasks = tasks.map(t => ({
   ...t,
   title: t.title || t.text || 'Untitled Task'
@@ -94,6 +93,7 @@ function addTask() {
 }
 
 function toggleTask(index) {
+  if (!tasks[index]) return;
   tasks[index].completed = !tasks[index].completed;
   if (activeTask && activeTask.id === tasks[index].id) {
     dismissSpotlightTask();
@@ -103,19 +103,10 @@ function toggleTask(index) {
 }
 
 function deleteTask(index) {
+  if (!tasks[index]) return;
   if (activeTask && activeTask.id === tasks[index].id) dismissSpotlightTask();
   tasks.splice(index, 1);
   selectedTaskIndex = 0;
-  saveTasks();
-}
-
-// GESTION DU FOCUS / SPOTLIGHT
-function setActiveTask(taskId) {
-  if (!taskId || taskId === 'none') {
-    activeTask = null;
-  } else {
-    activeTask = tasks.find(t => String(t.id) === String(taskId)) || null;
-  }
   saveTasks();
 }
 
@@ -128,7 +119,6 @@ function setSpotlightTask(index) {
 }
 
 function updateSpotlightUI() {
-  // Sélection automatique de la première tâche disponible si aucune n'est active
   if (!activeTask && tasks.length > 0) {
     const firstPending = tasks.find(t => !t.completed);
     if (firstPending) {
@@ -137,9 +127,6 @@ function updateSpotlightUI() {
     }
   }
 
-  const activeTitle = activeTask ? (activeTask.title || activeTask.text) : 'Free Focus';
-
-  // 1. Support de l'élément carte (spotlightCard)
   const card = document.getElementById('spotlightCard');
   const emptyBtn = document.getElementById('spotlightEmptyBtn');
   const spotlightText = document.getElementById('spotlightText');
@@ -151,36 +138,11 @@ function updateSpotlightUI() {
     if (activeTask) {
       card.style.display = 'flex';
       emptyBtn.style.display = 'none';
-      if (spotlightText) spotlightText.textContent = activeTitle;
+      if (spotlightText) spotlightText.textContent = activeTask.title || activeTask.text || '';
     } else {
       card.style.display = 'none';
       emptyBtn.style.display = 'block';
     }
-  }
-
-  // 2. Support de la liste déroulante (focusTaskSelector)
-  const selectEl = document.getElementById('focusTaskSelector');
-  if (selectEl) {
-    selectEl.innerHTML = '<option value="none">-- Free Focus (No task) --</option>';
-    tasks.forEach(t => {
-      if (!t.completed) {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = (t.category ? `[${t.category}] ` : '') + (t.title || t.text);
-        if (activeTask && String(activeTask.id) === String(t.id)) opt.selected = true;
-        selectEl.appendChild(opt);
-      }
-    });
-
-    selectEl.onchange = (e) => {
-      setActiveTask(e.target.value);
-    };
-  }
-
-  // 3. Titre direct (currentFocusTitle)
-  const displayEl = document.getElementById('currentFocusTitle');
-  if (displayEl) {
-    displayEl.textContent = activeTitle;
   }
 }
 
@@ -194,7 +156,7 @@ function toggleTaskPicker() {
   }
   const pending = tasks.filter(t => !t.completed);
   if (pending.length === 0) {
-    dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted)">No pending tasks</div>`;
+    dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted); padding: 10px;">No pending tasks</div>`;
   } else {
     dropdown.innerHTML = pending.map(t => `
       <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
@@ -207,7 +169,9 @@ function toggleTaskPicker() {
 }
 
 function selectPickerTask(taskId) {
-  setActiveTask(taskId);
+  const found = tasks.find(x => String(x.id) === String(taskId));
+  if (found) activeTask = found;
+  saveTasks();
 }
 
 function completeSpotlightTask() {
