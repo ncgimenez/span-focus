@@ -18,7 +18,7 @@ function logFocusedSecond() {
     if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTER ICI
   }
 
-  }
+  
 }
 
 
