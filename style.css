@@ -970,42 +970,81 @@ input[type="range"] {
   padding-bottom: 20px;
 }
 
+
+/* Alignement du minuteur et des réglages de temps */
+.timer-circle-wrapper {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time-display {
+  line-height: 1;
+  margin-top: -10px;
+}
+
 .preset-pills-sub {
-  position: absolute;
-  bottom: 24px;
+  position: static;
   display: flex;
   gap: 6px;
   z-index: 3;
 }
 
 .preset-pills-sub .preset-pill {
-  font-size: 11px;
-  padding: 3px 8px;
+  font-size: 12px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  cursor: pointer;
 }
 
+.preset-pills-sub .preset-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-main);
+}
+
+/* Tâche active compacte et centrée */
 .compact-spotlight {
-  width: auto;
-  max-width: 320px;
-  margin-bottom: 8px;
+  width: 100%;
+  max-width: 340px;
+  margin: 6px auto 14px auto;
 }
 
 .spotlight-card.compact {
-  padding: 6px 12px;
-  border-radius: 20px;
-  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+.spotlight-card.compact .spotlight-title {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
 }
 
 .spotlight-empty-btn.compact {
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 999px;
   font-size: 12px;
 }
 
 .btn-spotlight-action.mini {
-  padding: 2px 6px;
-  font-size: 10px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  cursor: pointer;
 }
 
+.btn-spotlight-action.mini:hover {
+  color: var(--text-main);
+}
