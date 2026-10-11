@@ -53,54 +53,60 @@
     <div class="views-viewport">
       <div class="views-slider" id="viewsSlider">
 
-        <!-- VUE 1 : FOCUS -->
-        <div id="view-focus" class="view-panel">
-          <!-- TIMER SECTION -->
-          <section class="timer-section">
-            <div class="mode-switch">
-              <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
-              <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
-              <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
-            </div>
+     <!-- VUE 1 : FOCUS -->
+<div id="view-focus" class="view-panel">
+  <!-- 1. TÂCHE ACTIVE ÉPURÉE EN HAUT -->
+  <div class="spotlight-container">
+    <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
+      <span class="spotlight-dot">🎯</span>
+      <span class="spotlight-title" id="spotlightText">Task name</span>
+      <div class="spotlight-actions">
+        <button class="btn-spotlight-action mini" onclick="completeSpotlightTask()" title="Complete">✓</button>
+        <button class="btn-spotlight-action mini" onclick="dismissSpotlightTask()" title="Clear">✕</button>
+      </div>
+    </div>
 
-            <div class="timer-circle-wrapper">
-              <svg class="timer-ring-svg" viewBox="0 0 260 260">
-                <circle class="ring-bg" cx="130" cy="130" r="118" />
-                <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
-              </svg>
-              <div class="time-display" id="timeDisplay">25:00</div>
-            </div>
+    <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
+      <span>+ Set focus task</span>
+    </button>
 
-            <!-- Placé EN DEHORS du cercle pour un rendu net -->
-            <div class="preset-pills" id="presetPills" style="margin-bottom: 12px;">
-              <button class="preset-pill active" onclick="setDuration(25)">25m</button>
-              <button class="preset-pill" onclick="setDuration(50)">50m</button>
-              <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
-            </div>
+    <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
+  </div>
 
+  <!-- 2. SECTION TIMER -->
+  <section class="timer-section">
+    <div class="mode-switch">
+      <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
+      <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
+      <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
+    </div>
 
-            <!-- Spotlight compact au-dessus de Start -->
-            <div class="spotlight-container compact-spotlight">
-              <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
-                <span class="spotlight-dot">🎯</span>
-                <span class="spotlight-title" id="spotlightText">Task name</span>
-                <button class="btn-spotlight-action mini" onclick="completeSpotlightTask()" title="Complete">✓</button>
-                <button class="btn-spotlight-action mini" onclick="dismissSpotlightTask()" title="Clear">✕</button>
-              </div>
+    <div class="timer-circle-wrapper">
+      <svg class="timer-ring-svg" viewBox="0 0 260 260">
+        <circle class="ring-bg" cx="130" cy="130" r="118" />
+        <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
+      </svg>
+      
+      <!-- Affichage du temps avec input inline caché pour le mode Custom -->
+      <div class="time-display" id="timeDisplay" onclick="startEditingCustomTime()">25:00</div>
+      <input type="number" id="customTimeInput" class="custom-time-input" min="1" max="180" onblur="finishEditingCustomTime()" onkeydown="if(event.key==='Enter') finishEditingCustomTime()">
+    </div>
 
-              <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
-                <span>+ Set focus task</span>
-              </button>
+    <!-- Pilules dynamiques selon le mode -->
+    <div class="preset-pills" id="presetPills">
+      <button class="preset-pill active" onclick="setDuration(25)">25m</button>
+      <button class="preset-pill" onclick="setDuration(50)">50m</button>
+      <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+    </div>
 
-              <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
-            </div>
+    <!-- 3. CONTRÔLES START / RESET -->
+    <div class="controls">
+      <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
+      <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+    </div>
+  </section>
+</div>
 
-            <div class="controls">
-              <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
-              <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-            </div>
-          </section>
-        </div>
 
 
         <!-- VUE 2 : TASKS -->
