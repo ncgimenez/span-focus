@@ -40,3 +40,44 @@ window.addEventListener('DOMContentLoaded', () => {
   updateSpotlightUI();
   updateGoalBar();
 });
+
+// Support du Swipe horizontal sur mobile (Focus <-> Tasks <-> Track)
+const views = ['focusView', 'tasksView', 'trackView'];
+let currentViewIndex = 0;
+let touchStartX = 0;
+let touchEndX = 0;
+
+function switchViewByIndex(index) {
+  if (index < 0 || index >= views.length) return;
+  currentViewIndex = index;
+  const targetViewName = views[index].replace('View', '');
+  // Appelle ta fonction existante de switch d'onglet
+  if (typeof switchTab === 'function') {
+    switchTab(targetViewName);
+  }
+}
+
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipeGesture();
+}, { passive: true });
+
+function handleSwipeGesture() {
+  const swipeThreshold = 60; // Seuil minimum de déplacement en px
+  const diff = touchEndX - touchStartX;
+
+  if (Math.abs(diff) > swipeThreshold) {
+    if (diff < 0 && currentViewIndex < views.length - 1) {
+      // Swipe vers la gauche -> Onglet suivant
+      switchViewByIndex(currentViewIndex + 1);
+    } else if (diff > 0 && currentViewIndex > 0) {
+      // Swipe vers la droite -> Onglet précédent
+      switchViewByIndex(currentViewIndex - 1);
+    }
+  }
+}
+
