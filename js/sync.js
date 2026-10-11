@@ -3,11 +3,6 @@ const SUPABASE_URL = 'https://xzoukiveknyuxmbrcsvb.supabase.co'; // ex: 'https:/
 const SUPABASE_ANON_KEY = 'sb_publishable_8g571gv3CFOyJ0lMtaAf4w_CcITQovd'; // ex: 'eyJhbGciOi...'
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// --- CONFIGURATION SUPABASE ---
-const SUPABASE_URL = 'COLLE_TON_URL_ICI';
-const SUPABASE_ANON_KEY = 'COLLE_TA_CLE_ANON_ICI';
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function getOrCreateSyncId() {
   let id = localStorage.getItem('span_sync_user');
