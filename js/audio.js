@@ -101,3 +101,31 @@ function handleTimerAudioSync(running, isBreak) {
     else stopNoise();
   }
 }
+
+// Déverrouiller le contexte audio sur iOS Safari lors du premier clic
+let audioUnlocked = false;
+
+function unlockAudioOnIOS() {
+  if (audioUnlocked) return;
+  
+  // Si tu utilises la Web Audio API (AudioContext)
+  if (typeof audioCtx !== 'undefined' && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  
+  // Joue un son silencieux de 1 milliseconde pour autoriser les sons suivants
+  const silentBuffer = audioCtx?.createBuffer(1, 1, 22050);
+  if (silentBuffer && audioCtx) {
+    const source = audioCtx.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  }
+
+  audioUnlocked = true;
+}
+
+// Écoute le premier clic/touch sur toute la page
+document.addEventListener('touchstart', unlockAudioOnIOS, { once: true });
+document.addEventListener('click', unlockAudioOnIOS, { once: true });
+
