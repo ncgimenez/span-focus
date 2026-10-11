@@ -61,13 +61,15 @@ window.addEventListener('DOMContentLoaded', () => {
   if (toggleBtn) toggleBtn.textContent = savedTheme.charAt(0).toUpperCase() + savedTheme.slice(1);
 
   const goalInput = document.getElementById('goalRangeInput');
-  if (goalInput && typeof dailyTargetMinutes !== 'undefined') {
-    goalInput.value = dailyTargetMinutes;
+  const targetMin = (window.SpanState && window.SpanState.dailyTargetMinutes) || 100;
+  if (goalInput) {
+    goalInput.value = targetMin;
     const targetSummary = document.getElementById('targetDisplaySummary');
     if (targetSummary) {
-      targetSummary.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
+      targetSummary.textContent = `${targetMin} min (~${Math.round(targetMin / 25)} blocks)`;
     }
   }
+
 
   if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
   if (typeof updateSoundButtonUI === 'function') updateSoundButtonUI();
