@@ -123,3 +123,38 @@ document.addEventListener('touchend', () => {
   touchDiffY = 0;
   isHorizontalGesture = null;
 });
+
+// --- NAVIGATION PAR SWIPE HORIZONTAL SUR TRACKPAD (MAC / PC) ---
+let isWheelLocked = false;
+let wheelCooldownTimer = null;
+
+window.addEventListener('wheel', (e) => {
+  // Ignore si l'utilisateur est dans une modale ouverte ou fait défiler une liste verticalement
+  const isModalOpen = document.querySelector('.modal-overlay[style*="display: flex"]');
+  if (isModalOpen) return;
+
+  // On vérifie que le geste est nettement horizontal (deltaX dominant)
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 40) {
+    if (isWheelLocked) return;
+
+    if (e.deltaX > 0 && activeTabIndex < appViews.length - 1) {
+      // Glissement vers la gauche (doigts vers la gauche) -> Vue suivante
+      switchView(appViews[activeTabIndex + 1]);
+      lockWheelNavigation();
+    } else if (e.deltaX < 0 && activeTabIndex > 0) {
+      // Glissement vers la droite (doigts vers la droite) -> Vue précédente
+      switchView(appViews[activeTabIndex - 1]);
+      lockWheelNavigation();
+    }
+  }
+}, { passive: true });
+
+function lockWheelNavigation() {
+  isWheelLocked = true;
+  clearTimeout(wheelCooldownTimer);
+  // Bloque les déclenchements répétés pendant 450ms le temps que le geste se termine
+  wheelCooldownTimer = setTimeout(() => {
+    isWheelLocked = false;
+  }, 450);
+}
+
