@@ -115,7 +115,7 @@ header {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* GOAL TRACKER (CLIQUABLE) */
+/* GOAL TRACKER */
 .goal-tracker {
   display: flex;
   flex-direction: column;
@@ -264,20 +264,20 @@ header {
   max-height: 200px;
   overflow-y: auto;
   z-index: 50;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .task-picker-item {
   padding: 10px 14px;
   font-size: 13px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   justify-content: space-between;
 }
 
 .task-picker-item:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* TIMER & CIRCLE RING */
@@ -575,7 +575,6 @@ header {
   color: var(--text-main);
 }
 
-/* Visibilité intelligente du bouton 🎯 */
 .btn-focus-target {
   display: none;
 }
@@ -591,7 +590,7 @@ header {
   margin-top: 4px;
 }
 
-/* TRACK VIEW & TARGET SETTINGS */
+/* TRACK VIEW & STATS */
 .stat-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -696,7 +695,7 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="light"] .modal-card {
@@ -759,9 +758,9 @@ input[type="range"] {
 }
 
 .cat-pill.active {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--text-main);
-  border-color: rgba(255,255,255,0.3);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .pomodoro-stepper {
@@ -845,7 +844,7 @@ input[type="range"] {
   text-align: center;
 }
 
-/* NAVBAR */
+/* NAVBAR FIXE EN BAS (STYLE IOS) */
 .nav-bar {
   position: fixed;
   bottom: 0;
@@ -885,51 +884,29 @@ input[type="range"] {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  padding: 6px 12px;
 }
 
 .nav-btn.active {
   color: var(--text-main);
 }
 
-/* Adaptation iPhone 13 mini et petits écrans */
+/* ADAPTATION IPHONE 13 MINI ET PETITS ÉCRANS */
 @media (max-width: 400px) {
   body {
     font-size: 14px;
   }
   .app-header h1 {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
   }
-  .timer-display {
-    font-size: 3.2rem;
+  .time-display {
+    font-size: 54px;
+  }
+  .timer-circle-wrapper {
+    width: 220px;
+    height: 220px;
   }
   .task-item {
     padding: 10px 12px;
   }
 }
-
-/* Correction de la barre de navigation */
-.nav-tabs {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  position: relative;
-  border-bottom: 1px solid var(--card-border);
-  padding-bottom: 8px;
-  margin-bottom: 16px;
-}
-
-.nav-tab-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 6px 12px;
-  cursor: pointer;
-  position: relative;
-}
-
-.nav-tab-btn.active {
-  color: var(--text-main);
-}
-
