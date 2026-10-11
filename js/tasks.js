@@ -1,3 +1,11 @@
+// Dictionnaire des libellés de catégories personnalisés
+let categoryLabels = JSON.parse(localStorage.getItem('span_category_labels')) || {
+  Code: 'Code',
+  Study: 'Study',
+  Write: 'Write',
+  Admin: 'Admin'
+};
+
 let tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
   { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false },
   { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
@@ -5,12 +13,13 @@ let tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
 let activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
 let selectedTaskIndex = 0;
 let editingTaskId = null;
-let editingCategory = 'Code';
+let editingCategory = 'None';
 let editingEstimate = 1;
 
 tasks = tasks.map(t => ({
   ...t,
-  title: t.title || t.text || 'Untitled Task'
+  title: t.title || t.text || 'Untitled Task',
+  category: t.category || 'None'
 }));
 
 function saveTasks() {
@@ -19,6 +28,29 @@ function saveTasks() {
   renderTasks();
   updateSpotlightUI();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
+}
+
+// Fonction pour renommer une catégorie
+function handleCategoryRename(key, newName) {
+  categoryLabels[key] = newName.trim() || key;
+  localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
+  updateCategoryDOMNames();
+  renderTasks();
+  if (typeof renderChart === 'function') renderChart();
+}
+
+// Met à jour les libellés partout dans le DOM
+function updateCategoryDOMNames() {
+  ['Code', 'Study', 'Write', 'Admin'].forEach(key => {
+    const opt = document.getElementById(`optCat${key}`);
+    if (opt) opt.textContent = categoryLabels[key];
+
+    const input = document.getElementById(`renameCat${key}`);
+    if (input && !input.value) input.value = categoryLabels[key];
+
+    const pill = document.querySelector(`.cat-pill[data-cat="${key}"]`);
+    if (pill) pill.textContent = categoryLabels[key];
+  });
 }
 
 function renderTasks() {
@@ -44,12 +76,17 @@ function renderTasks() {
     });
 
     const taskTitle = task.title || task.text || '';
+    const hasCategory = task.category && task.category !== 'None';
+    const catLabel = hasCategory ? (categoryLabels[task.category] || task.category) : '';
+    const tagHtml = hasCategory 
+      ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
+      : '';
 
     li.innerHTML = `
       <div class="task-left" onclick="openEditModalForTask('${task.id}')">
         <div class="checkbox" onclick="event.stopPropagation(); toggleTask(${index})">${task.completed ? '✓' : ''}</div>
         <span class="task-text">${taskTitle}</span>
-        <span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${(task.category || 'code').toLowerCase()})">${task.category}</span>
+        ${tagHtml}
         <span class="task-est">⏱ ${task.estimate || 1}</span>
       </div>
       <div class="task-actions">
@@ -72,7 +109,7 @@ function addTask() {
   const input = document.getElementById('taskInput');
   const catSelect = document.getElementById('taskCategory');
   const text = input ? input.value.trim() : '';
-  const category = catSelect ? catSelect.value : 'Code';
+  const category = catSelect ? catSelect.value : 'None';
 
   if (!text) return;
 
@@ -158,12 +195,16 @@ function toggleTaskPicker() {
   if (pending.length === 0) {
     dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted); padding: 10px;">No pending tasks</div>`;
   } else {
-    dropdown.innerHTML = pending.map(t => `
-      <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
-        <span>${t.title || t.text}</span>
-        <span style="color:var(--text-muted)">${t.category}</span>
-      </div>
-    `).join('');
+    dropdown.innerHTML = pending.map(t => {
+      const hasCat = t.category && t.category !== 'None';
+      const catText = hasCat ? (categoryLabels[t.category] || t.category) : '';
+      return `
+        <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
+          <span>${t.title || t.text}</span>
+          <span style="color:var(--text-muted)">${catText}</span>
+        </div>
+      `;
+    }).join('');
   }
   dropdown.style.display = 'block';
 }
@@ -192,7 +233,7 @@ function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
   editingTaskId = id;
-  editingCategory = task.category || 'Code';
+  editingCategory = (task.category && task.category !== 'None') ? task.category : 'None';
   editingEstimate = task.estimate || 1;
 
   const titleInput = document.getElementById('editTaskTitle');
@@ -204,16 +245,24 @@ function openEditModalForTask(id) {
   const minEl = document.getElementById('editEstMinutes');
   if (minEl) minEl.textContent = editingEstimate * 25;
 
-  selectEditCategory(editingCategory);
+  document.querySelectorAll('.cat-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === editingCategory);
+  });
 
   const modal = document.getElementById('editModalOverlay');
   if (modal) modal.style.display = 'flex';
 }
 
+// Sélection / Désélection en recliquant
 function selectEditCategory(cat) {
-  editingCategory = cat;
+  if (editingCategory === cat) {
+    editingCategory = 'None';
+  } else {
+    editingCategory = cat;
+  }
+
   document.querySelectorAll('.cat-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.cat === cat);
+    btn.classList.toggle('active', btn.dataset.cat === editingCategory);
   });
 }
 
@@ -239,7 +288,7 @@ function saveTaskModal() {
   const task = tasks.find(t => String(t.id) === String(editingTaskId));
   if (task) {
     task.title = title;
-    task.category = editingCategory;
+    task.category = editingCategory || 'None';
     task.estimate = editingEstimate;
     if (activeTask && String(activeTask.id) === String(task.id)) {
       activeTask = task;
@@ -301,4 +350,9 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'd' || e.key === 'D') {
     if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
   }
+});
+
+// Initialisation au chargement de la page
+window.addEventListener('DOMContentLoaded', () => {
+  updateCategoryDOMNames();
 });
