@@ -92,18 +92,19 @@ async function saveStateToCloud() {
   if (isSyncingIncoming) return;
 
   try {
-    const payload = {
+   const payload = {
       id: SYNC_USER_ID,
-      tasks: typeof tasks !== 'undefined' ? tasks : [],
-      tracking: typeof trackingData !== 'undefined' ? trackingData : {},
-      daily_target: typeof dailyTargetMinutes !== 'undefined' ? dailyTargetMinutes : 100,
+      tasks: (window.SpanState && window.SpanState.tasks) || (typeof tasks !== 'undefined' ? tasks : []),
+      tracking: (window.SpanState && window.SpanState.trackingData) || (typeof trackingData !== 'undefined' ? trackingData : {}),
+      daily_target: (window.SpanState && window.SpanState.dailyTargetMinutes) || (typeof dailyTargetMinutes !== 'undefined' ? dailyTargetMinutes : 100),
       timer_state: {
         isRunning: typeof isRunning !== 'undefined' ? isRunning : false,
-        activeTask: typeof activeTask !== 'undefined' ? activeTask : null,
+        activeTask: (window.SpanState && window.SpanState.activeTask) || (typeof activeTask !== 'undefined' ? activeTask : null),
         durationMinutes: typeof durationMinutes !== 'undefined' ? durationMinutes : 25
       },
       updated_at: new Date().toISOString()
     };
+
 
     await supabaseClient
       .from('user_state')
