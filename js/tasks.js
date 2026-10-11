@@ -1,16 +1,25 @@
-// Dictionnaire des libellés de catégories personnalisés
-let categoryLabels = JSON.parse(localStorage.getItem('span_category_labels')) || {
+// Initialisation de l'état partagé global
+window.SpanState = window.SpanState || {};
+
+window.SpanState.categoryLabels = JSON.parse(localStorage.getItem('span_category_labels')) || {
   Code: 'Code',
   Study: 'Study',
   Write: 'Write',
   Admin: 'Admin'
 };
 
-let tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
+window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
   { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false },
   { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
 ];
-let activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
+
+window.SpanState.activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
+
+// Raccourcis pour le reste du code
+var categoryLabels = window.SpanState.categoryLabels;
+var tasks = window.SpanState.tasks;
+var activeTask = window.SpanState.activeTask;
+
 let selectedTaskIndex = 0;
 let editingTaskId = null;
 let editingCategory = 'None';
@@ -23,6 +32,8 @@ tasks = tasks.map(t => ({
 }));
 
 function saveTasks() {
+  window.SpanState.tasks = tasks;
+  window.SpanState.activeTask = activeTask;
   localStorage.setItem('span_tasks', JSON.stringify(tasks));
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
   renderTasks();
@@ -55,6 +66,7 @@ function saveRenamedCategory() {
 
   // Enregistrement
   categoryLabels[key] = newName;
+  window.SpanState.categoryLabels = categoryLabels;
   localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
 
   // Met à jour l'interface
@@ -161,6 +173,7 @@ function addTask() {
   if (input) input.value = '';
 
   activeTask = newTask;
+  window.SpanState.activeTask = activeTask;
   selectedTaskIndex = 0;
   saveTasks();
 }
@@ -185,6 +198,7 @@ function deleteTask(index) {
 
 function setSpotlightTask(index) {
   activeTask = tasks[index];
+  window.SpanState.activeTask = activeTask;
   saveTasks();
   if (typeof switchView === 'function') {
     switchView('focus', document.getElementById('nav-btn-focus'));
@@ -196,6 +210,7 @@ function updateSpotlightUI() {
     const firstPending = tasks.find(t => !t.completed);
     if (firstPending) {
       activeTask = firstPending;
+      window.SpanState.activeTask = activeTask;
       localStorage.setItem('span_active_task', JSON.stringify(activeTask));
     }
   }
@@ -247,7 +262,10 @@ function toggleTaskPicker() {
 
 function selectPickerTask(taskId) {
   const found = tasks.find(x => String(x.id) === String(taskId));
-  if (found) activeTask = found;
+  if (found) {
+    activeTask = found;
+    window.SpanState.activeTask = activeTask;
+  }
   saveTasks();
 }
 
@@ -256,11 +274,13 @@ function completeSpotlightTask() {
   const found = tasks.find(t => String(t.id) === String(activeTask.id));
   if (found) found.completed = true;
   activeTask = null;
+  window.SpanState.activeTask = null;
   saveTasks();
 }
 
 function dismissSpotlightTask() {
   activeTask = null;
+  window.SpanState.activeTask = null;
   saveTasks();
 }
 
@@ -328,6 +348,7 @@ function saveTaskModal() {
     task.estimate = editingEstimate;
     if (activeTask && String(activeTask.id) === String(task.id)) {
       activeTask = task;
+      window.SpanState.activeTask = activeTask;
     }
   }
   closeEditModal();
