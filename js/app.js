@@ -1,13 +1,24 @@
+const appViews = ['focus', 'tasks', 'stats'];
+let activeTabIndex = 0;
+
 function switchView(viewName, btnElement) {
-  document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+  const index = appViews.indexOf(viewName);
+  if (index === -1) return;
+
+  activeTabIndex = index;
+
+  // Déplacement fluide de la glissière horizontale
+  const slider = document.getElementById('viewsSlider');
+  if (slider) {
+    slider.style.transform = `translateX(-${index * (100 / 3)}%)`;
+  }
+
+  // Mise à jour de la navbar
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-  const targetView = document.getElementById(`view-${viewName}`);
-  if (targetView) targetView.classList.add('active');
-
   const navBtn = btnElement || document.getElementById(`nav-btn-${viewName}`);
   if (navBtn) navBtn.classList.add('active');
 
+  // Titre dans le header
   const titles = { focus: 'Focus', tasks: 'Tasks', stats: 'Track' };
   const header = document.getElementById('headerTitle');
   if (header && titles[viewName]) header.textContent = titles[viewName];
@@ -54,7 +65,7 @@ window.addEventListener('DOMContentLoaded', () => {
     goalInput.value = dailyTargetMinutes;
     const targetSummary = document.getElementById('targetDisplaySummary');
     if (targetSummary) {
-      targetSummary.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes/25)} blocks)`;
+      targetSummary.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
     }
   }
 
@@ -65,53 +76,50 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof updateGoalBar === 'function') updateGoalBar();
 });
 
-// Swipe horizontal sur mobile (Focus <-> Tasks <-> Track)
-const appViews = ['focus', 'tasks', 'stats'];
+// Gestion des gestes tactiles (séparation stricte Swipe horizontal vs Pull-to-refresh vertical)
 let touchStartX = 0;
-let touchEndX = 0;
+let touchStartY = 0;
+let touchDiffX = 0;
+let touchDiffY = 0;
+let isHorizontalGesture = null;
 
 document.addEventListener('touchstart', (e) => {
-  touchStartX = e.changedTouches[0].screenX;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchDiffX = 0;
+  touchDiffY = 0;
+  isHorizontalGesture = null;
 }, { passive: true });
 
-document.addEventListener('touchend', (e) => {
-  touchEndX = e.changedTouches[0].screenX;
-  const diffX = touchEndX - touchStartX;
-  const threshold = 60;
+document.addEventListener('touchmove', (e) => {
+  touchDiffX = e.touches[0].clientX - touchStartX;
+  touchDiffY = e.touches[0].clientY - touchStartY;
 
-  if (Math.abs(diffX) > threshold) {
-    const activeBtn = document.querySelector('.nav-btn.active');
-    const currentTab = activeBtn ? activeBtn.id.replace('nav-btn-', '') : 'focus';
-    const currentIndex = appViews.indexOf(currentTab);
-
-    if (diffX < 0 && currentIndex < appViews.length - 1) {
-      const nextTab = appViews[currentIndex + 1];
-      switchView(nextTab, document.getElementById(`nav-btn-${nextTab}`));
-    } else if (diffX > 0 && currentIndex > 0) {
-      const prevTab = appViews[currentIndex - 1];
-      switchView(prevTab, document.getElementById(`nav-btn-${prevTab}`));
-    }
+  // Verrouille la direction dès 10px de mouvement
+  if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 10 || Math.abs(touchDiffY) > 10)) {
+    isHorizontalGesture = Math.abs(touchDiffX) > Math.abs(touchDiffY);
   }
 }, { passive: true });
 
-// Pull-to-refresh
-let pullStartY = 0;
-let pullDiffY = 0;
+document.addEventListener('touchend', () => {
+  // Swipe Horizontal (Changement d'onglet)
+  if (isHorizontalGesture === true && Math.abs(touchDiffX) > 50) {
+    if (touchDiffX < 0 && activeTabIndex < appViews.length - 1) {
+      switchView(appViews[activeTabIndex + 1]);
+    } else if (touchDiffX > 0 && activeTabIndex > 0) {
+      switchView(appViews[activeTabIndex - 1]);
+    }
+  }
 
-window.addEventListener('touchstart', (e) => {
-  pullStartY = window.scrollY === 0 ? e.touches[0].clientY : 0;
-}, { passive: true });
-
-window.addEventListener('touchmove', (e) => {
-  if (pullStartY === 0) return;
-  pullDiffY = e.touches[0].clientY - pullStartY;
-}, { passive: true });
-
-window.addEventListener('touchend', () => {
-  if (pullDiffY > 80 && window.scrollY === 0) {
+  // Pull-to-refresh Vertical (Rechargement page)
+  if (isHorizontalGesture === false && touchDiffY > 85 && window.scrollY === 0) {
     if (navigator.vibrate) navigator.vibrate(15);
     window.location.reload();
   }
-  pullStartY = 0;
-  pullDiffY = 0;
+
+  touchStartX = 0;
+  touchStartY = 0;
+  touchDiffX = 0;
+  touchDiffY = 0;
+  isHorizontalGesture = null;
 });
