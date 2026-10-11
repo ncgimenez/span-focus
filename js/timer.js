@@ -12,6 +12,66 @@ let targetEndTime = null;
 let stopwatchStartTime = null;
 let wakeLock = null;
 
+// Canal Supabase Realtime pour synchroniser l'état du minuteur
+const timerChannel = window.supabaseClient ? window.supabaseClient.channel('timer_sync') : null;
+
+if (timerChannel) {
+  timerChannel
+    .on('broadcast', { event: 'timer_state' }, ({ payload }) => {
+      syncRemoteTimer(payload);
+    })
+    .subscribe();
+}
+
+// Fonction pour envoyer l'état actuel aux autres appareils
+function broadcastTimerState() {
+  if (!timerChannel) return;
+  timerChannel.send({
+    type: 'broadcast',
+    event: 'timer_state',
+    payload: {
+      isRunning,
+      timerMode,
+      durationMinutes,
+      secondsLeft,
+      elapsedSeconds,
+      targetEndTime,
+      stopwatchStartTime,
+      isOvertime,
+      isBreakSession,
+      timestamp: Date.now()
+    }
+  });
+}
+
+// Réception et alignement de l'état envoyé par un autre écran
+function syncRemoteTimer(state) {
+  isRunning = state.isRunning;
+  timerMode = state.timerMode;
+  durationMinutes = state.durationMinutes;
+  isOvertime = state.isOvertime;
+  isBreakSession = state.isBreakSession;
+
+  if (isRunning) {
+    targetEndTime = state.targetEndTime;
+    stopwatchStartTime = state.stopwatchStartTime;
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(tickTimer, 1000);
+    toggleBtn.textContent = 'Pause';
+    requestWakeLock();
+  } else {
+    clearInterval(timerInterval);
+    secondsLeft = state.secondsLeft;
+    elapsedSeconds = state.elapsedSeconds;
+    toggleBtn.textContent = 'Resume';
+    releaseWakeLock();
+  }
+
+  tickTimer();
+}
+
+
 const display = document.getElementById('timeDisplay');
 const toggleBtn = document.getElementById('btnToggle');
 const ringCircle = document.getElementById('ringProgress');
