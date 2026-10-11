@@ -40,22 +40,10 @@ window.addEventListener('DOMContentLoaded', () => {
   updateSpotlightUI();
   updateGoalBar();
 });
-
-// Support du Swipe horizontal sur mobile (Focus <-> Tasks <-> Track)
-const views = ['focusView', 'tasksView', 'trackView'];
-let currentViewIndex = 0;
+// Navigation Swipe horizontal (Focus <-> Tasks <-> Track)
+const appViews = ['focus', 'tasks', 'stats'];
 let touchStartX = 0;
 let touchEndX = 0;
-
-function switchViewByIndex(index) {
-  if (index < 0 || index >= views.length) return;
-  currentViewIndex = index;
-  const targetViewName = views[index].replace('View', '');
-  // Appelle ta fonction existante de switch d'onglet
-  if (typeof switchTab === 'function') {
-    switchTab(targetViewName);
-  }
-}
 
 document.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].screenX;
@@ -63,49 +51,42 @@ document.addEventListener('touchstart', (e) => {
 
 document.addEventListener('touchend', (e) => {
   touchEndX = e.changedTouches[0].screenX;
-  handleSwipeGesture();
-}, { passive: true });
+  const diffX = touchEndX - touchStartX;
+  const threshold = 60;
 
-function handleSwipeGesture() {
-  const swipeThreshold = 60; // Seuil minimum de déplacement en px
-  const diff = touchEndX - touchStartX;
+  if (Math.abs(diffX) > threshold) {
+    const activeBtn = document.querySelector('.nav-btn.active');
+    const currentTab = activeBtn ? activeBtn.id.replace('nav-btn-', '') : 'focus';
+    const currentIndex = appViews.indexOf(currentTab);
 
-  if (Math.abs(diff) > swipeThreshold) {
-    if (diff < 0 && currentViewIndex < views.length - 1) {
-      // Swipe vers la gauche -> Onglet suivant
-      switchViewByIndex(currentViewIndex + 1);
-    } else if (diff > 0 && currentViewIndex > 0) {
-      // Swipe vers la droite -> Onglet précédent
-      switchViewByIndex(currentViewIndex - 1);
+    if (diffX < 0 && currentIndex < appViews.length - 1) {
+      const nextTab = appViews[currentIndex + 1];
+      switchView(nextTab, document.getElementById(`nav-btn-${nextTab}`));
+    } else if (diffX > 0 && currentIndex > 0) {
+      const prevTab = appViews[currentIndex - 1];
+      switchView(prevTab, document.getElementById(`nav-btn-${prevTab}`));
     }
   }
-}
+}, { passive: true });
 
-// Pull-to-refresh personnalisé pour mobile
-let touchStartY = 0;
-let touchDiffY = 0;
+// Pull-to-refresh
+let pullStartY = 0;
+let pullDiffY = 0;
 
 window.addEventListener('touchstart', (e) => {
-  if (window.scrollY === 0) {
-    touchStartY = e.touches[0].clientY;
-  } else {
-    touchStartY = 0;
-  }
+  pullStartY = window.scrollY === 0 ? e.touches[0].clientY : 0;
 }, { passive: true });
 
 window.addEventListener('touchmove', (e) => {
-  if (touchStartY === 0) return;
-  const currentY = e.touches[0].clientY;
-  touchDiffY = currentY - touchStartY;
+  if (pullStartY === 0) return;
+  pullDiffY = e.touches[0].clientY - pullStartY;
 }, { passive: true });
 
 window.addEventListener('touchend', () => {
-  // Si on tire vers le bas de plus de 80px alors qu'on est tout en haut
-  if (touchDiffY > 80 && window.scrollY === 0) {
+  if (pullDiffY > 80 && window.scrollY === 0) {
     if (navigator.vibrate) navigator.vibrate(15);
     window.location.reload();
   }
-  touchStartY = 0;
-  touchDiffY = 0;
+  pullStartY = 0;
+  pullDiffY = 0;
 });
-
