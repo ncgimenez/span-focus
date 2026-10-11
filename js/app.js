@@ -95,18 +95,30 @@ document.addEventListener('touchstart', (e) => {
   isHorizontalGesture = null;
 }, { passive: true });
 
+const appContainer = document.querySelector('.app-container');
+
 document.addEventListener('touchmove', (e) => {
   touchDiffX = e.touches[0].clientX - touchStartX;
   touchDiffY = e.touches[0].clientY - touchStartY;
 
-  // Verrouille la direction dès 10px de mouvement
   if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 10 || Math.abs(touchDiffY) > 10)) {
     isHorizontalGesture = Math.abs(touchDiffX) > Math.abs(touchDiffY);
+  }
+
+  // Fait descendre visuellement toute l'interface en suivant le doigt
+  if (isHorizontalGesture === false && touchDiffY > 0 && appContainer) {
+    const pullDistance = Math.min(touchDiffY * 0.4, 70); // Résistance élastique
+    appContainer.style.transform = `translateY(${pullDistance}px)`;
+    appContainer.style.transition = 'none';
   }
 }, { passive: true });
 
 document.addEventListener('touchend', () => {
-  // Swipe Horizontal (Changement d'onglet)
+  if (appContainer) {
+    appContainer.style.transition = 'transform 0.25s ease';
+    appContainer.style.transform = 'translateY(0px)';
+  }
+
   if (isHorizontalGesture === true && Math.abs(touchDiffX) > 50) {
     if (touchDiffX < 0 && activeTabIndex < appViews.length - 1) {
       switchView(appViews[activeTabIndex + 1]);
@@ -115,10 +127,12 @@ document.addEventListener('touchend', () => {
     }
   }
 
-  // Pull-to-refresh Vertical (Rechargement page)
-  if (isHorizontalGesture === false && touchDiffY > 85 && window.scrollY === 0) {
-    if (navigator.vibrate) navigator.vibrate(15);
-    window.location.reload();
+  // Recharge avec vibration si le geste dépasse le seuil
+  if (isHorizontalGesture === false && touchDiffY > 90) {
+    if (navigator.vibrate) navigator.vibrate(20);
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
   }
 
   touchStartX = 0;
@@ -127,6 +141,7 @@ document.addEventListener('touchend', () => {
   touchDiffY = 0;
   isHorizontalGesture = null;
 });
+
 
 // --- NAVIGATION PAR SWIPE HORIZONTAL SUR TRACKPAD (MAC / PC) ---
 let isWheelLocked = false;
