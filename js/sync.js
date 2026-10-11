@@ -3,8 +3,12 @@ const SUPABASE_URL = 'https://xzoukiveknyuxmbrcsvb.supabase.co'; // ex: 'https:/
 const SUPABASE_ANON_KEY = 'sb_publishable_8g571gv3CFOyJ0lMtaAf4w_CcITQovd'; // ex: 'eyJhbGciOi...'
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// --- CONFIGURATION SUPABASE ---
+const SUPABASE_URL = 'COLLE_TON_URL_ICI';
+const SUPABASE_ANON_KEY = 'COLLE_TA_CLE_ANON_ICI';
 
-// Gestion de la clé unique (Sync Key)
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 function getOrCreateSyncId() {
   let id = localStorage.getItem('span_sync_user');
   if (!id) {
@@ -18,12 +22,10 @@ let SYNC_USER_ID = getOrCreateSyncId();
 let isSyncingIncoming = false;
 let realtimeChannel = null;
 
-// Obtenir la clé actuelle pour l'UI
 function getCurrentSyncKey() {
   return SYNC_USER_ID;
 }
 
-// Lier un appareil avec une clé existante
 async function pairWithSyncKey(newKey) {
   const cleanKey = newKey.trim();
   if (!cleanKey) return;
@@ -41,7 +43,6 @@ async function pairWithSyncKey(newKey) {
   alert("Appareil lié avec succès !");
 }
 
-// 1. Charger les données depuis Supabase
 async function loadStateFromCloud() {
   try {
     const { data, error } = await supabaseClient
@@ -87,16 +88,11 @@ async function loadStateFromCloud() {
     } else {
       saveStateToCloud();
     }
- 
   } catch (err) {
-    console.error('Erreur écriture cloud:', err);
-    // Affiche une notification discrète si la synchro échoue
+    console.error('Erreur sync cloud:', err);
   }
-
-  
 }
 
-// 2. Sauvegarder l'état dans Supabase
 async function saveStateToCloud() {
   if (isSyncingIncoming) return;
 
@@ -122,7 +118,6 @@ async function saveStateToCloud() {
   }
 }
 
-// 3. Écoute temps réel (Realtime)
 function initRealtimeSync() {
   if (realtimeChannel) {
     supabaseClient.removeChannel(realtimeChannel);
