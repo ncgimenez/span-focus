@@ -240,3 +240,57 @@ window.addEventListener('keydown', (e) => {
     if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
   }
 });
+
+// Définir la tâche active (Spotlight)
+function setActiveTask(taskId) {
+  if (!taskId || taskId === 'none') {
+    activeTask = null;
+  } else {
+    activeTask = tasks.find(t => t.id === taskId) || null;
+  }
+
+  localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+  renderTasks();
+  updateSpotlightUI();
+  
+  if (typeof saveStateToCloud === 'function') {
+    saveStateToCloud();
+  }
+}
+
+// Mise à jour de l'affichage de la tâche active et du sélecteur
+function updateSpotlightUI() {
+  const selectEl = document.getElementById('focusTaskSelector');
+  const displayEl = document.getElementById('currentFocusTitle');
+
+  // Si aucune tâche sélectionnée et qu'il y a des tâches dispos, on propose la première
+  if (!activeTask && tasks.length > 0) {
+    const firstPending = tasks.find(t => !t.completed);
+    if (firstPending) {
+      activeTask = firstPending;
+      localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+    }
+  }
+
+  if (selectEl) {
+    selectEl.innerHTML = '<option value="none">-- Free Focus (No task) --</option>';
+    tasks.forEach(t => {
+      if (!t.completed) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = (t.category ? `[${t.category}] ` : '') + t.title;
+        if (activeTask && activeTask.id === t.id) opt.selected = true;
+        selectEl.appendChild(opt);
+      }
+    });
+
+    selectEl.onchange = (e) => {
+      setActiveTask(e.target.value);
+    };
+  }
+
+  if (displayEl) {
+    displayEl.textContent = activeTask ? activeTask.title : 'Free Focus';
+  }
+}
+
