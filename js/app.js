@@ -69,12 +69,14 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
   if (typeof updateSoundButtonUI === 'function') updateSoundButtonUI();
   if (typeof updateDisplay === 'function') updateDisplay();
   if (typeof renderTasks === 'function') renderTasks();
   if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
   if (typeof updateGoalBar === 'function') updateGoalBar();
 });
+
 
 // Gestion des gestes tactiles (séparation stricte Swipe horizontal vs Pull-to-refresh vertical)
 let touchStartX = 0;
