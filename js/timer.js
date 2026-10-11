@@ -7,6 +7,11 @@ let isOvertime = false;
 let isBreakSession = false;
 let timerInterval = null;
 
+// Variables pour le suivi du temps réel et l'écran actif
+let targetEndTime = null;
+let stopwatchStartTime = null;
+let wakeLock = null;
+
 const display = document.getElementById('timeDisplay');
 const toggleBtn = document.getElementById('btnToggle');
 const ringCircle = document.getElementById('ringProgress');
@@ -73,11 +78,70 @@ function setDuration(mins, isBreak = false) {
   });
 }
 
+// Empêche la mise en veille de l'écran pendant le minuteur
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    }
+  } catch (err) {
+    console.warn('Wake Lock non supporté ou bloqué:', err.message);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
+// Calcule le temps réel à chaque seconde ou au réveil du téléphone
+function tickTimer() {
+  const now = Date.now();
+
+  if (timerMode === 'stopwatch') {
+    const totalElapsed = Math.floor((now - stopwatchStartTime) / 1000);
+    const diff = totalElapsed - elapsedSeconds;
+    if (diff > 0) {
+      for (let i = 0; i < diff; i++) {
+        logFocusedSecond();
+      }
+      elapsedSeconds = totalElapsed;
+    }
+  } else {
+    const remaining = Math.round((targetEndTime - now) / 1000);
+    
+    if (remaining >= 0) {
+      const diff = secondsLeft - remaining;
+      if (diff > 0 && !isBreakSession) {
+        for (let i = 0; i < diff; i++) {
+          logFocusedSecond();
+        }
+      }
+      secondsLeft = remaining;
+    } else {
+      secondsLeft = remaining;
+      if (!isOvertime) {
+        isOvertime = true;
+        display.classList.add('overtime');
+        playBell();
+        toggleBtn.textContent = 'Confirm Session';
+      }
+    }
+  }
+  updateDisplay();
+}
+
 function toggleTimer() {
   if (isRunning) {
     clearInterval(timerInterval);
     toggleBtn.textContent = 'Resume';
     isRunning = false;
+    releaseWakeLock();
     handleTimerAudioSync(false, isBreakSession);
   } else {
     if (isOvertime) {
@@ -86,27 +150,15 @@ function toggleTimer() {
     }
     isRunning = true;
     toggleBtn.textContent = 'Pause';
+    requestWakeLock();
     handleTimerAudioSync(true, isBreakSession);
 
-    timerInterval = setInterval(() => {
-      if (timerMode === 'stopwatch') {
-        elapsedSeconds++;
-        logFocusedSecond();
-      } else {
-        secondsLeft--;
-        if (secondsLeft >= 0) {
-          if (!isBreakSession) logFocusedSecond();
-        } else {
-          if (!isOvertime) {
-            isOvertime = true;
-            display.classList.add('overtime');
-            playBell();
-            toggleBtn.textContent = 'Confirm Session';
-          }
-        }
-      }
-      updateDisplay();
-    }, 1000);
+    // Initialisation des repères d'heure exacte
+    const now = Date.now();
+    targetEndTime = now + (secondsLeft * 1000);
+    stopwatchStartTime = now - (elapsedSeconds * 1000);
+
+    timerInterval = setInterval(tickTimer, 1000);
   }
 }
 
@@ -115,6 +167,7 @@ function confirmCompletedSession() {
   isRunning = false;
   isOvertime = false;
   display.classList.remove('overtime');
+  releaseWakeLock();
   handleTimerAudioSync(false, isBreakSession);
   alert('Focus session recorded!');
   resetTimer();
@@ -128,6 +181,15 @@ function resetTimer() {
   secondsLeft = durationMinutes * 60;
   elapsedSeconds = 0;
   toggleBtn.textContent = 'Start';
+  releaseWakeLock();
   handleTimerAudioSync(false, isBreakSession);
   updateDisplay();
 }
+
+// Resynchronisation immédiate au déverrouillage de l'écran ou retour sur l'onglet
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && isRunning) {
+    tickTimer();
+    requestWakeLock();
+  }
+});
