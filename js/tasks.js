@@ -1,6 +1,6 @@
 let tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-  { id: 1, text: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false },
-  { id: 2, text: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
+  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false },
+  { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
 ];
 let activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
 let selectedTaskIndex = 0;
@@ -8,21 +8,27 @@ let editingTaskId = null;
 let editingCategory = 'Code';
 let editingEstimate = 1;
 
+// Normalisation des tâches existantes (text -> title)
+tasks = tasks.map(t => ({
+  ...t,
+  title: t.title || t.text || 'Untitled Task'
+}));
+
 function saveTasks() {
   localStorage.setItem('span_tasks', JSON.stringify(tasks));
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
   renderTasks();
   updateSpotlightUI();
-  if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTER ICI
+  if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
 function renderTasks() {
   const list = document.getElementById('taskList');
+  if (!list) return;
   list.innerHTML = '';
 
   tasks.forEach((task, index) => {
     const li = document.createElement('li');
-    // Le bouton focus 🎯 est affiché sur la première tâche par défaut ou sur la tâche sélectionnée
     const isTargetVisible = (index === selectedTaskIndex) || (selectedTaskIndex === -1 && index === 0);
     li.className = `task-item ${task.completed ? 'completed' : ''} ${index === selectedTaskIndex ? 'selected' : ''} ${isTargetVisible ? 'show-focus-btn' : ''}`;
     li.draggable = true;
@@ -38,11 +44,13 @@ function renderTasks() {
       updateTaskSelectionUI();
     });
 
+    const taskTitle = task.title || task.text || '';
+
     li.innerHTML = `
-      <div class="task-left" onclick="openEditModalForTask(${task.id})">
+      <div class="task-left" onclick="openEditModalForTask('${task.id}')">
         <div class="checkbox" onclick="event.stopPropagation(); toggleTask(${index})">${task.completed ? '✓' : ''}</div>
-        <span class="task-text">${task.text}</span>
-        <span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${task.category}</span>
+        <span class="task-text">${taskTitle}</span>
+        <span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${(task.category || 'code').toLowerCase()})">${task.category}</span>
         <span class="task-est">⏱ ${task.estimate || 1}</span>
       </div>
       <div class="task-actions">
@@ -63,20 +71,35 @@ function updateTaskSelectionUI() {
 
 function addTask() {
   const input = document.getElementById('taskInput');
-  const category = document.getElementById('taskCategory').value;
-  const text = input.value.trim();
+  const catSelect = document.getElementById('taskCategory');
+  const text = input ? input.value.trim() : '';
+  const category = catSelect ? catSelect.value : 'Code';
+
   if (!text) return;
 
-  tasks.unshift({ id: Date.now(), text, category, estimate: 1, completed: false });
-  input.value = '';
+  const newTask = {
+    id: 't_' + Date.now(),
+    title: text,
+    category: category,
+    estimate: 1,
+    completed: false
+  };
+
+  tasks.unshift(newTask);
+  if (input) input.value = '';
+
+  activeTask = newTask;
   selectedTaskIndex = 0;
   saveTasks();
 }
 
 function toggleTask(index) {
   tasks[index].completed = !tasks[index].completed;
-  if (activeTask && activeTask.id === tasks[index].id) dismissSpotlightTask();
-  saveTasks();
+  if (activeTask && activeTask.id === tasks[index].id) {
+    dismissSpotlightTask();
+  } else {
+    saveTasks();
+  }
 }
 
 function deleteTask(index) {
@@ -86,31 +109,85 @@ function deleteTask(index) {
   saveTasks();
 }
 
-// SPOTLIGHT & DROPDOWN PICKER
+// GESTION DU FOCUS / SPOTLIGHT
+function setActiveTask(taskId) {
+  if (!taskId || taskId === 'none') {
+    activeTask = null;
+  } else {
+    activeTask = tasks.find(t => String(t.id) === String(taskId)) || null;
+  }
+  saveTasks();
+}
+
 function setSpotlightTask(index) {
   activeTask = tasks[index];
   saveTasks();
-  switchView('focus', document.getElementById('nav-btn-focus'));
+  if (typeof switchView === 'function') {
+    switchView('focus', document.getElementById('nav-btn-focus'));
+  }
 }
 
 function updateSpotlightUI() {
+  // Sélection automatique de la première tâche disponible si aucune n'est active
+  if (!activeTask && tasks.length > 0) {
+    const firstPending = tasks.find(t => !t.completed);
+    if (firstPending) {
+      activeTask = firstPending;
+      localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+    }
+  }
+
+  const activeTitle = activeTask ? (activeTask.title || activeTask.text) : 'Free Focus';
+
+  // 1. Support de l'élément carte (spotlightCard)
   const card = document.getElementById('spotlightCard');
   const emptyBtn = document.getElementById('spotlightEmptyBtn');
+  const spotlightText = document.getElementById('spotlightText');
   const dropdown = document.getElementById('taskPickerDropdown');
-  dropdown.style.display = 'none';
 
-  if (activeTask) {
-    card.style.display = 'flex';
-    emptyBtn.style.display = 'none';
-    document.getElementById('spotlightText').textContent = activeTask.text;
-  } else {
-    card.style.display = 'none';
-    emptyBtn.style.display = 'block';
+  if (dropdown) dropdown.style.display = 'none';
+
+  if (card && emptyBtn) {
+    if (activeTask) {
+      card.style.display = 'flex';
+      emptyBtn.style.display = 'none';
+      if (spotlightText) spotlightText.textContent = activeTitle;
+    } else {
+      card.style.display = 'none';
+      emptyBtn.style.display = 'block';
+    }
+  }
+
+  // 2. Support de la liste déroulante (focusTaskSelector)
+  const selectEl = document.getElementById('focusTaskSelector');
+  if (selectEl) {
+    selectEl.innerHTML = '<option value="none">-- Free Focus (No task) --</option>';
+    tasks.forEach(t => {
+      if (!t.completed) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = (t.category ? `[${t.category}] ` : '') + (t.title || t.text);
+        if (activeTask && String(activeTask.id) === String(t.id)) opt.selected = true;
+        selectEl.appendChild(opt);
+      }
+    });
+
+    selectEl.onchange = (e) => {
+      setActiveTask(e.target.value);
+    };
+  }
+
+  // 3. Titre direct (currentFocusTitle)
+  const displayEl = document.getElementById('currentFocusTitle');
+  if (displayEl) {
+    displayEl.textContent = activeTitle;
   }
 }
 
 function toggleTaskPicker() {
   const dropdown = document.getElementById('taskPickerDropdown');
+  if (!dropdown) return;
+
   if (dropdown.style.display === 'block') {
     dropdown.style.display = 'none';
     return;
@@ -120,8 +197,8 @@ function toggleTaskPicker() {
     dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted)">No pending tasks</div>`;
   } else {
     dropdown.innerHTML = pending.map(t => `
-      <div class="task-picker-item" onclick="selectPickerTask(${t.id})">
-        <span>${t.text}</span>
+      <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
+        <span>${t.title || t.text}</span>
         <span style="color:var(--text-muted)">${t.category}</span>
       </div>
     `).join('');
@@ -130,14 +207,12 @@ function toggleTaskPicker() {
 }
 
 function selectPickerTask(taskId) {
-  const t = tasks.find(x => x.id === taskId);
-  if (t) activeTask = t;
-  saveTasks();
+  setActiveTask(taskId);
 }
 
 function completeSpotlightTask() {
   if (!activeTask) return;
-  const found = tasks.find(t => t.id === activeTask.id);
+  const found = tasks.find(t => String(t.id) === String(activeTask.id));
   if (found) found.completed = true;
   activeTask = null;
   saveTasks();
@@ -148,20 +223,27 @@ function dismissSpotlightTask() {
   saveTasks();
 }
 
-// MODALE D'ÉDITION PROPRE
+// MODALE D'ÉDITION
 function openEditModalForTask(id) {
-  const task = tasks.find(t => t.id === id);
+  const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
   editingTaskId = id;
   editingCategory = task.category || 'Code';
   editingEstimate = task.estimate || 1;
 
-  document.getElementById('editTaskTitle').value = task.text;
-  document.getElementById('editPomodoroEstimate').textContent = editingEstimate;
-  document.getElementById('editEstMinutes').textContent = editingEstimate * 25;
+  const titleInput = document.getElementById('editTaskTitle');
+  if (titleInput) titleInput.value = task.title || task.text || '';
+
+  const estEl = document.getElementById('editPomodoroEstimate');
+  if (estEl) estEl.textContent = editingEstimate;
+
+  const minEl = document.getElementById('editEstMinutes');
+  if (minEl) minEl.textContent = editingEstimate * 25;
+
   selectEditCategory(editingCategory);
 
-  document.getElementById('editModalOverlay').style.display = 'flex';
+  const modal = document.getElementById('editModalOverlay');
+  if (modal) modal.style.display = 'flex';
 }
 
 function selectEditCategory(cat) {
@@ -173,24 +255,31 @@ function selectEditCategory(cat) {
 
 function stepEstimate(delta) {
   editingEstimate = Math.max(1, Math.min(12, editingEstimate + delta));
-  document.getElementById('editPomodoroEstimate').textContent = editingEstimate;
-  document.getElementById('editEstMinutes').textContent = editingEstimate * 25;
+  const estEl = document.getElementById('editPomodoroEstimate');
+  if (estEl) estEl.textContent = editingEstimate;
+  const minEl = document.getElementById('editEstMinutes');
+  if (minEl) minEl.textContent = editingEstimate * 25;
 }
 
 function closeEditModal() {
-  document.getElementById('editModalOverlay').style.display = 'none';
+  const modal = document.getElementById('editModalOverlay');
+  if (modal) modal.style.display = 'none';
   editingTaskId = null;
 }
 
 function saveTaskModal() {
-  const title = document.getElementById('editTaskTitle').value.trim();
+  const titleInput = document.getElementById('editTaskTitle');
+  const title = titleInput ? titleInput.value.trim() : '';
   if (!title) return;
-  const task = tasks.find(t => t.id === editingTaskId);
+
+  const task = tasks.find(t => String(t.id) === String(editingTaskId));
   if (task) {
-    task.text = title;
+    task.title = title;
     task.category = editingCategory;
     task.estimate = editingEstimate;
-    if (activeTask && activeTask.id === task.id) activeTask = task;
+    if (activeTask && String(activeTask.id) === String(task.id)) {
+      activeTask = task;
+    }
   }
   closeEditModal();
   saveTasks();
@@ -198,27 +287,36 @@ function saveTaskModal() {
 
 // DRAG AND DROP
 let dragSrcIndex = null;
-function handleDragStart() { dragSrcIndex = this.dataset.index; this.classList.add('dragging'); }
-function handleDragOver(e) { e.preventDefault(); }
+function handleDragStart() {
+  dragSrcIndex = this.dataset.index;
+  this.classList.add('dragging');
+}
+function handleDragOver(e) {
+  e.preventDefault();
+}
 function handleDrop(e) {
   e.stopPropagation();
   const dropIndex = this.dataset.index;
-  if (dragSrcIndex !== dropIndex) {
+  if (dragSrcIndex !== null && dragSrcIndex !== dropIndex) {
     const item = tasks.splice(dragSrcIndex, 1)[0];
     tasks.splice(dropIndex, 0, item);
-    selectedTaskIndex = parseInt(dropIndex);
+    selectedTaskIndex = parseInt(dropIndex, 10);
     saveTasks();
   }
 }
-function handleDragEnd() { this.classList.remove('dragging'); }
+function handleDragEnd() {
+  this.classList.remove('dragging');
+}
 
 // RACCOURCIS CLAVIER
 window.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || document.getElementById('editModalOverlay').style.display === 'flex') return;
+  const modal = document.getElementById('editModalOverlay');
+  const isModalOpen = modal && modal.style.display === 'flex';
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || isModalOpen) return;
 
   if (e.code === 'Space') {
     e.preventDefault();
-    toggleTimer();
+    if (typeof toggleTimer === 'function') toggleTimer();
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
     if (tasks.length > 0) {
@@ -240,57 +338,3 @@ window.addEventListener('keydown', (e) => {
     if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
   }
 });
-
-// Définir la tâche active (Spotlight)
-function setActiveTask(taskId) {
-  if (!taskId || taskId === 'none') {
-    activeTask = null;
-  } else {
-    activeTask = tasks.find(t => t.id === taskId) || null;
-  }
-
-  localStorage.setItem('span_active_task', JSON.stringify(activeTask));
-  renderTasks();
-  updateSpotlightUI();
-  
-  if (typeof saveStateToCloud === 'function') {
-    saveStateToCloud();
-  }
-}
-
-// Mise à jour de l'affichage de la tâche active et du sélecteur
-function updateSpotlightUI() {
-  const selectEl = document.getElementById('focusTaskSelector');
-  const displayEl = document.getElementById('currentFocusTitle');
-
-  // Si aucune tâche sélectionnée et qu'il y a des tâches dispos, on propose la première
-  if (!activeTask && tasks.length > 0) {
-    const firstPending = tasks.find(t => !t.completed);
-    if (firstPending) {
-      activeTask = firstPending;
-      localStorage.setItem('span_active_task', JSON.stringify(activeTask));
-    }
-  }
-
-  if (selectEl) {
-    selectEl.innerHTML = '<option value="none">-- Free Focus (No task) --</option>';
-    tasks.forEach(t => {
-      if (!t.completed) {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = (t.category ? `[${t.category}] ` : '') + t.title;
-        if (activeTask && activeTask.id === t.id) opt.selected = true;
-        selectEl.appendChild(opt);
-      }
-    });
-
-    selectEl.onchange = (e) => {
-      setActiveTask(e.target.value);
-    };
-  }
-
-  if (displayEl) {
-    displayEl.textContent = activeTask ? activeTask.title : 'Free Focus';
-  }
-}
-
