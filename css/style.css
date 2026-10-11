@@ -890,3 +890,46 @@ input[type="range"] {
 .nav-btn.active {
   color: var(--text-main);
 }
+
+/* Adaptation iPhone 13 mini et petits écrans */
+@media (max-width: 400px) {
+  body {
+    font-size: 14px;
+  }
+  .app-header h1 {
+    font-size: 1.1rem;
+  }
+  .timer-display {
+    font-size: 3.2rem;
+  }
+  .task-item {
+    padding: 10px 12px;
+  }
+}
+
+/* Correction de la barre de navigation */
+.nav-tabs {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: relative;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.nav-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+  position: relative;
+}
+
+.nav-tab-btn.active {
+  color: var(--text-main);
+}
+
