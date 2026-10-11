@@ -21,6 +21,29 @@ function getCurrentSyncKey() {
   return SYNC_USER_ID;
 }
 
+// Copie la clé dans le presse-papier lors du clic sur "Copy"
+function copyCurrentSyncKey() {
+  navigator.clipboard.writeText(SYNC_USER_ID).then(() => {
+    alert("Clé de synchronisation copiée !");
+  }).catch(() => {
+    alert("Impossible de copier la clé.");
+  });
+}
+
+// Déclenche la liaison lors du clic sur "Link"
+async function handleLinkClick() {
+  const input = document.getElementById('inputSyncKey');
+  if (!input) return;
+  const key = input.value.trim();
+  if (!key) {
+    alert("Veuillez coller une clé d'appareil.");
+    return;
+  }
+  await pairWithSyncKey(key);
+  input.value = '';
+}
+
+
 async function pairWithSyncKey(newKey) {
   const cleanKey = newKey.trim();
   if (!cleanKey) return;
