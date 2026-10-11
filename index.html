@@ -11,17 +11,24 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Focus">
 
+  <!-- AJOUTER ICI (Favicon et icône écran d'accueil iPhone) -->
+  <link rel="icon" type="image/png" href="span-logo.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
   <link rel="stylesheet" href="style.css?v=1.2">
+  
 </head>
 <body>
 
   <div class="app-container">
     <!-- HEADER -->
     <header>
-      <div class="brand">
+      <div class="brand" style="display: flex; align-items: center; gap: 8px;">
+        <img src="span-logo.png" alt="Span Logo" style="width: 24px; height: 24px; border-radius: 6px; display: block; object-fit: cover;">
         <span class="brand-name">Span</span>
         <span class="brand-app" id="headerTitle">Focus</span>
       </div>
+      
       <div class="header-actions">
         <button class="icon-btn active" id="soundBtn" onclick="cycleSoundMode()" title="Sound mode">
           <span id="soundIcon">🎧</span>
