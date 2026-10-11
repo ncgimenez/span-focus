@@ -10,12 +10,14 @@ function logFocusedSecond() {
   trackingData.totalSecondsToday++;
   const currentCategory = activeTask ? activeTask.category : 'Code';
   trackingData.categories[currentCategory] = (trackingData.categories[currentCategory] || 0) + 1;
-
-  if (trackingData.totalSecondsToday % 5 === 0) {
+  
+    if (trackingData.totalSecondsToday % 5 === 0) {
     localStorage.setItem('span_tracking', JSON.stringify(trackingData));
     updateGoalBar();
     renderChart();
     if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTER ICI
+  }
+
   }
 }
 
