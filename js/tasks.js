@@ -30,27 +30,63 @@ function saveTasks() {
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
-// Fonction pour renommer une catégorie
-function handleCategoryRename(key, newName) {
-  categoryLabels[key] = newName.trim() || key;
+// Remplit le champ texte avec le nom actuel dès qu'on change de catégorie dans le select
+function syncRenameCategoryInput() {
+  const select = document.getElementById('renameCategorySelect');
+  const input = document.getElementById('renameCategoryInput');
+  if (!select || !input) return;
+  const key = select.value;
+  input.value = categoryLabels[key] || key;
+}
+
+// Valide et enregistre le nouveau nom
+function saveRenamedCategory() {
+  const select = document.getElementById('renameCategorySelect');
+  const input = document.getElementById('renameCategoryInput');
+  if (!select || !input) return;
+
+  const key = select.value;
+  const newName = input.value.trim();
+
+  if (!newName) {
+    alert('Please enter a valid category name.');
+    return;
+  }
+
+  // Enregistrement
+  categoryLabels[key] = newName;
   localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
+
+  // Met à jour l'interface
   updateCategoryDOMNames();
   renderTasks();
   if (typeof renderChart === 'function') renderChart();
+  if (typeof saveStateToCloud === 'function') saveStateToCloud();
+
+  alert(`Category "${key}" renamed to "${newName}"!`);
 }
 
-// Met à jour les libellés partout dans le DOM
+// Met à jour les libellés partout dans l'application
 function updateCategoryDOMNames() {
-  ['Code', 'Study', 'Write', 'Admin'].forEach(key => {
+  const keys = ['Code', 'Study', 'Write', 'Admin'];
+
+  keys.forEach(key => {
+    const currentName = categoryLabels[key] || key;
+
+    // 1. Menu d'ajout de tâche
     const opt = document.getElementById(`optCat${key}`);
-    if (opt) opt.textContent = categoryLabels[key];
+    if (opt) opt.textContent = currentName;
 
-    const input = document.getElementById(`renameCat${key}`);
-    if (input && !input.value) input.value = categoryLabels[key];
-
+    // 2. Pilules de la modale d'édition
     const pill = document.querySelector(`.cat-pill[data-cat="${key}"]`);
-    if (pill) pill.textContent = categoryLabels[key];
+    if (pill) pill.textContent = currentName;
+
+    // 3. Option dans le sélecteur de renommage lui-même
+    const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
+    if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
+
+  syncRenameCategoryInput();
 }
 
 function renderTasks() {
