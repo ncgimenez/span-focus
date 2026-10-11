@@ -87,9 +87,13 @@ async function loadStateFromCloud() {
     } else {
       saveStateToCloud();
     }
+ 
   } catch (err) {
-    console.error('Erreur sync cloud:', err);
+    console.error('Erreur écriture cloud:', err);
+    // Affiche une notification discrète si la synchro échoue
   }
+
+  
 }
 
 // 2. Sauvegarder l'état dans Supabase
