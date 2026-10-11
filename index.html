@@ -11,10 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Focus">
 
-
-  <link rel="stylesheet" href="style.css?v=1.1">
-
-  
+  <link rel="stylesheet" href="style.css?v=1.2">
 </head>
 <body>
 
@@ -26,7 +23,6 @@
         <span class="brand-app" id="headerTitle">Focus</span>
       </div>
       <div class="header-actions">
-        <!-- Bouton Son 3 modes (Auto / On / Off) -->
         <button class="icon-btn active" id="soundBtn" onclick="cycleSoundMode()" title="Sound mode">
           <span id="soundIcon">🎧</span>
           <span id="soundLabel">Auto</span>
@@ -36,7 +32,7 @@
       </div>
     </header>
 
-    <!-- BARRE D'OBJECTIF JOURNALIÈRE (Cliquable -> Ouvre Track) -->
+    <!-- BARRE D'OBJECTIF JOURNALIÈRE -->
     <div class="goal-tracker" onclick="goToTrackView()" title="Click to view and edit daily goal">
       <div class="goal-meta">
         <span>Daily Goal</span>
@@ -49,7 +45,6 @@
 
     <!-- VUE 1 : FOCUS -->
     <div id="view-focus" class="view-content active">
-      <!-- Spotlight avec état vide cliquable -->
       <div class="spotlight-container">
         <div class="spotlight-card" id="spotlightCard" style="display: none;">
           <div class="spotlight-info">
@@ -66,7 +61,6 @@
           <span>+ Select a task to focus on</span>
         </button>
 
-        <!-- Menu déroulant pour choisir une tâche -->
         <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
       </div>
 
@@ -84,7 +78,6 @@
           <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
         </div>
 
-        <!-- PROGRESS RING SVG ÉPURÉ -->
         <div class="timer-circle-wrapper">
           <svg class="timer-ring-svg" viewBox="0 0 260 260">
             <circle class="ring-bg" cx="130" cy="130" r="118" />
@@ -121,7 +114,6 @@
 
     <!-- VUE 3 : TRACK / STATS -->
     <div id="view-stats" class="view-content">
-      <!-- Configuration du Daily Goal -->
       <div class="stat-card">
         <div class="stat-header">
           <span class="stat-sub">Daily Target</span>
@@ -137,7 +129,6 @@
         </div>
       </div>
 
-      <!-- Répartition par catégorie -->
       <div class="stat-card">
         <div class="stat-header">
           <span class="stat-sub">Category Breakdown</span>
@@ -151,7 +142,7 @@
     </div>
   </div>
 
-  <!-- MODALE D'ÉDITION DE TÂCHE PROPRE -->
+  <!-- MODALE D'ÉDITION DE TÂCHE -->
   <div class="modal-overlay" id="editModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -207,11 +198,11 @@
             <div style="font-size: 12px; color: var(--text-muted);">
               Key: <strong id="displaySyncKey" style="color: var(--text-main); font-family: monospace;">...</strong>
             </div>
-            <button class="btn-theme-toggle" type="button" onclick="navigator.clipboard.writeText(getCurrentSyncKey()); alert('Clé copiée !');">Copy</button>
+            <button class="btn-theme-toggle" type="button" onclick="copyCurrentSyncKey()">Copy</button>
           </div>
           <div style="display: flex; gap: 6px; width: 100%;">
             <input type="text" id="inputSyncKey" placeholder="Paste device key to link..." style="flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 10px; border-radius: 8px; font-size: 12px; outline: none;">
-            <button class="btn-theme-toggle" type="button" onclick="pairWithSyncKey(document.getElementById('inputSyncKey').value)">Link</button>
+            <button class="btn-theme-toggle" type="button" onclick="handleLinkClick()">Link</button>
           </div>
         </div>
         
@@ -245,14 +236,13 @@
     </div>
   </nav>
 
-    <!-- Scripts -->
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=1.1"></script>
-  <script src="js/timer.js?v=1.1"></script>
-  <script src="js/tasks.js?v=1.1"></script>
-  <script src="js/track.js?v=1.1"></script>
-  <script src="js/sync.js?v=1.1"></script>
-  <script src="js/app.js?v=1.1"></script>
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/audio.js?v=1.2"></script>
+  <script src="js/timer.js?v=1.2"></script>
+  <script src="js/tasks.js?v=1.2"></script>
+  <script src="js/track.js?v=1.2"></script>
+  <script src="js/sync.js?v=1.2"></script>
+  <script src="js/app.js?v=1.2"></script>
 </body>
-
 </html>
