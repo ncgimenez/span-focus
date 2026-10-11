@@ -10,7 +10,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Focus">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 
 
   <link rel="stylesheet" href="style.css?v=1.1">
@@ -215,21 +214,6 @@
             <button class="btn-theme-toggle" type="button" onclick="pairWithSyncKey(document.getElementById('inputSyncKey').value)">Link</button>
           </div>
         </div>
-
-<div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Multi-Device Sync</div>
-<div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-  <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-    <div style="font-size: 12px; color: var(--text-muted);">
-      Key: <strong id="displaySyncKey" style="color: var(--text-main); font-family: monospace;">...</strong>
-    </div>
-    <button class="btn-theme-toggle" type="button" onclick="navigator.clipboard.writeText(getCurrentSyncKey()); alert('Clé copiée !');">Copy</button>
-  </div>
-  <div style="display: flex; gap: 6px; width: 100%;">
-    <input type="text" id="inputSyncKey" placeholder="Paste device key to link..." style="flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 10px; border-radius: 8px; font-size: 12px; outline: none;">
-    <button class="btn-theme-toggle" type="button" onclick="pairWithSyncKey(document.getElementById('inputSyncKey').value)">Link</button>
-  </div>
-</div>
-
         
         <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Data Management</div>
         <div class="backup-section">
@@ -269,8 +253,6 @@
   <script src="js/track.js?v=1.1"></script>
   <script src="js/sync.js?v=1.1"></script>
   <script src="js/app.js?v=1.1"></script>
-</body>
-
 </body>
 
 </html>
