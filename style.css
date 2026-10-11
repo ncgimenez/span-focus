@@ -1,10 +1,10 @@
 :root {
   --bg: #0d0d0f;
-  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-bg: rgba(255, 255,e 255, 0.03);
   --card-border: rgba(255, 255, 255, 0.08);
   --text-main: #f4f4f6;
   --text-muted: #71717a;
-  --accent: #e4e4e7;
+  --accent: #e4e4e7; 
   --accent-active: #ffffff;
   --streak: #e2b340;
   --danger: #ef4444;
@@ -892,21 +892,53 @@ input[type="range"] {
 }
 
 /* ADAPTATION IPHONE 13 MINI ET PETITS ÉCRANS */
+/* Effet de pression natif sur les boutons */
+.btn-main:active, .nav-btn:active, .task-item:active, .btn-theme-toggle:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Optimisation compacte pour iPhone 13 mini */
 @media (max-width: 400px) {
   body {
-    font-size: 14px;
+    font-size: 13px;
+    padding: env(safe-area-inset-top, 10px) 12px env(safe-area-inset-bottom, 70px);
   }
+
   .app-header h1 {
     font-size: 1.15rem;
   }
-  .time-display {
-    font-size: 54px;
+
+  .app-container {
+    gap: 10px;
+    padding-bottom: 64px;
   }
+
   .timer-circle-wrapper {
-    width: 220px;
-    height: 220px;
+    width: 190px;
+    height: 190px;
+    margin-bottom: 10px;
   }
+
+  .time-display {
+    font-size: 46px;
+  }
+
+  .preset-pills {
+    margin-bottom: 12px;
+  }
+
+  .mode-switch {
+    margin-bottom: 10px;
+  }
+
+  .btn-main {
+    padding: 12px 36px;
+    font-size: 14px;
+  }
+
   .task-item {
     padding: 10px 12px;
   }
 }
+
