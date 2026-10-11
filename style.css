@@ -36,7 +36,6 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
-
 body {
   background-color: var(--bg);
   color: var(--text-main);
@@ -46,9 +45,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 72px);
+  padding: env(safe-area-inset-top, 10px) 16px 0 16px;
   overflow: hidden;
-  touch-action: pan-x pan-y; /* Permet la capture tactile des swipes */
+  touch-action: pan-x pan-y;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
@@ -58,10 +57,10 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 20px));
   will-change: transform;
 }
-
 
 
 /* HEADER */
@@ -868,20 +867,20 @@ input[type="range"] {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
-  background: rgba(13, 13, 15, 0.85);
+  height: calc(60px + env(safe-area-inset-bottom, 20px));
+  background: rgba(13, 13, 15, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--card-border);
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  align-items: flex-start;
+  padding-top: 8px;
   z-index: 100;
 }
 
 [data-theme="light"] .nav-bar {
-  background: rgba(248, 248, 250, 0.85);
+  background: rgba(248, 248, 250, 0.92);
 }
 
 .nav-items {
@@ -895,19 +894,25 @@ input[type="range"] {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 4px 16px;
+}
+
+.nav-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 .nav-btn.active {
   color: var(--text-main);
 }
+
 
 /* ADAPTATION IPHONE 13 MINI ET PETITS ÉCRANS */
 /* Effet de pression natif sur les boutons */
@@ -916,49 +921,38 @@ input[type="range"] {
   transition: transform 0.1s ease;
 }
 
+
 /* Optimisation compacte pour iPhone 13 mini */
 @media (max-width: 400px) {
   body {
-    font-size: 13px;
-    padding: env(safe-area-inset-top, 10px) 12px env(safe-area-inset-bottom, 70px);
-  }
-
-  .app-header h1 {
-    font-size: 1.15rem;
-  }
-
-  .app-container {
-    gap: 10px;
-    padding-bottom: 64px;
+    padding: env(safe-area-inset-top, 10px) 12px 0 12px;
   }
 
   .timer-circle-wrapper {
-    width: 190px;
-    height: 190px;
-    margin-bottom: 10px;
+    width: 230px;
+    height: 230px;
+    margin-bottom: 6px;
   }
 
   .time-display {
-    font-size: 46px;
+    font-size: 58px;
   }
 
   .preset-pills {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .mode-switch {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .btn-main {
-    padding: 12px 36px;
-    font-size: 14px;
-  }
-
-  .task-item {
-    padding: 10px 12px;
+    padding: 13px 40px;
+    font-size: 15px;
   }
 }
+
+
 
 /* Dispositions compactes pour écran unique */
 .view-panel {
