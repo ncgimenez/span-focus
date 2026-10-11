@@ -220,13 +220,21 @@
           </div>
         </div>
 
-        <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Rename Categories</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-          <input type="text" id="renameCatCode" placeholder="Code label" class="modal-input" oninput="handleCategoryRename('Code', this.value)">
-          <input type="text" id="renameCatStudy" placeholder="Study label" class="modal-input" oninput="handleCategoryRename('Study', this.value)">
-          <input type="text" id="renameCatWrite" placeholder="Write label" class="modal-input" oninput="handleCategoryRename('Write', this.value)">
-          <input type="text" id="renameCatAdmin" placeholder="Admin label" class="modal-input" oninput="handleCategoryRename('Admin', this.value)">
+    
+         <!-- RENAME CATEGORY SECTION -->
+        <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Rename Category</div>
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+          <select id="renameCategorySelect" class="modal-input" style="flex: 1; cursor: pointer;" onchange="syncRenameCategoryInput()">
+            <option value="Code">Code</option>
+            <option value="Study">Study</option>
+            <option value="Write">Write</option>
+            <option value="Admin">Admin</option>
+          </select>
+          <input type="text" id="renameCategoryInput" placeholder="New label..." class="modal-input" style="flex: 1.4;" onkeydown="if(event.key==='Enter') saveRenamedCategory()">
+          <button class="btn-theme-toggle" type="button" onclick="saveRenamedCategory()">Save</button>
         </div>
+
+      
 
         <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Data Management</div>
         <div class="backup-section">
