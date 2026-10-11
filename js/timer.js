@@ -50,19 +50,61 @@ function setTimerMode(mode) {
   document.getElementById(`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`).classList.add('active');
 
   const presetContainer = document.getElementById('presetPills');
+  display.classList.toggle('editable', mode === 'custom');
+
   if (mode === 'pomodoro') {
     presetContainer.style.display = 'flex';
+    presetContainer.innerHTML = `
+      <button class="preset-pill active" onclick="setDuration(25)">25m</button>
+      <button class="preset-pill" onclick="setDuration(50)">50m</button>
+      <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+    `;
     setDuration(25);
   } else if (mode === 'custom') {
-    presetContainer.style.display = 'none';
-    const userMin = prompt('Enter focus duration (minutes):', '45');
-    setDuration(parseInt(userMin) || 25);
+    presetContainer.style.display = 'flex';
+    presetContainer.innerHTML = `
+      <button class="preset-pill active" onclick="setDuration(45)">45m</button>
+      <button class="preset-pill" onclick="setDuration(60)">60m</button>
+      <button class="preset-pill" onclick="setDuration(90)">90m</button>
+    `;
+    setDuration(45);
   } else if (mode === 'stopwatch') {
     presetContainer.style.display = 'none';
     elapsedSeconds = 0;
     updateDisplay();
   }
 }
+
+// Déclenche l'édition directe du chiffre en mode Custom
+function startEditingCustomTime() {
+  if (timerMode !== 'custom' || isRunning) return;
+  const input = document.getElementById('customTimeInput');
+  if (!input) return;
+
+  display.style.display = 'none';
+  input.style.display = 'block';
+  input.value = durationMinutes;
+  input.focus();
+  input.select();
+}
+
+// Valide la nouvelle durée saisie
+function finishEditingCustomTime() {
+  const input = document.getElementById('customTimeInput');
+  if (!input || input.style.display === 'none') return;
+
+  const val = parseInt(input.value, 10);
+  input.style.display = 'none';
+  display.style.display = 'block';
+
+  if (!isNaN(val) && val > 0 && val <= 180) {
+    setDuration(val);
+  } else {
+    updateDisplay();
+  }
+}
+
+
 
 function setDuration(mins, isBreak = false) {
   if (isRunning) toggleTimer();
