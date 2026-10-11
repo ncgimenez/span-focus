@@ -13,7 +13,9 @@ function saveTasks() {
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
   renderTasks();
   updateSpotlightUI();
+  if (typeof saveStateToCloud === 'function') saveStateToCloud(); // <-- AJOUTE CETTE LIGNE
 }
+
 
 function renderTasks() {
   const list = document.getElementById('taskList');
