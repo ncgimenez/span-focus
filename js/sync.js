@@ -78,10 +78,25 @@ async function loadStateFromCloud() {
       isSyncingIncoming = true;
 
       if (data.tasks) {
-        tasks = data.tasks;
-        localStorage.setItem('span_tasks', JSON.stringify(tasks));
-        if (typeof renderTasks === 'function') renderTasks();
-      }
+              tasks = data.tasks;
+              window.SpanState.tasks = tasks;
+              localStorage.setItem('span_tasks', JSON.stringify(tasks));
+              if (typeof renderTasks === 'function') renderTasks();
+            }
+      
+            if (data.categories) {
+              categoryLabels = data.categories;
+              window.SpanState.categoryLabels = categoryLabels;
+              localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
+              if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
+            }
+      
+            if (data.archived_tasks) {
+              archivedTasks = data.archived_tasks;
+              window.SpanState.archivedTasks = archivedTasks;
+              localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
+              if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
+            }
 
       if (data.tracking) {
         trackingData = data.tracking;
@@ -118,6 +133,8 @@ async function saveStateToCloud() {
    const payload = {
       id: SYNC_USER_ID,
       tasks: (window.SpanState && window.SpanState.tasks) || (typeof tasks !== 'undefined' ? tasks : []),
+      archived_tasks: (window.SpanState && window.SpanState.archivedTasks) || (typeof archivedTasks !== 'undefined' ? archivedTasks : []),
+      categories: (window.SpanState && window.SpanState.categoryLabels) || (typeof categoryLabels !== 'undefined' ? categoryLabels : {}),
       tracking: (window.SpanState && window.SpanState.trackingData) || (typeof trackingData !== 'undefined' ? trackingData : {}),
       daily_target: (window.SpanState && window.SpanState.dailyTargetMinutes) || (typeof dailyTargetMinutes !== 'undefined' ? dailyTargetMinutes : 100),
       timer_state: {
@@ -160,9 +177,24 @@ function initRealtimeSync() {
 
         if (newData.tasks) {
           tasks = newData.tasks;
-          localStorage.setItem('span_tasks', JSON.stringify(tasks));
-          if (typeof renderTasks === 'function') renderTasks();
-        }
+              window.SpanState.tasks = tasks;
+              localStorage.setItem('span_tasks', JSON.stringify(tasks));
+              if (typeof renderTasks === 'function') renderTasks();
+            }
+    
+            if (newData.categories) {
+              categoryLabels = newData.categories;
+              window.SpanState.categoryLabels = categoryLabels;
+              localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
+              if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
+            }
+    
+            if (newData.archived_tasks) {
+              archivedTasks = newData.archived_tasks;
+              window.SpanState.archivedTasks = archivedTasks;
+              localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
+              if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
+            }
 
         if (newData.tracking) {
           trackingData = newData.tracking;
