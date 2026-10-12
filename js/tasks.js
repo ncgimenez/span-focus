@@ -13,17 +13,22 @@ window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
   { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
 ];
 
+window.SpanState.archivedTasks = JSON.parse(localStorage.getItem('span_archived_tasks')) || [];
 window.SpanState.activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
 
 // Raccourcis pour le reste du code
 var categoryLabels = window.SpanState.categoryLabels;
 var tasks = window.SpanState.tasks;
+var archivedTasks = window.SpanState.archivedTasks;
 var activeTask = window.SpanState.activeTask;
 
 let selectedTaskIndex = 0;
 let editingTaskId = null;
 let editingCategory = 'None';
 let editingEstimate = 1;
+
+let isArchivedOpen = false;
+let archiveFilter = 'today'; // 'today' ou 'all'
 
 tasks = tasks.map(t => ({
   ...t,
@@ -33,10 +38,15 @@ tasks = tasks.map(t => ({
 
 function saveTasks() {
   window.SpanState.tasks = tasks;
+  window.SpanState.archivedTasks = archivedTasks;
   window.SpanState.activeTask = activeTask;
+
   localStorage.setItem('span_tasks', JSON.stringify(tasks));
+  localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+
   renderTasks();
+  renderArchivedTasks();
   updateSpotlightUI();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
@@ -64,41 +74,43 @@ function saveRenamedCategory() {
     return;
   }
 
-  // Enregistrement
   categoryLabels[key] = newName;
   window.SpanState.categoryLabels = categoryLabels;
   localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
 
-  // Met à jour l'interface
   updateCategoryDOMNames();
   renderTasks();
+  renderArchivedTasks();
   if (typeof renderChart === 'function') renderChart();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 
   alert(`Category "${key}" renamed to "${newName}"!`);
 }
 
-// Met à jour les libellés partout dans l'application
 function updateCategoryDOMNames() {
   const keys = ['Code', 'Study', 'Write', 'Admin'];
 
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
 
-    // 1. Menu d'ajout de tâche
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
 
-    // 2. Pilules de la modale d'édition
     const pill = document.querySelector(`.cat-pill[data-cat="${key}"]`);
     if (pill) pill.textContent = currentName;
 
-    // 3. Option dans le sélecteur de renommage lui-même
     const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
     if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
 
   syncRenameCategoryInput();
+}
+
+// Tri des tâches : non cochées d'abord, cochées à la fin
+function sortTasksWithCompletedAtBottom() {
+  const uncompleted = tasks.filter(t => !t.completed);
+  const completed = tasks.filter(t => t.completed);
+  tasks = [...uncompleted, ...completed];
 }
 
 function renderTasks() {
@@ -110,7 +122,7 @@ function renderTasks() {
     const li = document.createElement('li');
     const isTargetVisible = (index === selectedTaskIndex) || (selectedTaskIndex === -1 && index === 0);
     li.className = `task-item ${task.completed ? 'completed' : ''} ${index === selectedTaskIndex ? 'selected' : ''} ${isTargetVisible ? 'show-focus-btn' : ''}`;
-    li.draggable = true;
+    li.draggable = !task.completed;
     li.dataset.index = index;
 
     li.addEventListener('dragstart', handleDragStart);
@@ -144,6 +156,9 @@ function renderTasks() {
     `;
     list.appendChild(li);
   });
+
+  const countBadge = document.getElementById('archivedCount');
+  if (countBadge) countBadge.textContent = archivedTasks.length;
 }
 
 function updateTaskSelectionUI() {
@@ -170,6 +185,7 @@ function addTask() {
   };
 
   tasks.unshift(newTask);
+  sortTasksWithCompletedAtBottom();
   if (input) input.value = '';
 
   activeTask = newTask;
@@ -181,11 +197,14 @@ function addTask() {
 function toggleTask(index) {
   if (!tasks[index]) return;
   tasks[index].completed = !tasks[index].completed;
+  
   if (activeTask && activeTask.id === tasks[index].id) {
     dismissSpotlightTask();
-  } else {
-    saveTasks();
   }
+
+  // Déplace immédiatement les tâches cochées vers le bas
+  sortTasksWithCompletedAtBottom();
+  saveTasks();
 }
 
 function deleteTask(index) {
@@ -193,6 +212,114 @@ function deleteTask(index) {
   if (activeTask && activeTask.id === tasks[index].id) dismissSpotlightTask();
   tasks.splice(index, 1);
   selectedTaskIndex = 0;
+  saveTasks();
+}
+
+// ARCHIVAGE
+function archiveCompletedTasks() {
+  const completed = tasks.filter(t => t.completed);
+  if (completed.length === 0) {
+    alert('No completed tasks to archive.');
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10); // Format YYYY-MM-DD
+
+  completed.forEach(t => {
+    archivedTasks.unshift({
+      ...t,
+      archivedAt: now.toISOString(),
+      archivedDate: dateStr
+    });
+  });
+
+  tasks = tasks.filter(t => !t.completed);
+  saveTasks();
+}
+
+function toggleArchivedSection() {
+  isArchivedOpen = !isArchivedOpen;
+  const content = document.getElementById('archivedContent');
+  const icon = document.getElementById('archivedToggleIcon');
+
+  if (content) content.style.display = isArchivedOpen ? 'block' : 'none';
+  if (icon) icon.textContent = isArchivedOpen ? '▼' : '▶';
+
+  if (isArchivedOpen) {
+    renderArchivedTasks();
+  }
+}
+
+function setArchiveFilter(filter) {
+  archiveFilter = filter;
+  const btnToday = document.getElementById('btnFilterToday');
+  const btnAll = document.getElementById('btnFilterAll');
+
+  if (btnToday) btnToday.classList.toggle('active', filter === 'today');
+  if (btnAll) btnAll.classList.toggle('active', filter === 'all');
+
+  renderArchivedTasks();
+}
+
+function renderArchivedTasks() {
+  const list = document.getElementById('archivedTaskList');
+  const countBadge = document.getElementById('archivedCount');
+  if (countBadge) countBadge.textContent = archivedTasks.length;
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const items = archiveFilter === 'today'
+    ? archivedTasks.filter(t => t.archivedDate === todayStr)
+    : archivedTasks;
+
+  if (items.length === 0) {
+    list.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px;">No archived tasks ${archiveFilter === 'today' ? 'today' : ''}</li>`;
+    return;
+  }
+
+  items.forEach((task) => {
+    const li = document.createElement('li');
+    li.className = 'task-item completed';
+
+    const taskTitle = task.title || task.text || '';
+    const hasCategory = task.category && task.category !== 'None';
+    const catLabel = hasCategory ? (categoryLabels[task.category] || task.category) : '';
+    const tagHtml = hasCategory 
+      ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
+      : '';
+
+    li.innerHTML = `
+      <div class="task-left">
+        <span class="task-text">${taskTitle}</span>
+        ${tagHtml}
+      </div>
+      <div class="task-actions">
+        <button class="btn-task-action" onclick="unarchiveTask('${task.id}')" title="Restore task">↩</button>
+        <button class="btn-task-action" onclick="deleteArchivedTask('${task.id}')" title="Delete permanently">✕</button>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+}
+
+function unarchiveTask(id) {
+  const idx = archivedTasks.findIndex(t => String(t.id) === String(id));
+  if (idx !== -1) {
+    const item = archivedTasks.splice(idx, 1)[0];
+    item.completed = false;
+    delete item.archivedAt;
+    delete item.archivedDate;
+    tasks.unshift(item);
+    sortTasksWithCompletedAtBottom();
+    saveTasks();
+  }
+}
+
+function deleteArchivedTask(id) {
+  archivedTasks = archivedTasks.filter(t => String(t.id) !== String(id));
   saveTasks();
 }
 
@@ -275,6 +402,7 @@ function completeSpotlightTask() {
   if (found) found.completed = true;
   activeTask = null;
   window.SpanState.activeTask = null;
+  sortTasksWithCompletedAtBottom();
   saveTasks();
 }
 
@@ -309,7 +437,6 @@ function openEditModalForTask(id) {
   if (modal) modal.style.display = 'flex';
 }
 
-// Sélection / Désélection en recliquant
 function selectEditCategory(cat) {
   if (editingCategory === cat) {
     editingCategory = 'None';
