@@ -107,8 +107,6 @@
   </section>
 </div>
 
-
-
         <!-- VUE 2 : TASKS -->
         <div id="view-tasks" class="view-panel">
           <div class="task-input-container">
@@ -123,11 +121,34 @@
             <button class="btn-add" onclick="addTask()">Add</button>
           </div>
 
+          <!-- Actions rapides -->
+          <div class="task-quick-actions">
+            <button class="btn-archive-completed" onclick="archiveCompletedTasks()">Archive completed</button>
+          </div>
+
+          <!-- Liste des tâches actives -->
           <ul class="task-list" id="taskList"></ul>
+
+          <!-- Section accordéon Archived -->
+          <div class="archived-section">
+            <button class="archived-toggle-btn" id="archivedToggleBtn" onclick="toggleArchivedSection()">
+              <span id="archivedToggleIcon">▶</span> Archived (<span id="archivedCount">0</span>)
+            </button>
+
+            <div class="archived-content" id="archivedContent" style="display: none;">
+              <div class="archived-filter-tabs">
+                <button class="filter-btn active" id="btnFilterToday" onclick="setArchiveFilter('today')">Today</button>
+                <button class="filter-btn" id="btnFilterAll" onclick="setArchiveFilter('all')">All</button>
+              </div>
+              <ul class="task-list archived-list" id="archivedTaskList"></ul>
+            </div>
+          </div>
+
           <div class="shortcuts-legend">
             Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
           </div>
         </div>
+
 
         <!-- VUE 3 : TRACK / STATS -->
         <div id="view-stats" class="view-panel">
