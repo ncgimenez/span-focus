@@ -109,46 +109,60 @@
 
         <!-- VUE 2 : TASKS -->
         <div id="view-tasks" class="view-panel">
-          <div class="task-input-container">
-            <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
-            <select class="category-select" id="taskCategory">
-              <option value="None">None</option>
-              <option value="Code" id="optCatCode">Code</option>
-              <option value="Study" id="optCatStudy">Study</option>
-              <option value="Write" id="optCatWrite">Write</option>
-              <option value="Admin" id="optCatAdmin">Admin</option>
-            </select>
-            <button class="btn-add" onclick="addTask()">Add</button>
-          </div>
+          
+          <!-- SOUS-ÉCRAN 1 : LISTE PRINCIPALE DES TÂCHES -->
+          <div id="tasks-main-subview">
+            <div class="task-input-container">
+              <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
+              <select class="category-select" id="taskCategory">
+                <option value="None">None</option>
+                <option value="Code" id="optCatCode">Code</option>
+                <option value="Study" id="optCatStudy">Study</option>
+                <option value="Write" id="optCatWrite">Write</option>
+                <option value="Admin" id="optCatAdmin">Admin</option>
+              </select>
+              <button class="btn-add" onclick="addTask()">Add</button>
+            </div>
 
-          <!-- Actions rapides -->
-          <div class="task-quick-actions">
-            <button class="btn-archive-completed" onclick="archiveCompletedTasks()">Archive completed</button>
-          </div>
-
-          <!-- Liste des tâches actives -->
-          <ul class="task-list" id="taskList"></ul>
-
-          <!-- Section accordéon Archived -->
-          <div class="archived-section">
-            <button class="archived-toggle-btn" id="archivedToggleBtn" onclick="toggleArchivedSection()">
-              <span id="archivedToggleIcon">▶</span> Archived (<span id="archivedCount">0</span>)
-            </button>
-
-            <div class="archived-content" id="archivedContent" style="display: none;">
-              <div class="archived-filter-tabs">
-                <button class="filter-btn active" id="btnFilterToday" onclick="setArchiveFilter('today')">Today</button>
-                <button class="filter-btn" id="btnFilterAll" onclick="setArchiveFilter('all')">All</button>
+            <!-- Barre discrète : Compteur restant + Temps estimé + Accès archives -->
+            <div class="tasks-summary-bar">
+              <span id="tasksRemainingCount">0 remaining</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="tasksEstTimeLeft" class="tasks-est-time">~0m</span>
+                <button class="btn-open-archive" onclick="openArchiveSubView()">Archive 🗄️</button>
               </div>
-              <ul class="task-list archived-list" id="archivedTaskList"></ul>
+            </div>
+
+            <!-- Liste des tâches actives -->
+            <ul class="task-list" id="taskList"></ul>
+
+            <div class="shortcuts-legend">
+              Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
             </div>
           </div>
 
-          <div class="shortcuts-legend">
-            Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
-          </div>
-        </div>
+          <!-- SOUS-ÉCRAN 2 : ARCHIVES & HISTORIQUE (Caché au départ) -->
+          <div id="tasks-archive-subview" style="display: none;">
+            <div class="archive-header-nav">
+              <button class="btn-archive-back" onclick="closeArchiveSubView()">← Tasks</button>
+              <span class="archive-header-title">Archive History</span>
+              <button class="btn-archive-clean" onclick="archiveDayNow()" title="Archive completed now">Clean Day</button>
+            </div>
 
+            <div class="archive-sub-section">
+              <div class="archive-section-title">Completed Today</div>
+              <ul class="task-list" id="archivedTodayList"></ul>
+            </div>
+
+            <div class="archive-sub-section">
+              <button class="past-toggle-btn" onclick="togglePastArchives()">
+                <span id="pastToggleIcon">▶</span> Past Days (<span id="pastCount">0</span>)
+              </button>
+              <ul class="task-list" id="archivedPastList" style="display: none; margin-top: 8px;"></ul>
+            </div>
+          </div>
+
+        </div>
 
         <!-- VUE 3 : TRACK / STATS -->
         <div id="view-stats" class="view-panel">
