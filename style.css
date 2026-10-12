@@ -36,6 +36,7 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
+
 body {
   background-color: var(--bg);
   color: var(--text-main);
@@ -161,10 +162,7 @@ header {
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* VUES */
-
-/* Slider des 3 sous-vues */
-
+/* VUES & SLIDER */
 .views-viewport {
   width: 100%;
   flex: 1;
@@ -187,16 +185,16 @@ header {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 30px;
 }
 
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+#view-focus {
+  justify-content: space-between;
+  overflow-y: hidden !important;
 }
 
 /* SPOTLIGHT & CHOIX DE TÂCHE */
@@ -214,21 +212,6 @@ header {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-}
-
-.spotlight-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  overflow: hidden;
-}
-
-.spotlight-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--streak);
-  font-weight: 700;
 }
 
 .spotlight-title {
@@ -273,6 +256,43 @@ header {
 
 .spotlight-empty-btn:hover {
   border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text-main);
+}
+
+.spotlight-card.compact {
+  padding: 8px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+.spotlight-card.compact .spotlight-title {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+}
+
+.spotlight-empty-btn.compact {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.btn-spotlight-action.mini {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.btn-spotlight-action.mini:hover {
   color: var(--text-main);
 }
 
@@ -362,7 +382,6 @@ header {
   color: var(--text-main);
 }
 
-/* RING SVG */
 .timer-circle-wrapper {
   position: relative;
   width: 260px;
@@ -417,6 +436,31 @@ header {
   to { opacity: 1; }
 }
 
+.time-display.editable {
+  cursor: pointer;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.3);
+}
+
+.custom-time-input {
+  display: none;
+  font-size: 64px;
+  font-weight: 200;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  text-align: center;
+  width: 140px;
+  outline: none;
+  font-family: inherit;
+  z-index: 5;
+}
+
+.custom-time-input::-webkit-outer-spin-button,
+.custom-time-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .controls {
   display: flex;
   gap: 12px;
@@ -452,7 +496,7 @@ header {
   cursor: pointer;
 }
 
-/* TASKS LIST */
+/* TASKS LIST & SOUS-ÉCRANS */
 .task-input-container {
   display: flex;
   gap: 8px;
@@ -494,6 +538,40 @@ header {
   padding: 8px 14px;
   border-radius: 10px;
   cursor: pointer;
+}
+
+/* BARRE DE RÉSUMÉ (COMPTEUR + TEMPS ESTIMÉ) */
+.tasks-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.tasks-est-time {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.btn-open-archive {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-open-archive:hover {
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .task-list {
@@ -579,6 +657,22 @@ header {
   margin-left: 6px;
 }
 
+/* BOUTON ÉTOILE (FAVORI) */
+.btn-fav {
+  background: none;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0.35;
+  padding: 2px 4px;
+  transition: opacity 0.15s;
+}
+
+.btn-fav.active {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(226, 179, 64, 0.4));
+}
+
 .task-actions {
   display: flex;
   align-items: center;
@@ -613,6 +707,73 @@ header {
   color: var(--text-muted);
   text-align: center;
   margin-top: 4px;
+}
+
+/* SOUS-ÉCRAN ARCHIVES */
+.archive-header-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.btn-archive-back, .btn-archive-clean {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.archive-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.archive-sub-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.archive-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+.past-toggle-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.past-toggle-btn:hover {
+  color: var(--text-main);
+}
+
+.task-time-pill {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
 }
 
 /* TRACK VIEW & STATS */
@@ -921,16 +1082,13 @@ input[type="range"] {
   color: var(--text-main);
 }
 
-
-/* ADAPTATION IPHONE 13 MINI ET PETITS ÉCRANS */
-/* Effet de pression natif sur les boutons */
+/* INTERACTION TACTILE */
 .btn-main:active, .nav-btn:active, .task-item:active, .btn-theme-toggle:active {
   transform: scale(0.97);
   transition: transform 0.1s ease;
 }
 
-
-/* Optimisation compacte pour iPhone 13 mini */
+/* OPTIMISATION ÉCRANS COMPACTS (IPHONE MINI) */
 @media (max-width: 400px) {
   body {
     padding: env(safe-area-inset-top, 10px) 12px 0 12px;
@@ -946,11 +1104,7 @@ input[type="range"] {
     font-size: 58px;
   }
 
-  .preset-pills {
-    margin-bottom: 8px;
-  }
-
-  .mode-switch {
+  .preset-pills, .mode-switch {
     margin-bottom: 8px;
   }
 
@@ -959,207 +1113,3 @@ input[type="range"] {
     font-size: 15px;
   }
 }
-
-
-
-/* Dispositions compactes pour écran unique */
-.view-panel {
-  height: 100%;
-  justify-content: space-between;
-}
-
-#view-tasks, #view-stats {
-  overflow-y: auto; /* Autorise le scroll uniquement dans les listes de tâches et stats */
-  padding-bottom: 20px;
-}
-
-
-/* Alignement du minuteur et des réglages de temps */
-.timer-circle-wrapper {
-  flex-direction: column;
-  gap: 8px;
-}
-
-.time-display {
-  line-height: 1;
-  margin-top: -10px;
-}
-
-.preset-pills-sub {
-  position: static;
-  display: flex;
-  gap: 6px;
-  z-index: 3;
-}
-
-.preset-pills-sub .preset-pill {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.preset-pills-sub .preset-pill.active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: var(--text-main);
-}
-
-/* Tâche active compacte et centrée */
-.compact-spotlight {
-  width: 100%;
-  max-width: 340px;
-  margin: 6px auto 14px auto;
-}
-
-.spotlight-card.compact {
-  padding: 8px 14px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-}
-
-.spotlight-card.compact .spotlight-title {
-  flex: 1;
-  text-align: center;
-  font-size: 13px;
-}
-
-.spotlight-empty-btn.compact {
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.btn-spotlight-action.mini {
-  padding: 4px 8px;
-  font-size: 11px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.btn-spotlight-action.mini:hover {
-  color: var(--text-main);
-}
-
-/* Édition inline du minuteur */
-.time-display.editable {
-  cursor: pointer;
-  text-decoration: underline dotted rgba(255, 255, 255, 0.3);
-}
-
-.custom-time-input {
-  display: none;
-  font-size: 64px;
-  font-weight: 200;
-  color: var(--text-main);
-  background: transparent;
-  border: none;
-  text-align: center;
-  width: 140px;
-  outline: none;
-  font-family: inherit;
-  z-index: 5;
-}
-
-/* Masquer les flèches haut/bas des inputs numériques */
-.custom-time-input::-webkit-outer-spin-button,
-.custom-time-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-
-/* GESTION DU SCROLL ET ARCHIVES */
-#view-tasks {
-  overflow-y: auto !important;
-  max-height: 100%;
-  padding-bottom: 40px;
-}
-
-.task-quick-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -6px;
-}
-
-.btn-archive-completed {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 11px;
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 2px 4px;
-}
-
-.btn-archive-completed:hover {
-  color: var(--text-main);
-}
-
-.archived-section {
-  margin-top: 12px;
-  border-top: 1px solid var(--card-border);
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.archived-toggle-btn {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-
-.archived-toggle-btn:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.archived-filter-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.filter-btn {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.filter-btn.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text-main);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.archived-list .task-item {
-  opacity: 0.7;
-}
-
