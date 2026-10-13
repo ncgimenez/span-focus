@@ -505,7 +505,9 @@ function openEditModalForTask(id) {
   if (minEl) minEl.textContent = editingEstimate * 25;
 
   document.querySelectorAll('.cat-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.cat === editingCategory);
+    const catKey = btn.dataset.cat;
+    btn.textContent = categoryLabels[catKey] || catKey;
+    btn.classList.toggle('active', catKey === editingCategory);
   });
 
   const modal = document.getElementById('editModalOverlay');
