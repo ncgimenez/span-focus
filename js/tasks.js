@@ -121,13 +121,21 @@ function updateCategoryDOMNames() {
   const keys = ['Code', 'Study', 'Write', 'Admin'];
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
+
+    // 1. Menu déroulant d'ajout de tâche
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
-    const pill = document.querySelector(`.cat-pill[data-cat="${key}"]`);
-    if (pill) pill.textContent = currentName;
+
+    // 2. Boutons de catégories dans la modale d'édition
+    document.querySelectorAll(`.cat-pill[data-cat="${key}"]`).forEach(pill => {
+      pill.textContent = currentName;
+    });
+
+    // 3. Sélecteur de renommage dans les paramètres
     const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
     if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
+
   syncRenameCategoryInput();
 }
 
