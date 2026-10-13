@@ -1,11 +1,14 @@
 const appViews = ['focus', 'tasks', 'stats'];
 let activeTabIndex = 0;
 
+
 function switchView(viewName, btnElement) {
   const index = appViews.indexOf(viewName);
   if (index === -1) return;
 
   activeTabIndex = index;
+  localStorage.setItem('span_active_view', viewName);
+
 
   // Déplacement fluide de la glissière horizontale
   const slider = document.getElementById('viewsSlider');
@@ -77,7 +80,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof renderTasks === 'function') renderTasks();
   if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
   if (typeof updateGoalBar === 'function') updateGoalBar();
+
+  const savedView = localStorage.getItem('span_active_view') || 'focus';
+  if (savedView !== 'focus') {
+    switchView(savedView);
+  }
 });
+
 
 
 // Gestion des gestes tactiles (séparation stricte Swipe horizontal vs Pull-to-refresh vertical)
