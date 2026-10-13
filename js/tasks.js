@@ -9,14 +9,13 @@ window.SpanState.categoryLabels = JSON.parse(localStorage.getItem('span_category
 };
 
 window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false },
-  { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false }
+  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false, isFavorite: false },
+  { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false, isFavorite: false }
 ];
 
 window.SpanState.archivedTasks = JSON.parse(localStorage.getItem('span_archived_tasks')) || [];
 window.SpanState.activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
 
-// Raccourcis pour le reste du code
 var categoryLabels = window.SpanState.categoryLabels;
 var tasks = window.SpanState.tasks;
 var archivedTasks = window.SpanState.archivedTasks;
@@ -26,15 +25,54 @@ let selectedTaskIndex = 0;
 let editingTaskId = null;
 let editingCategory = 'None';
 let editingEstimate = 1;
+let isPastOpen = false;
 
-let isArchivedOpen = false;
-let archiveFilter = 'today'; // 'today' ou 'all'
+// Migration des tâches
+const nowInit = new Date();
+const todayStrInit = nowInit.toISOString().slice(0, 10);
 
-tasks = tasks.map(t => ({
-  ...t,
-  title: t.title || t.text || 'Untitled Task',
-  category: t.category || 'None'
-}));
+tasks = tasks.map(t => {
+  const isDone = !!t.completed;
+  return {
+    ...t,
+    title: t.title || t.text || 'Untitled Task',
+    category: t.category || 'None',
+    isFavorite: !!t.isFavorite,
+    completed: isDone,
+    completedAt: isDone ? (t.completedAt || nowInit.toISOString()) : null,
+    completedDate: isDone ? (t.completedDate || todayStrInit) : null
+  };
+});
+
+function triggerHapticFeedback() {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(15); } catch (e) {}
+  }
+}
+
+function autoArchivePastDays() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let changed = false;
+  const stillActive = [];
+
+  tasks.forEach(t => {
+    if (t.completed && t.completedDate && t.completedDate < todayStr) {
+      archivedTasks.unshift({
+        ...t,
+        archivedAt: t.completedAt || new Date().toISOString(),
+        archivedDate: t.completedDate
+      });
+      changed = true;
+    } else {
+      stillActive.push(t);
+    }
+  });
+
+  if (changed) {
+    tasks = stillActive;
+    saveTasks();
+  }
+}
 
 function saveTasks() {
   window.SpanState.tasks = tasks;
@@ -51,7 +89,6 @@ function saveTasks() {
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
-// Remplit le champ texte avec le nom actuel dès qu'on change de catégorie dans le select
 function syncRenameCategoryInput() {
   const select = document.getElementById('renameCategorySelect');
   const input = document.getElementById('renameCategoryInput');
@@ -60,7 +97,6 @@ function syncRenameCategoryInput() {
   input.value = categoryLabels[key] || key;
 }
 
-// Valide et enregistre le nouveau nom
 function saveRenamedCategory() {
   const select = document.getElementById('renameCategorySelect');
   const input = document.getElementById('renameCategoryInput');
@@ -68,11 +104,7 @@ function saveRenamedCategory() {
 
   const key = select.value;
   const newName = input.value.trim();
-
-  if (!newName) {
-    alert('Please enter a valid category name.');
-    return;
-  }
+  if (!newName) return;
 
   categoryLabels[key] = newName;
   window.SpanState.categoryLabels = categoryLabels;
@@ -83,34 +115,27 @@ function saveRenamedCategory() {
   renderArchivedTasks();
   if (typeof renderChart === 'function') renderChart();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
-
-  alert(`Category "${key}" renamed to "${newName}"!`);
 }
 
 function updateCategoryDOMNames() {
   const keys = ['Code', 'Study', 'Write', 'Admin'];
-
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
-
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
-
     const pill = document.querySelector(`.cat-pill[data-cat="${key}"]`);
     if (pill) pill.textContent = currentName;
-
     const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
     if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
-
   syncRenameCategoryInput();
 }
 
-// Tri des tâches : non cochées d'abord, cochées à la fin
-function sortTasksWithCompletedAtBottom() {
-  const uncompleted = tasks.filter(t => !t.completed);
-  const completed = tasks.filter(t => t.completed);
-  tasks = [...uncompleted, ...completed];
+function sortTasks() {
+  const favs = tasks.filter(t => !t.completed && t.isFavorite);
+  const regular = tasks.filter(t => !t.completed && !t.isFavorite);
+  const done = tasks.filter(t => t.completed);
+  tasks = [...favs, ...regular, ...done];
 }
 
 function renderTasks() {
@@ -118,17 +143,29 @@ function renderTasks() {
   if (!list) return;
   list.innerHTML = '';
 
+  const remaining = tasks.filter(t => !t.completed);
+  const completedToday = tasks.filter(t => t.completed);
+
+  const countEl = document.getElementById('tasksRemainingCount');
+  if (countEl) {
+    countEl.textContent = `${remaining.length} remaining • ${completedToday.length} done`;
+  }
+
+  const estTimeEl = document.getElementById('tasksEstTimeLeft');
+  if (estTimeEl) {
+    const totalBlocks = remaining.reduce((acc, t) => acc + (t.estimate || 1), 0);
+    const mins = totalBlocks * 25;
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    estTimeEl.textContent = hrs > 0 ? `~${hrs}h${m > 0 ? m + 'm' : ''}` : `~${mins}m`;
+  }
+
   tasks.forEach((task, index) => {
     const li = document.createElement('li');
     const isTargetVisible = (index === selectedTaskIndex) || (selectedTaskIndex === -1 && index === 0);
     li.className = `task-item ${task.completed ? 'completed' : ''} ${index === selectedTaskIndex ? 'selected' : ''} ${isTargetVisible ? 'show-focus-btn' : ''}`;
     li.draggable = !task.completed;
     li.dataset.index = index;
-
-    li.addEventListener('dragstart', handleDragStart);
-    li.addEventListener('dragover', handleDragOver);
-    li.addEventListener('drop', handleDrop);
-    li.addEventListener('dragend', handleDragEnd);
 
     li.addEventListener('mouseenter', () => {
       selectedTaskIndex = index;
@@ -142,30 +179,47 @@ function renderTasks() {
       ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
       : '';
 
+    const favStar = !task.completed ? `
+      <button class="btn-fav ${task.isFavorite ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Favorite">⭐</button>
+    ` : '';
+
     li.innerHTML = `
       <div class="task-left" onclick="openEditModalForTask('${task.id}')">
         <div class="checkbox" onclick="event.stopPropagation(); toggleTask(${index})">${task.completed ? '✓' : ''}</div>
+        ${favStar}
         <span class="task-text">${taskTitle}</span>
         ${tagHtml}
         <span class="task-est">⏱ ${task.estimate || 1}</span>
       </div>
       <div class="task-actions">
-        <button class="btn-task-action btn-focus-target" onclick="event.stopPropagation(); setSpotlightTask(${index})" title="Focus this task">🎯</button>
-        <button class="btn-task-action" onclick="event.stopPropagation(); deleteTask(${index})" title="Delete">✕</button>
+        <button class="btn-task-action btn-focus-target" type="button" onclick="event.stopPropagation(); setSpotlightTask(${index})" title="Focus this task">🎯</button>
+        <button class="btn-task-action" type="button" onclick="event.stopPropagation(); deleteTask(${index})" title="Delete">✕</button>
       </div>
     `;
     list.appendChild(li);
   });
-
-  const countBadge = document.getElementById('archivedCount');
-  if (countBadge) countBadge.textContent = archivedTasks.length;
 }
 
 function updateTaskSelectionUI() {
-  document.querySelectorAll('.task-item').forEach((item, idx) => {
+  document.querySelectorAll('#taskList .task-item').forEach((item, idx) => {
     item.classList.toggle('selected', idx === selectedTaskIndex);
     item.classList.toggle('show-focus-btn', idx === selectedTaskIndex);
   });
+}
+
+function toggleFavorite(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+
+  const currentFavs = tasks.filter(x => x.isFavorite && !x.completed);
+  if (!t.isFavorite && currentFavs.length >= 3) {
+    alert("You can pin up to 3 favorites maximum.");
+    return;
+  }
+
+  t.isFavorite = !t.isFavorite;
+  sortTasks();
+  saveTasks();
 }
 
 function addTask() {
@@ -181,29 +235,39 @@ function addTask() {
     title: text,
     category: category,
     estimate: 1,
-    completed: false
+    completed: false,
+    isFavorite: false
   };
 
   tasks.unshift(newTask);
-  sortTasksWithCompletedAtBottom();
+  sortTasks();
   if (input) input.value = '';
 
-  activeTask = newTask;
-  window.SpanState.activeTask = activeTask;
   selectedTaskIndex = 0;
   saveTasks();
 }
 
 function toggleTask(index) {
   if (!tasks[index]) return;
-  tasks[index].completed = !tasks[index].completed;
-  
-  if (activeTask && activeTask.id === tasks[index].id) {
+  const t = tasks[index];
+  t.completed = !t.completed;
+
+  if (t.completed) {
+    triggerHapticFeedback();
+    const now = new Date();
+    t.completedAt = now.toISOString();
+    t.completedDate = now.toISOString().slice(0, 10);
+    t.isFavorite = false;
+  } else {
+    delete t.completedAt;
+    delete t.completedDate;
+  }
+
+  if (activeTask && activeTask.id === t.id) {
     dismissSpotlightTask();
   }
 
-  // Déplace immédiatement les tâches cochées vers le bas
-  sortTasksWithCompletedAtBottom();
+  sortTasks();
   saveTasks();
 }
 
@@ -215,94 +279,101 @@ function deleteTask(index) {
   saveTasks();
 }
 
-// ARCHIVAGE
-function archiveCompletedTasks() {
-  const completed = tasks.filter(t => t.completed);
-  if (completed.length === 0) {
-    alert('No completed tasks to archive.');
-    return;
-  }
-
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10); // Format YYYY-MM-DD
-
-  completed.forEach(t => {
-    archivedTasks.unshift({
-      ...t,
-      archivedAt: now.toISOString(),
-      archivedDate: dateStr
-    });
-  });
-
-  tasks = tasks.filter(t => !t.completed);
-  saveTasks();
-}
-
-function toggleArchivedSection() {
-  isArchivedOpen = !isArchivedOpen;
-  const content = document.getElementById('archivedContent');
-  const icon = document.getElementById('archivedToggleIcon');
-
-  if (content) content.style.display = isArchivedOpen ? 'block' : 'none';
-  if (icon) icon.textContent = isArchivedOpen ? '▼' : '▶';
-
-  if (isArchivedOpen) {
+function openArchiveSubView() {
+  const main = document.getElementById('tasks-main-subview');
+  const archive = document.getElementById('tasks-archive-subview');
+  if (main && archive) {
+    main.style.display = 'none';
+    archive.style.display = 'block';
     renderArchivedTasks();
   }
 }
 
-function setArchiveFilter(filter) {
-  archiveFilter = filter;
-  const btnToday = document.getElementById('btnFilterToday');
-  const btnAll = document.getElementById('btnFilterAll');
-
-  if (btnToday) btnToday.classList.toggle('active', filter === 'today');
-  if (btnAll) btnAll.classList.toggle('active', filter === 'all');
-
-  renderArchivedTasks();
+function closeArchiveSubView() {
+  const main = document.getElementById('tasks-main-subview');
+  const archive = document.getElementById('tasks-archive-subview');
+  if (main && archive) {
+    archive.style.display = 'none';
+    main.style.display = 'block';
+  }
 }
 
 function renderArchivedTasks() {
-  const list = document.getElementById('archivedTaskList');
-  const countBadge = document.getElementById('archivedCount');
-  if (countBadge) countBadge.textContent = archivedTasks.length;
-  if (!list) return;
+  const todayList = document.getElementById('archivedTodayList');
+  const pastList = document.getElementById('archivedPastList');
+  const pastCount = document.getElementById('pastCount');
 
-  list.innerHTML = '';
+  if (pastCount) pastCount.textContent = archivedTasks.length;
+  if (!todayList || !pastList) return;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const items = archiveFilter === 'today'
-    ? archivedTasks.filter(t => t.archivedDate === todayStr)
-    : archivedTasks;
+  todayList.innerHTML = '';
+  pastList.innerHTML = '';
 
-  if (items.length === 0) {
-    list.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px;">No archived tasks ${archiveFilter === 'today' ? 'today' : ''}</li>`;
-    return;
+  const completedToday = tasks.filter(t => t.completed);
+  if (completedToday.length === 0) {
+    todayList.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); padding: 8px 4px;">No tasks completed today yet</li>`;
+  } else {
+    completedToday.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'task-item completed';
+      const timeStr = t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      li.innerHTML = `
+        <div class="task-left">
+          <span class="task-text">${t.title || t.text}</span>
+          ${timeStr ? `<span class="task-time-pill">${timeStr}</span>` : ''}
+        </div>
+      `;
+      todayList.appendChild(li);
+    });
   }
 
-  items.forEach((task) => {
-    const li = document.createElement('li');
-    li.className = 'task-item completed';
+  if (archivedTasks.length === 0) {
+    pastList.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); padding: 8px 4px;">No past archives</li>`;
+  } else {
+    archivedTasks.forEach(t => {
+      const li = document.createElement('li');
+      li.className = 'task-item completed';
+      const dateStr = t.archivedDate || (t.archivedAt ? t.archivedAt.slice(0, 10) : '');
+      li.innerHTML = `
+        <div class="task-left">
+          <span class="task-text">${t.title || t.text}</span>
+          ${dateStr ? `<span class="task-time-pill">${dateStr}</span>` : ''}
+        </div>
+        <div class="task-actions">
+          <button class="btn-task-action" type="button" onclick="unarchiveTask('${t.id}')" title="Restore">↩</button>
+          <button class="btn-task-action" type="button" onclick="deleteArchivedTask('${t.id}')" title="Delete permanently">✕</button>
+        </div>
+      `;
+      pastList.appendChild(li);
+    });
+  }
+}
 
-    const taskTitle = task.title || task.text || '';
-    const hasCategory = task.category && task.category !== 'None';
-    const catLabel = hasCategory ? (categoryLabels[task.category] || task.category) : '';
-    const tagHtml = hasCategory 
-      ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
-      : '';
+function togglePastArchives() {
+  isPastOpen = !isPastOpen;
+  const list = document.getElementById('archivedPastList');
+  const icon = document.getElementById('pastToggleIcon');
+  if (list) list.style.display = isPastOpen ? 'flex' : 'none';
+  if (icon) icon.textContent = isPastOpen ? '▼' : '▶';
+}
 
-    li.innerHTML = `
-      <div class="task-left">
-        <span class="task-text">${taskTitle}</span>
-        ${tagHtml}
-      </div>
-      <div class="task-actions">
-        <button class="btn-task-action" onclick="unarchiveTask('${task.id}')" title="Restore task">↩</button>
-        <button class="btn-task-action" onclick="deleteArchivedTask('${task.id}')" title="Delete permanently">✕</button>
-      </div>
-    `;
-    list.appendChild(li);
+function archiveDayNow() {
+  const completed = tasks.filter(t => t.completed);
+  if (completed.length === 0) {
+    alert("No completed tasks to clean today.");
+    return;
+  }
+  const now = new Date();
+  completed.forEach(t => {
+    archivedTasks.unshift({
+      ...t,
+      archivedAt: t.completedAt || now.toISOString(),
+      archivedDate: t.completedDate || now.toISOString().slice(0, 10)
+    });
   });
+  tasks = tasks.filter(t => !t.completed);
+  saveTasks();
+  renderArchivedTasks();
 }
 
 function unarchiveTask(id) {
@@ -312,8 +383,10 @@ function unarchiveTask(id) {
     item.completed = false;
     delete item.archivedAt;
     delete item.archivedDate;
+    delete item.completedAt;
+    delete item.completedDate;
     tasks.unshift(item);
-    sortTasksWithCompletedAtBottom();
+    sortTasks();
     saveTasks();
   }
 }
@@ -333,15 +406,6 @@ function setSpotlightTask(index) {
 }
 
 function updateSpotlightUI() {
-  if (!activeTask && tasks.length > 0) {
-    const firstPending = tasks.find(t => !t.completed);
-    if (firstPending) {
-      activeTask = firstPending;
-      window.SpanState.activeTask = activeTask;
-      localStorage.setItem('span_active_task', JSON.stringify(activeTask));
-    }
-  }
-
   const card = document.getElementById('spotlightCard');
   const emptyBtn = document.getElementById('spotlightEmptyBtn');
   const spotlightText = document.getElementById('spotlightText');
@@ -359,6 +423,27 @@ function updateSpotlightUI() {
       emptyBtn.style.display = 'block';
     }
   }
+}
+
+function dismissSpotlightTask() {
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  saveTasks();
+}
+
+function completeSpotlightTask() {
+  if (!activeTask) return;
+  const found = tasks.find(t => String(t.id) === String(activeTask.id));
+  if (found) {
+    found.completed = true;
+    found.completedAt = new Date().toISOString();
+    found.completedDate = new Date().toISOString().slice(0, 10);
+    found.isFavorite = false;
+  }
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  sortTasks();
+  saveTasks();
 }
 
 function toggleTaskPicker() {
@@ -396,23 +481,6 @@ function selectPickerTask(taskId) {
   saveTasks();
 }
 
-function completeSpotlightTask() {
-  if (!activeTask) return;
-  const found = tasks.find(t => String(t.id) === String(activeTask.id));
-  if (found) found.completed = true;
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  sortTasksWithCompletedAtBottom();
-  saveTasks();
-}
-
-function dismissSpotlightTask() {
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  saveTasks();
-}
-
-// MODALE D'ÉDITION
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
@@ -438,12 +506,7 @@ function openEditModalForTask(id) {
 }
 
 function selectEditCategory(cat) {
-  if (editingCategory === cat) {
-    editingCategory = 'None';
-  } else {
-    editingCategory = cat;
-  }
-
+  editingCategory = editingCategory === cat ? 'None' : cat;
   document.querySelectorAll('.cat-pill').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.cat === editingCategory);
   });
@@ -482,30 +545,6 @@ function saveTaskModal() {
   saveTasks();
 }
 
-// DRAG AND DROP
-let dragSrcIndex = null;
-function handleDragStart() {
-  dragSrcIndex = this.dataset.index;
-  this.classList.add('dragging');
-}
-function handleDragOver(e) {
-  e.preventDefault();
-}
-function handleDrop(e) {
-  e.stopPropagation();
-  const dropIndex = this.dataset.index;
-  if (dragSrcIndex !== null && dragSrcIndex !== dropIndex) {
-    const item = tasks.splice(dragSrcIndex, 1)[0];
-    tasks.splice(dropIndex, 0, item);
-    selectedTaskIndex = parseInt(dropIndex, 10);
-    saveTasks();
-  }
-}
-function handleDragEnd() {
-  this.classList.remove('dragging');
-}
-
-// RACCOURCIS CLAVIER
 window.addEventListener('keydown', (e) => {
   const modal = document.getElementById('editModalOverlay');
   const isModalOpen = modal && modal.style.display === 'flex';
@@ -535,3 +574,6 @@ window.addEventListener('keydown', (e) => {
     if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
   }
 });
+
+sortTasks();
+autoArchivePastDays();
