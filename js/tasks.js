@@ -25,6 +25,7 @@ let selectedTaskIndex = 0;
 let editingTaskId = null;
 let editingCategory = 'None';
 let editingEstimate = 1;
+let editingIsFavorite = false;
 let isPastOpen = false;
 
 // Migration des tâches
@@ -46,8 +47,13 @@ tasks = tasks.map(t => {
 
 function triggerHapticFeedback() {
   if (navigator.vibrate) {
-    try { navigator.vibrate(15); } catch (e) {}
+    try { navigator.vibrate(18); } catch (e) {}
   }
+}
+
+// Calcul du quota maximum d'étoiles autorisées
+function getMaxFavoritesAllowed() {
+  return activeTask ? 2 : 3;
 }
 
 function autoArchivePastDays() {
@@ -114,16 +120,13 @@ function saveRenamedCategory() {
   renderTasks();
   renderArchivedTasks();
   if (typeof renderChart === 'function') renderChart();
-  if (typeof saveStateToCloud === 'function') saveStateToCloud();
+  saveTasks();
 }
-
-
 
 function updateCategoryDOMNames() {
   const keys = ['Code', 'Study', 'Write', 'Admin'];
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
-
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
 
@@ -137,7 +140,6 @@ function updateCategoryDOMNames() {
   syncRenameCategoryInput();
 }
 
-    
 function sortTasks() {
   const favs = tasks.filter(t => !t.completed && t.isFavorite);
   const regular = tasks.filter(t => !t.completed && !t.isFavorite);
@@ -174,6 +176,23 @@ function renderTasks() {
     li.draggable = !task.completed;
     li.dataset.index = index;
 
+    // Gestion du clic long (Option C : 500ms d'appui)
+    let pressTimer = null;
+    const startPress = () => {
+      pressTimer = setTimeout(() => {
+        triggerHapticFeedback();
+        toggleFavorite(task.id);
+      }, 500);
+    };
+    const cancelPress = () => clearTimeout(pressTimer);
+
+    li.addEventListener('touchstart', startPress, { passive: true });
+    li.addEventListener('touchend', cancelPress);
+    li.addEventListener('touchcancel', cancelPress);
+    li.addEventListener('mousedown', startPress);
+    li.addEventListener('mouseup', cancelPress);
+    li.addEventListener('mouseleave', cancelPress);
+
     li.addEventListener('mouseenter', () => {
       selectedTaskIndex = index;
       updateTaskSelectionUI();
@@ -186,8 +205,9 @@ function renderTasks() {
       ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
       : '';
 
-    const favStar = !task.completed ? `
-      <button class="btn-fav ${task.isFavorite ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Favorite">⭐</button>
+    // ÉTOILE VISIBLE UNIQUEMENT SI FAVORITE (Élimine le fouillis d'étoiles)
+    const favStar = (!task.completed && task.isFavorite) ? `
+      <span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>
     ` : '';
 
     li.innerHTML = `
@@ -218,9 +238,11 @@ function toggleFavorite(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
 
-  const currentFavs = tasks.filter(x => x.isFavorite && !x.completed);
-  if (!t.isFavorite && currentFavs.length >= 3) {
-    alert("You can pin up to 3 favorites maximum.");
+  const maxAllowed = getMaxFavoritesAllowed();
+  const currentFavs = tasks.filter(x => x.isFavorite && !x.completed && String(x.id) !== String(id));
+
+  if (!t.isFavorite && currentFavs.length >= maxAllowed) {
+    alert(`Maximum ${maxAllowed} priorités favorites autorisées.`);
     return;
   }
 
@@ -403,13 +425,57 @@ function deleteArchivedTask(id) {
   saveTasks();
 }
 
+// SPOTLIGHT
 function setSpotlightTask(index) {
-  activeTask = tasks[index];
+  const target = tasks[index];
+  target.isFavorite = false; // Quand elle passe en Spotlight, elle n'est plus en simple étoile
+  activeTask = target;
   window.SpanState.activeTask = activeTask;
+
+  // Réajustement des étoiles si nécessaire (max 2 si Spotlight actif)
+  const favs = tasks.filter(t => t.isFavorite && !t.completed);
+  if (favs.length > 2) {
+    favs[favs.length - 1].isFavorite = false;
+  }
+
+  sortTasks();
   saveTasks();
   if (typeof switchView === 'function') {
     switchView('focus', document.getElementById('nav-btn-focus'));
   }
+}
+
+function dismissSpotlightTask() {
+  if (activeTask) {
+    // RÈGLE : au retrait du Spotlight, la tâche reçoit automatiquement une étoile ⭐
+    const prev = tasks.find(t => String(t.id) === String(activeTask.id));
+    if (prev && !prev.completed) {
+      const currentFavs = tasks.filter(t => t.isFavorite && !t.completed);
+      if (currentFavs.length >= 3) {
+        currentFavs[currentFavs.length - 1].isFavorite = false;
+      }
+      prev.isFavorite = true;
+    }
+  }
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  sortTasks();
+  saveTasks();
+}
+
+function completeSpotlightTask() {
+  if (!activeTask) return;
+  const found = tasks.find(t => String(t.id) === String(activeTask.id));
+  if (found) {
+    found.completed = true;
+    found.completedAt = new Date().toISOString();
+    found.completedDate = new Date().toISOString().slice(0, 10);
+    found.isFavorite = false;
+  }
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  sortTasks();
+  saveTasks();
 }
 
 function updateSpotlightUI() {
@@ -430,27 +496,6 @@ function updateSpotlightUI() {
       emptyBtn.style.display = 'block';
     }
   }
-}
-
-function dismissSpotlightTask() {
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  saveTasks();
-}
-
-function completeSpotlightTask() {
-  if (!activeTask) return;
-  const found = tasks.find(t => String(t.id) === String(activeTask.id));
-  if (found) {
-    found.completed = true;
-    found.completedAt = new Date().toISOString();
-    found.completedDate = new Date().toISOString().slice(0, 10);
-    found.isFavorite = false;
-  }
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  sortTasks();
-  saveTasks();
 }
 
 function toggleTaskPicker() {
@@ -482,18 +527,22 @@ function toggleTaskPicker() {
 function selectPickerTask(taskId) {
   const found = tasks.find(x => String(x.id) === String(taskId));
   if (found) {
+    found.isFavorite = false;
     activeTask = found;
     window.SpanState.activeTask = activeTask;
   }
+  sortTasks();
   saveTasks();
 }
 
+// MODALE D'ÉDITION AVEC OPTION B (FAVORI)
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
   editingTaskId = id; 
   editingCategory = (task.category && task.category !== 'None') ? task.category : 'None';
   editingEstimate = task.estimate || 1;
+  editingIsFavorite = !!task.isFavorite;
 
   const titleInput = document.getElementById('editTaskTitle');
   if (titleInput) titleInput.value = task.title || task.text || '';
@@ -510,8 +559,38 @@ function openEditModalForTask(id) {
     btn.classList.toggle('active', catKey === editingCategory);
   });
 
+  // Bouton Priorité / Favori dans la modale
+  let favBtn = document.getElementById('modalFavToggleBtn');
+  if (!favBtn) {
+    const body = document.querySelector('#editModalOverlay .modal-body');
+    if (body) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--card-border);';
+      row.innerHTML = `
+        <span class="modal-label" style="margin: 0;">Priority (Favorite)</span>
+        <button type="button" id="modalFavToggleBtn" class="btn-theme-toggle" onclick="toggleModalFavorite()">⭐ Normal</button>
+      `;
+      body.appendChild(row);
+      favBtn = document.getElementById('modalFavToggleBtn');
+    }
+  }
+
+  if (favBtn) {
+    favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Not Priority';
+    favBtn.style.borderColor = editingIsFavorite ? 'var(--streak)' : 'var(--card-border)';
+  }
+
   const modal = document.getElementById('editModalOverlay');
   if (modal) modal.style.display = 'flex';
+}
+
+function toggleModalFavorite() {
+  editingIsFavorite = !editingIsFavorite;
+  const favBtn = document.getElementById('modalFavToggleBtn');
+  if (favBtn) {
+    favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Not Priority';
+    favBtn.style.borderColor = editingIsFavorite ? 'var(--streak)' : 'var(--card-border)';
+  }
 }
 
 function selectEditCategory(cat) {
@@ -545,15 +624,19 @@ function saveTaskModal() {
     task.title = title;
     task.category = editingCategory || 'None';
     task.estimate = editingEstimate;
+    task.isFavorite = editingIsFavorite;
+
     if (activeTask && String(activeTask.id) === String(task.id)) {
       activeTask = task;
       window.SpanState.activeTask = activeTask;
     }
   }
   closeEditModal();
+  sortTasks();
   saveTasks();
 }
 
+// Raccourcis clavier
 window.addEventListener('keydown', (e) => {
   const modal = document.getElementById('editModalOverlay');
   const isModalOpen = modal && modal.style.display === 'flex';
