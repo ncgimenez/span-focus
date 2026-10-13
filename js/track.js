@@ -81,7 +81,7 @@ function renderChart() {
   let currentDeg = 0;
   legend.innerHTML = '';
 
-  const labels = (window.SpanState && window.SpanState.categoryLabels) || {};
+  const labels = (window.SpanState && window.SpanState.categoryLabels) || JSON.parse(localStorage.getItem('span_category_labels')) || {};
 
   for (const [cat, secs] of Object.entries(cats)) {
     if (secs === 0) continue;
@@ -96,7 +96,7 @@ function renderChart() {
       ? `${Math.round(slicePct * 100)}%` 
       : `${Math.round(secs / 60)} min`;
 
-    let displayName = 'Undefined';
+    let displayName = 'None';
     if (cat !== 'None') {
       displayName = labels[cat] || cat;
     }
