@@ -1,6 +1,6 @@
 // --- CONFIGURATION SUPABASE ---
-const SUPABASE_URL = 'https://xzoukiveknyuxmbrcsvb.supabase.co'; // ex: 'https://xyzcompany.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_8g571gv3CFOyJ0lMtaAf4w_CcITQovd'; // ex: 'eyJhbGciOi...'
+const SUPABASE_URL = 'https://xzoukiveknyuxmbrcsvb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_8g571gv3CFOyJ0lMtaAf4w_CcITQovd';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -21,7 +21,6 @@ function getCurrentSyncKey() {
   return SYNC_USER_ID;
 }
 
-// Copie la clé dans le presse-papier lors du clic sur "Copy"
 function copyCurrentSyncKey() {
   navigator.clipboard.writeText(SYNC_USER_ID).then(() => {
     alert("Clé de synchronisation copiée !");
@@ -30,7 +29,6 @@ function copyCurrentSyncKey() {
   });
 }
 
-// Déclenche la liaison lors du clic sur "Link"
 async function handleLinkClick() {
   const input = document.getElementById('inputSyncKey');
   if (!input) return;
@@ -42,7 +40,6 @@ async function handleLinkClick() {
   await pairWithSyncKey(key);
   input.value = '';
 }
-
 
 async function pairWithSyncKey(newKey) {
   const cleanKey = newKey.trim();
@@ -61,6 +58,59 @@ async function pairWithSyncKey(newKey) {
   alert("Appareil lié avec succès !");
 }
 
+function applyIncomingData(data) {
+  if (!data) return;
+  isSyncingIncoming = true;
+
+  // Dépaquetage sécurisé
+  let rawTasks = data.tasks;
+  if (rawTasks && typeof rawTasks === 'object' && !Array.isArray(rawTasks) && rawTasks.items) {
+    tasks = rawTasks.items || [];
+    if (rawTasks.categories) {
+      categoryLabels = rawTasks.categories;
+      window.SpanState.categoryLabels = categoryLabels;
+      localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
+      if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
+    }
+    if (rawTasks.archives) {
+      archivedTasks = rawTasks.archives;
+      window.SpanState.archivedTasks = archivedTasks;
+      localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
+      if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
+    }
+  } else if (Array.isArray(rawTasks)) {
+    tasks = rawTasks;
+  }
+
+  window.SpanState.tasks = tasks;
+  localStorage.setItem('span_tasks', JSON.stringify(tasks));
+  if (typeof renderTasks === 'function') renderTasks();
+
+  if (data.tracking) {
+    trackingData = data.tracking;
+    window.SpanState.trackingData = trackingData;
+    localStorage.setItem('span_tracking', JSON.stringify(trackingData));
+    if (typeof updateGoalBar === 'function') updateGoalBar();
+    if (typeof renderChart === 'function') renderChart();
+  }
+
+  if (data.daily_target) {
+    dailyTargetMinutes = data.daily_target;
+    window.SpanState.dailyTargetMinutes = dailyTargetMinutes;
+    localStorage.setItem('span_daily_target_minutes', dailyTargetMinutes);
+    if (typeof updateGoalBar === 'function') updateGoalBar();
+  }
+
+  if (data.timer_state) {
+    activeTask = data.timer_state.activeTask || null;
+    window.SpanState.activeTask = activeTask;
+    localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+    if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
+  }
+
+  isSyncingIncoming = false;
+}
+
 async function loadStateFromCloud() {
   try {
     const { data, error } = await supabaseClient
@@ -75,49 +125,7 @@ async function loadStateFromCloud() {
     }
 
     if (data) {
-      isSyncingIncoming = true;
-
-      if (data.tasks) {
-              tasks = data.tasks;
-              window.SpanState.tasks = tasks;
-              localStorage.setItem('span_tasks', JSON.stringify(tasks));
-              if (typeof renderTasks === 'function') renderTasks();
-            }
-      
-            if (data.categories) {
-              categoryLabels = data.categories;
-              window.SpanState.categoryLabels = categoryLabels;
-              localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
-              if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
-            }
-      
-            if (data.archived_tasks) {
-              archivedTasks = data.archived_tasks;
-              window.SpanState.archivedTasks = archivedTasks;
-              localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
-              if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
-            }
-
-      if (data.tracking) {
-        trackingData = data.tracking;
-        localStorage.setItem('span_tracking', JSON.stringify(trackingData));
-        if (typeof updateGoalBar === 'function') updateGoalBar();
-        if (typeof renderChart === 'function') renderChart();
-      }
-
-      if (data.daily_target) {
-        dailyTargetMinutes = data.daily_target;
-        localStorage.setItem('span_daily_target_minutes', dailyTargetMinutes);
-        if (typeof updateGoalBar === 'function') updateGoalBar();
-      }
-
-      if (data.timer_state && data.timer_state.activeTask) {
-        activeTask = data.timer_state.activeTask;
-        localStorage.setItem('span_active_task', JSON.stringify(activeTask));
-        if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
-      }
-
-      isSyncingIncoming = false;
+      applyIncomingData(data);
     } else {
       saveStateToCloud();
     }
@@ -130,11 +138,16 @@ async function saveStateToCloud() {
   if (isSyncingIncoming) return;
 
   try {
-   const payload = {
-      id: SYNC_USER_ID,
-      tasks: (window.SpanState && window.SpanState.tasks) || (typeof tasks !== 'undefined' ? tasks : []),
-      archived_tasks: (window.SpanState && window.SpanState.archivedTasks) || (typeof archivedTasks !== 'undefined' ? archivedTasks : []),
+    // Encapsulation sans nécessiter de nouvelles colonnes SQL
+    const tasksPayload = {
+      items: (window.SpanState && window.SpanState.tasks) || (typeof tasks !== 'undefined' ? tasks : []),
       categories: (window.SpanState && window.SpanState.categoryLabels) || (typeof categoryLabels !== 'undefined' ? categoryLabels : {}),
+      archives: (window.SpanState && window.SpanState.archivedTasks) || (typeof archivedTasks !== 'undefined' ? archivedTasks : [])
+    };
+
+    const payload = {
+      id: SYNC_USER_ID,
+      tasks: tasksPayload,
       tracking: (window.SpanState && window.SpanState.trackingData) || (typeof trackingData !== 'undefined' ? trackingData : {}),
       daily_target: (window.SpanState && window.SpanState.dailyTargetMinutes) || (typeof dailyTargetMinutes !== 'undefined' ? dailyTargetMinutes : 100),
       timer_state: {
@@ -144,7 +157,6 @@ async function saveStateToCloud() {
       },
       updated_at: new Date().toISOString()
     };
-
 
     await supabaseClient
       .from('user_state')
@@ -170,46 +182,9 @@ function initRealtimeSync() {
         filter: `id=eq.${SYNC_USER_ID}`
       },
       (payload) => {
-        const newData = payload.new;
-        if (!newData) return;
-
-        isSyncingIncoming = true;
-
-        if (newData.tasks) {
-          tasks = newData.tasks;
-              window.SpanState.tasks = tasks;
-              localStorage.setItem('span_tasks', JSON.stringify(tasks));
-              if (typeof renderTasks === 'function') renderTasks();
-            }
-    
-            if (newData.categories) {
-              categoryLabels = newData.categories;
-              window.SpanState.categoryLabels = categoryLabels;
-              localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
-              if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
-            }
-    
-            if (newData.archived_tasks) {
-              archivedTasks = newData.archived_tasks;
-              window.SpanState.archivedTasks = archivedTasks;
-              localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
-              if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
-            }
-
-        if (newData.tracking) {
-          trackingData = newData.tracking;
-          localStorage.setItem('span_tracking', JSON.stringify(trackingData));
-          if (typeof updateGoalBar === 'function') updateGoalBar();
-          if (typeof renderChart === 'function') renderChart();
+        if (payload.new) {
+          applyIncomingData(payload.new);
         }
-
-        if (newData.timer_state) {
-          activeTask = newData.timer_state.activeTask || null;
-          localStorage.setItem('span_active_task', JSON.stringify(activeTask));
-          if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
-        }
-
-        isSyncingIncoming = false;
       }
     )
     .subscribe();
