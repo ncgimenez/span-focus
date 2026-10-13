@@ -695,21 +695,17 @@ header {
   margin-left: 6px;
 }
 
-/* BOUTON ÉTOILE (FAVORI) */
-.btn-fav {
-  background: none;
-  border: none;
+
+/* BADGE ÉTOILE DISCRET (AFFICHÉ UNIQUEMENT SI PRIORITAIRE) */
+.star-badge {
   font-size: 13px;
   cursor: pointer;
-  opacity: 0.35;
-  padding: 2px 4px;
-  transition: opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  filter: drop-shadow(0 0 3px rgba(226, 179, 64, 0.5));
+  margin-right: 2px;
 }
 
-.btn-fav.active {
-  opacity: 1;
-  filter: drop-shadow(0 0 4px rgba(226, 179, 64, 0.4));
-}
 
 .task-actions {
   display: flex;
