@@ -117,21 +117,23 @@ function saveRenamedCategory() {
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
+
+
 function updateCategoryDOMNames() {
   const keys = ['Code', 'Study', 'Write', 'Admin'];
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
 
-    // 1. Menu déroulant d'ajout de tâche
+    // Menu d'ajout rapide
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
 
-    // 2. Boutons de catégories dans la modale d'édition
+    // Toutes les pilules de la modale d'édition
     document.querySelectorAll(`.cat-pill[data-cat="${key}"]`).forEach(pill => {
       pill.textContent = currentName;
     });
 
-    // 3. Sélecteur de renommage dans les paramètres
+    // Sélecteur de renommage dans les réglages
     const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
     if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
@@ -139,6 +141,9 @@ function updateCategoryDOMNames() {
   syncRenameCategoryInput();
 }
 
+
+
+    
 function sortTasks() {
   const favs = tasks.filter(t => !t.completed && t.isFavorite);
   const regular = tasks.filter(t => !t.completed && !t.isFavorite);
