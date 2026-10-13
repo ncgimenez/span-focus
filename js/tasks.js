@@ -124,24 +124,18 @@ function updateCategoryDOMNames() {
   keys.forEach(key => {
     const currentName = categoryLabels[key] || key;
 
-    // Menu d'ajout rapide
     const opt = document.getElementById(`optCat${key}`);
     if (opt) opt.textContent = currentName;
 
-    // Toutes les pilules de la modale d'édition
     document.querySelectorAll(`.cat-pill[data-cat="${key}"]`).forEach(pill => {
       pill.textContent = currentName;
     });
 
-    // Sélecteur de renommage dans les réglages
     const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
     if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
   });
-
   syncRenameCategoryInput();
 }
-
-
 
     
 function sortTasks() {
@@ -497,7 +491,7 @@ function selectPickerTask(taskId) {
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
-  editingTaskId = id;
+  editingTaskId = id; 
   editingCategory = (task.category && task.category !== 'None') ? task.category : 'None';
   editingEstimate = task.estimate || 1;
 
