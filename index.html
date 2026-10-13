@@ -11,24 +11,33 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Focus">
 
-  <!-- Favicon et icône écran d'accueil iPhone -->
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=1.3">
+  <link rel="stylesheet" href="style.css?v=1.5">
 </head>
 <body>
 
-  <div class="app-container">
-    <!-- HEADER -->
-    <header>
-      <div class="brand" style="display: flex; align-items: center; gap: 8px;">
-        <img src="span-logo.png" alt="Span Logo" style="width: 24px; height: 24px; border-radius: 6px; display: block; object-fit: cover;">
+  <!-- CONTENEUR GLOBAL ADAPTATIF -->
+  <div class="desktop-shell">
+    
+    <!-- HEADER PLEINE LARGEUR -->
+    <header class="app-header">
+      <div class="brand">
+        <img src="span-logo.png" alt="Span Logo" class="brand-logo">
         <span class="brand-name">Span</span>
-        <span class="brand-app" id="headerTitle">Focus</span>
+        <span class="brand-app" id="headerTitle">Workspace</span>
       </div>
+
+      <!-- Navigation Desktop intégrée au header -->
+      <nav class="desktop-nav">
+        <button class="d-nav-btn active" id="dnav-focus" onclick="switchView('focus')">Focus</button>
+        <button class="d-nav-btn" id="dnav-tasks" onclick="switchView('tasks')">Tasks</button>
+        <button class="d-nav-btn" id="dnav-stats" onclick="switchView('stats')">Track</button>
+      </nav>
       
       <div class="header-actions">
+        <button class="icon-btn" id="btnToggleSideTrack" onclick="toggleSideTrackPanel()" title="Toggle Track Panel">📊 Stats</button>
         <button class="icon-btn active" id="soundBtn" onclick="cycleSoundMode()" title="Sound mode">
           <span id="soundIcon">🎧</span>
           <span id="soundLabel">Auto</span>
@@ -39,7 +48,7 @@
     </header>
 
     <!-- BARRE D'OBJECTIF JOURNALIÈRE -->
-    <div class="goal-tracker" onclick="goToTrackView()" title="Click to view and edit daily goal">
+    <div class="goal-tracker" onclick="goToTrackView()" title="Click to view daily target">
       <div class="goal-meta">
         <span>Daily Goal</span>
         <span id="goalPercent">0%</span>
@@ -49,159 +58,165 @@
       </div>
     </div>
 
-    <!-- CONTENEUR DU SLIDER -->
-    <div class="views-viewport">
-      <div class="views-slider" id="viewsSlider">
-
-     <!-- VUE 1 : FOCUS -->
-<div id="view-focus" class="view-panel">
-  <!-- 1. TÂCHE ACTIVE ÉPURÉE EN HAUT -->
-  <div class="spotlight-container">
-    <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
-      <span class="spotlight-dot">🎯</span>
-      <span class="spotlight-title" id="spotlightText">Task name</span>
-      <div class="spotlight-actions">
-        <button class="btn-spotlight-action mini" onclick="completeSpotlightTask()" title="Complete">✓</button>
-        <button class="btn-spotlight-action mini" onclick="dismissSpotlightTask()" title="Clear">✕</button>
-      </div>
-    </div>
-
-    <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
-      <span>+ Set focus task</span>
-    </button>
-
-    <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
-  </div>
-
-  <!-- 2. SECTION TIMER -->
-  <section class="timer-section">
-    <div class="mode-switch">
-      <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
-      <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
-      <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
-    </div>
-
-    <div class="timer-circle-wrapper">
-      <svg class="timer-ring-svg" viewBox="0 0 260 260">
-        <circle class="ring-bg" cx="130" cy="130" r="118" />
-        <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
-      </svg>
+    <!-- ZONE CENTRALE (DASHBOARD SUR PC / SLIDER SUR MOBILE) -->
+    <main class="workspace-layout">
       
-      <!-- Affichage du temps avec input inline caché pour le mode Custom -->
-      <div class="time-display" id="timeDisplay" onclick="startEditingCustomTime()">25:00</div>
-      <input type="number" id="customTimeInput" class="custom-time-input" min="1" max="180" onblur="finishEditingCustomTime()" onkeydown="if(event.key==='Enter') finishEditingCustomTime()">
-    </div>
+      <!-- CONTENEUR PRINCIPAL DES VUES -->
+      <div class="views-viewport">
+        <div class="views-slider" id="viewsSlider">
 
-    <!-- Pilules dynamiques selon le mode -->
-    <div class="preset-pills" id="presetPills">
-      <button class="preset-pill active" onclick="setDuration(25)">25m</button>
-      <button class="preset-pill" onclick="setDuration(50)">50m</button>
-      <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
-    </div>
-
-    <!-- 3. CONTRÔLES START / RESET -->
-    <div class="controls">
-      <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
-      <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-    </div>
-  </section>
-</div>
-
-        <!-- VUE 2 : TASKS -->
-        <div id="view-tasks" class="view-panel">
-          
-          <!-- SOUS-ÉCRAN 1 : LISTE PRINCIPALE DES TÂCHES -->
-          <div id="tasks-main-subview" class="tasks-subview-container">
-            <div class="task-input-container">
-              <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
-              <select class="category-select" id="taskCategory">
-                <option value="None">None</option>
-                <option value="Code" id="optCatCode">Code</option>
-                <option value="Study" id="optCatStudy">Study</option>
-                <option value="Write" id="optCatWrite">Write</option>
-                <option value="Admin" id="optCatAdmin">Admin</option>
-              </select>
-              <button class="btn-add" onclick="addTask()">Add</button>
-            </div>
-
-            <!-- En-tête : compteur + estimation + accès archives -->
-            <div class="tasks-summary-bar">
-              <div class="tasks-meta-info">
-                <span id="tasksRemainingCount">0 remaining</span>
-                <span class="tasks-meta-separator">•</span>
-                <span id="tasksEstTimeLeft" class="tasks-est-time">~0m</span>
+          <!-- VUE 1 : FOCUS -->
+          <div id="view-focus" class="view-panel">
+            <div class="spotlight-container">
+              <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
+                <span class="spotlight-dot">🎯</span>
+                <span class="spotlight-title" id="spotlightText">Task name</span>
+                <div class="spotlight-actions">
+                  <button class="btn-spotlight-action mini" onclick="completeSpotlightTask()" title="Complete">✓</button>
+                  <button class="btn-spotlight-action mini" onclick="dismissSpotlightTask()" title="Clear">✕</button>
+                </div>
               </div>
-              <button class="btn-open-archive" type="button" onclick="openArchiveSubView()">
-                <span>Archive</span>
-                <span class="archive-icon">🗄️</span>
+
+              <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
+                <span>+ Set focus task</span>
               </button>
+
+              <div class="task-picker-dropdown" id="taskPickerDropdown"></div>
             </div>
 
-            <!-- Liste des tâches actives -->
-            <ul class="task-list" id="taskList"></ul>
+            <section class="timer-section">
+              <div class="mode-switch">
+                <button class="mode-btn active" id="modePomodoro" onclick="setTimerMode('pomodoro')">Pomodoro</button>
+                <button class="mode-btn" id="modeCustom" onclick="setTimerMode('custom')">Custom</button>
+                <button class="mode-btn" id="modeStopwatch" onclick="setTimerMode('stopwatch')">Stopwatch</button>
+              </div>
 
-            <div class="shortcuts-legend">
-              Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete
+              <div class="timer-circle-wrapper">
+                <svg class="timer-ring-svg" viewBox="0 0 260 260">
+                  <circle class="ring-bg" cx="130" cy="130" r="118" />
+                  <circle class="ring-fill" id="ringProgress" cx="130" cy="130" r="118" />
+                </svg>
+                
+                <div class="time-display" id="timeDisplay" onclick="startEditingCustomTime()">25:00</div>
+                <input type="number" id="customTimeInput" class="custom-time-input" min="1" max="180" onblur="finishEditingCustomTime()" onkeydown="if(event.key==='Enter') finishEditingCustomTime()">
+              </div>
+
+              <div class="preset-pills" id="presetPills">
+                <button class="preset-pill active" onclick="setDuration(25)">25m</button>
+                <button class="preset-pill" onclick="setDuration(50)">50m</button>
+                <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+              </div>
+
+              <div class="controls">
+                <button class="btn-main" id="btnToggle" onclick="toggleTimer()">Start</button>
+                <button class="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+              </div>
+            </section>
+          </div>
+
+          <!-- VUE 2 : TASKS -->
+          <div id="view-tasks" class="view-panel">
+            <div id="tasks-main-subview" class="tasks-subview-container">
+              <div class="task-input-container">
+                <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
+                <select class="category-select" id="taskCategory">
+                  <option value="None">None</option>
+                  <option value="Code" id="optCatCode">Code</option>
+                  <option value="Study" id="optCatStudy">Study</option>
+                  <option value="Write" id="optCatWrite">Write</option>
+                  <option value="Admin" id="optCatAdmin">Admin</option>
+                </select>
+                <button class="btn-add" onclick="addTask()">Add</button>
+              </div>
+
+              <div class="tasks-summary-bar">
+                <div class="tasks-meta-info">
+                  <span id="tasksRemainingCount">0 remaining</span>
+                  <span class="tasks-meta-separator">•</span>
+                  <span id="tasksEstTimeLeft" class="tasks-est-time">~0m</span>
+                </div>
+                <button class="btn-open-archive" type="button" onclick="openArchiveSubView()">
+                  <span>Archive</span>
+                  <span class="archive-icon">🗄️</span>
+                </button>
+              </div>
+
+              <ul class="task-list" id="taskList"></ul>
+
+              <div class="shortcuts-legend">
+                Shortcuts: ↑ / ↓ select • Space: timer • Enter: check • Tab: edit • D: delete • Long-press: star
+              </div>
+            </div>
+
+            <!-- SOUS-ÉCRAN ARCHIVES -->
+            <div id="tasks-archive-subview" class="tasks-subview-container" style="display: none;">
+              <div class="archive-header-nav">
+                <button class="btn-archive-back" type="button" onclick="closeArchiveSubView()">← Back</button>
+                <span class="archive-header-title">Archives</span>
+                <button class="btn-archive-clean" type="button" onclick="archiveDayNow()" title="Archive completed now">Clean Day</button>
+              </div>
+
+              <div class="archive-sub-section">
+                <div class="archive-section-title">Completed Today</div>
+                <ul class="task-list" id="archivedTodayList"></ul>
+              </div>
+
+              <div class="archive-sub-section">
+                <button class="past-toggle-btn" type="button" onclick="togglePastArchives()">
+                  <span id="pastToggleIcon">▶</span> Past Days (<span id="pastCount">0</span>)
+                </button>
+                <ul class="task-list" id="archivedPastList" style="display: none; margin-top: 8px;"></ul>
+              </div>
             </div>
           </div>
 
-          <!-- SOUS-ÉCRAN 2 : ARCHIVES & HISTORIQUE -->
-          <div id="tasks-archive-subview" class="tasks-subview-container" style="display: none;">
-            <div class="archive-header-nav">
-              <button class="btn-archive-back" type="button" onclick="closeArchiveSubView()">← Back</button>
-              <span class="archive-header-title">Archives</span>
-              <button class="btn-archive-clean" type="button" onclick="archiveDayNow()" title="Archive completed now">Clean Day</button>
+          <!-- VUE 3 : TRACK / STATS -->
+          <div id="view-stats" class="view-panel">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-sub">Daily Target</span>
+                <span id="targetDisplaySummary" style="font-size: 13px; font-weight: 600;">100 min</span>
+              </div>
+              <div class="target-setting-row">
+                <input type="range" id="goalRangeInput" min="25" max="360" step="25" value="100" oninput="updateDailyGoalTarget(this.value)">
+                <div class="target-labels">
+                  <span>25m (1 block)</span>
+                  <span>2h</span>
+                  <span>4h+</span>
+                </div>
+              </div>
             </div>
 
-            <div class="archive-sub-section">
-              <div class="archive-section-title">Completed Today</div>
-              <ul class="task-list" id="archivedTodayList"></ul>
-            </div>
-
-            <div class="archive-sub-section">
-              <button class="past-toggle-btn" type="button" onclick="togglePastArchives()">
-                <span id="pastToggleIcon">▶</span> Past Days (<span id="pastCount">0</span>)
-              </button>
-              <ul class="task-list" id="archivedPastList" style="display: none; margin-top: 8px;"></ul>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-sub">Category Breakdown</span>
+                <button class="toggle-unit-btn" id="btnToggleUnit" onclick="toggleChartUnit()">Show: Time</button>
+              </div>
+              <div class="pie-container">
+                <div class="pie-chart" id="pieChart"></div>
+                <div class="pie-legend" id="pieLegend"></div>
+              </div>
             </div>
           </div>
 
         </div>
-
-        <!-- VUE 3 : TRACK / STATS -->
-        <div id="view-stats" class="view-panel">
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-sub">Daily Target</span>
-              <span id="targetDisplaySummary" style="font-size: 13px; font-weight: 600;">100 min</span>
-            </div>
-            <div class="target-setting-row">
-              <input type="range" id="goalRangeInput" min="25" max="360" step="25" value="100" oninput="updateDailyGoalTarget(this.value)">
-              <div class="target-labels">
-                <span>25m (1 block)</span>
-                <span>2h</span>
-                <span>4h+</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-sub">Category Breakdown</span>
-              <button class="toggle-unit-btn" id="btnToggleUnit" onclick="toggleChartUnit()">Show: Time</button>
-            </div>
-            <div class="pie-container">
-              <div class="pie-chart" id="pieChart"></div>
-              <div class="pie-legend" id="pieLegend"></div>
-            </div>
-          </div>
-        </div>
-
       </div>
-    </div>
+
+      <!-- VOLET STATS LATÉRAL (DASHBOARD DESKTOP) -->
+      <aside class="side-track-panel" id="sideTrackPanel">
+        <div class="side-panel-header">
+          <span>Overview</span>
+          <button class="btn-pin-track" id="btnPinTrack" onclick="togglePinSideTrack()" title="Pin Panel">📌</button>
+        </div>
+        <div class="side-panel-content" id="sideTrackContent">
+          <!-- Duplication dynamique du contenu Track en mode side-panel -->
+        </div>
+      </aside>
+
+    </main>
   </div>
 
-  <!-- MODALE D'ÉDITION DE TÂCHE -->
+  <!-- MODALE ÉDITION -->
   <div class="modal-overlay" id="editModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -235,7 +250,7 @@
     </div>
   </div>
 
-  <!-- MODALE PARAMÈTRES (SETTINGS) -->
+  <!-- MODALE SETTINGS -->
   <div class="modal-overlay" id="settingsModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -265,8 +280,6 @@
           </div>
         </div>
 
-    
-         <!-- RENAME CATEGORY SECTION -->
         <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Rename Category</div>
         <div style="display: flex; gap: 6px; margin-top: 8px;">
           <select id="renameCategorySelect" class="modal-input" style="flex: 1; cursor: pointer;" onchange="syncRenameCategoryInput()">
@@ -278,8 +291,6 @@
           <input type="text" id="renameCategoryInput" placeholder="New label..." class="modal-input" style="flex: 1.4;" onkeydown="if(event.key==='Enter') saveRenamedCategory()">
           <button class="btn-theme-toggle" type="button" onclick="saveRenamedCategory()">Save</button>
         </div>
-
-      
 
         <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Data Management</div>
         <div class="backup-section">
@@ -293,8 +304,8 @@
     </div>
   </div>
 
-  <!-- NAVIGATION BAR -->
-  <nav class="nav-bar">
+  <!-- NAVIGATION MOBILE FIXE (MASQUÉE SUR GRAND ÉCRAN) -->
+  <nav class="nav-bar mobile-nav">
     <div class="nav-items">
       <button class="nav-btn active" id="nav-btn-focus" onclick="switchView('focus', this)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -311,16 +322,13 @@
     </div>
   </nav>
 
-
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=1.4"></script>
-  <script src="js/timer.js?v=1.4"></script>
-  <script src="js/tasks.js?v=1.4"></script>
-  <script src="js/track.js?v=1.4"></script>
-  <script src="js/sync.js?v=1.4"></script>
-  <script src="js/app.js?v=1.4"></script>
-
-
+  <script src="js/audio.js?v=1.5"></script>
+  <script src="js/timer.js?v=1.5"></script>
+  <script src="js/tasks.js?v=1.5"></script>
+  <script src="js/track.js?v=1.5"></script>
+  <script src="js/sync.js?v=1.5"></script>
+  <script src="js/app.js?v=1.5"></script>
 </body>
 </html>
