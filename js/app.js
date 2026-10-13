@@ -1,6 +1,6 @@
 const appViews = ['focus', 'tasks', 'stats'];
 let activeTabIndex = 0;
-
+let isSideTrackPinned = localStorage.getItem('span_pin_track') === 'true';
 
 function switchView(viewName, btnElement) {
   const index = appViews.indexOf(viewName);
@@ -9,25 +9,56 @@ function switchView(viewName, btnElement) {
   activeTabIndex = index;
   localStorage.setItem('span_active_view', viewName);
 
-
-  // Déplacement fluide de la glissière horizontale
+  // Déplacement fluide du slider
   const slider = document.getElementById('viewsSlider');
   if (slider) {
     slider.style.transform = `translateX(-${index * (100 / 3)}%)`;
   }
 
-  // Mise à jour de la navbar
+  // Mise à jour de la navbar mobile
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   const navBtn = btnElement || document.getElementById(`nav-btn-${viewName}`);
   if (navBtn) navBtn.classList.add('active');
 
-  // Titre dans le header
+  // Mise à jour de la navbar desktop
+  document.querySelectorAll('.d-nav-btn').forEach(btn => btn.classList.remove('active'));
+  const dNavBtn = document.getElementById(`dnav-${viewName}`);
+  if (dNavBtn) dNavBtn.classList.add('active');
+
   const titles = { focus: 'Focus', tasks: 'Tasks', stats: 'Track' };
   const header = document.getElementById('headerTitle');
   if (header && titles[viewName]) header.textContent = titles[viewName];
 
   if (viewName === 'stats' && typeof renderChart === 'function') {
     renderChart();
+  }
+}
+
+// GESTION DU VOLET STATS LATÉRAL (DESKTOP)
+function toggleSideTrackPanel() {
+  const panel = document.getElementById('sideTrackPanel');
+  if (!panel) return;
+
+  const isOpening = !panel.classList.contains('active');
+  panel.classList.toggle('active', isOpening);
+
+  if (isOpening) {
+    renderSideTrackContent();
+  }
+}
+
+function togglePinSideTrack() {
+  isSideTrackPinned = !isSideTrackPinned;
+  localStorage.setItem('span_pin_track', isSideTrackPinned ? 'true' : 'false');
+  const btn = document.getElementById('btnPinTrack');
+  if (btn) btn.classList.toggle('pinned', isSideTrackPinned);
+}
+
+function renderSideTrackContent() {
+  const container = document.getElementById('sideTrackContent');
+  const originalStats = document.getElementById('view-stats');
+  if (container && originalStats) {
+    container.innerHTML = originalStats.innerHTML;
   }
 }
 
@@ -73,7 +104,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-
   if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
   if (typeof updateSoundButtonUI === 'function') updateSoundButtonUI();
   if (typeof updateDisplay === 'function') updateDisplay();
@@ -81,15 +111,24 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
   if (typeof updateGoalBar === 'function') updateGoalBar();
 
+  // Volet épinglé sur grand écran
+  if (window.innerWidth >= 860 && isSideTrackPinned) {
+    const panel = document.getElementById('sideTrackPanel');
+    if (panel) {
+      panel.classList.add('active');
+      const pinBtn = document.getElementById('btnPinTrack');
+      if (pinBtn) pinBtn.classList.add('pinned');
+      renderSideTrackContent();
+    }
+  }
+
   const savedView = localStorage.getItem('span_active_view') || 'focus';
   if (savedView !== 'focus') {
     switchView(savedView);
   }
 });
 
-
-
-// Gestion des gestes tactiles (séparation stricte Swipe horizontal vs Pull-to-refresh vertical)
+// GESTES TACTILES (SUR MOBILE UNIQUEMENT)
 let touchStartX = 0;
 let touchStartY = 0;
 let touchDiffX = 0;
@@ -97,6 +136,7 @@ let touchDiffY = 0;
 let isHorizontalGesture = null;
 
 document.addEventListener('touchstart', (e) => {
+  if (window.innerWidth >= 860) return;
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
   touchDiffX = 0;
@@ -105,26 +145,17 @@ document.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 document.addEventListener('touchmove', (e) => {
+  if (window.innerWidth >= 860) return;
   touchDiffX = e.touches[0].clientX - touchStartX;
   touchDiffY = e.touches[0].clientY - touchStartY;
 
   if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 8 || Math.abs(touchDiffY) > 8)) {
     isHorizontalGesture = Math.abs(touchDiffX) > Math.abs(touchDiffY);
   }
-
-  // Étirement élastique visible sur tout l'écran
-  if (isHorizontalGesture === false && touchDiffY > 0) {
-    const pullDistance = Math.min(touchDiffY * 0.45, 90);
-    document.body.style.transition = 'none';
-    document.body.style.transform = `translateY(${pullDistance}px)`;
-  }
 }, { passive: true });
 
 document.addEventListener('touchend', () => {
-  document.body.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-  document.body.style.transform = 'translateY(0px)';
-
-
+  if (window.innerWidth >= 860) return;
   if (isHorizontalGesture === true && Math.abs(touchDiffX) > 50) {
     if (touchDiffX < 0 && activeTabIndex < appViews.length - 1) {
       switchView(appViews[activeTabIndex + 1]);
@@ -132,54 +163,9 @@ document.addEventListener('touchend', () => {
       switchView(appViews[activeTabIndex - 1]);
     }
   }
-
-  // Recharge avec vibration si le geste dépasse le seuil
-  if (isHorizontalGesture === false && touchDiffY > 90) {
-    if (navigator.vibrate) navigator.vibrate(20);
-    setTimeout(() => {
-      window.location.reload();
-    }, 150);
-  }
-
   touchStartX = 0;
   touchStartY = 0;
   touchDiffX = 0;
   touchDiffY = 0;
   isHorizontalGesture = null;
 });
-
-
-// --- NAVIGATION PAR SWIPE HORIZONTAL SUR TRACKPAD (MAC / PC) ---
-let isWheelLocked = false;
-let wheelCooldownTimer = null;
-
-window.addEventListener('wheel', (e) => {
-  // Ignore si l'utilisateur est dans une modale ouverte ou fait défiler une liste verticalement
-  const isModalOpen = document.querySelector('.modal-overlay[style*="display: flex"]');
-  if (isModalOpen) return;
-
-  // On vérifie que le geste est nettement horizontal (deltaX dominant)
-  if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 40) {
-    if (isWheelLocked) return;
-
-    if (e.deltaX > 0 && activeTabIndex < appViews.length - 1) {
-      // Glissement vers la gauche (doigts vers la gauche) -> Vue suivante
-      switchView(appViews[activeTabIndex + 1]);
-      lockWheelNavigation();
-    } else if (e.deltaX < 0 && activeTabIndex > 0) {
-      // Glissement vers la droite (doigts vers la droite) -> Vue précédente
-      switchView(appViews[activeTabIndex - 1]);
-      lockWheelNavigation();
-    }
-  }
-}, { passive: true });
-
-function lockWheelNavigation() {
-  isWheelLocked = true;
-  clearTimeout(wheelCooldownTimer);
-  // Bloque les déclenchements répétés pendant 450ms le temps que le geste se termine
-  wheelCooldownTimer = setTimeout(() => {
-    isWheelLocked = false;
-  }, 450);
-}
-
