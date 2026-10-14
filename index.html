@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=2.1">
+  <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
 
@@ -29,19 +29,17 @@
       </div>
       
       <div class="header-actions">
-        <!-- Bouton Track réparé et renommé -->
-        <button class="icon-btn btn-track-desktop" id="btnHeaderTrack" onclick="toggleTrackModal()" title="View Stats & Daily Breakdown">📊 Track</button>
+        <button class="icon-btn btn-track-desktop" id="btnHeaderTrack" onclick="toggleTrackModal()" title="View Track & Performance">📊 Track</button>
         <button class="icon-btn active" id="soundBtn" onclick="cycleSoundMode()" title="Sound mode">
           <span id="soundIcon">🎧</span>
           <span id="soundLabel">Auto</span>
         </button>
         <button class="icon-btn" onclick="openSettingsModal()" title="Settings">⚙️</button>
-        <!-- Lien vers Span Plan au même format que l'app -->
-        <a href="../plan/" class="plan-bridge-btn" id="planBridgeLink" title="Go to Span Plan">Plan ↗</a>
+        <a href="/span-plan/" class="plan-bridge-btn" id="planBridgeLink" title="Go to Span Plan">Plan ↗</a>
       </div>
     </header>
 
-    <!-- BARRE D'OBJECTIF JOURNALIÈRE (Cliquable pour ouvrir Track) -->
+    <!-- BARRE D'OBJECTIF JOURNALIÈRE -->
     <div class="goal-tracker" onclick="toggleTrackModal()" title="Click to view & edit daily target">
       <div class="goal-meta">
         <span>Daily Goal</span>
@@ -64,12 +62,13 @@
                 <span class="spotlight-dot">🎯</span>
                 <span class="spotlight-title" id="spotlightText">Task name</span>
                 <div class="spotlight-actions">
-                  <button class="btn-spotlight-action mini" onclick="completeSpotlightTask()" title="Complete">✓</button>
-                  <button class="btn-spotlight-action mini" onclick="dismissSpotlightTask()" title="Clear">✕</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="completeSpotlightTask()" title="Complete">✓</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="toggleTaskPicker()" title="Switch task">⇄</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="dismissSpotlightTask()" title="Clear">✕</button>
                 </div>
               </div>
 
-              <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" onclick="toggleTaskPicker()">
+              <button class="spotlight-empty-btn compact" id="spotlightEmptyBtn" type="button" onclick="toggleTaskPicker()">
                 <span>+ Set focus task</span>
               </button>
 
@@ -108,9 +107,11 @@
 
           <!-- PANNEAU 2 : TASKS -->
           <div id="view-tasks" class="view-panel">
+            
+            <!-- SOUS-ÉCRAN 1 : LISTE PRINCIPALE -->
             <div id="tasks-main-subview" class="tasks-subview-container">
               <div class="task-input-container">
-                <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onkeydown="if(event.key==='Enter') addTask()">
+                <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
                 <select class="category-select" id="taskCategory">
                   <option value="None">None</option>
                   <option value="Code" id="optCatCode">Code</option>
@@ -121,30 +122,43 @@
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
-              <div class="tasks-summary-bar">
-                <div class="tasks-meta-info">
-                  <span id="tasksRemainingCount">0 remaining</span>
-                  <span class="tasks-meta-separator">•</span>
-                  <span id="tasksEstTimeLeft" class="tasks-est-time">~0m</span>
-                </div>
-                <button class="btn-open-archive" type="button" onclick="openArchiveSubView()">
-                  <span>Archive</span>
-                  <span class="archive-icon">🗄️</span>
+              <!-- BARRE SYMÉTRIQUE : ARCHIVE À GAUCHE | PLANNED À DROITE -->
+              <div class="tasks-action-bar">
+                <button class="btn-subview-nav" type="button" onclick="openArchiveSubView()">
+                  <span>🗄️ Archive</span>
+                  <span class="subview-badge" id="archiveCountBadge">0</span>
+                </button>
+                <button class="btn-subview-nav" type="button" onclick="openPlannedSubView()">
+                  <span>📅 Planned</span>
+                  <span class="subview-badge" id="plannedCountBadge">0</span>
                 </button>
               </div>
 
-              <ul class="task-list" id="taskList"></ul>
+              <!-- CONTENEUR DES TÂCHES STRUCTURÉ -->
+              <div class="tasks-sections-wrapper">
+                <!-- SECTION PRIORITÉS -->
+                <div class="tasks-group" id="groupPriorities" style="display: none;">
+                  <div class="tasks-group-header">⭐ Priorities</div>
+                  <ul class="task-list" id="prioritiesList"></ul>
+                </div>
+
+                <!-- SECTION TÂCHES COURANTES -->
+                <div class="tasks-group" id="groupTasks">
+                  <div class="tasks-group-header" id="labelTasksHeader">Tasks</div>
+                  <ul class="task-list" id="taskList"></ul>
+                </div>
+              </div>
 
               <div class="shortcuts-legend">
-                Shortcuts: Space: timer • Enter: check • Tab: edit • D: delete • Long-press: star
+                Shortcuts: Swipe right: Spotlight • Enter: check • Tab: edit • Long-press: star
               </div>
             </div>
 
-            <!-- SOUS-ÉCRAN ARCHIVES -->
+            <!-- SOUS-ÉCRAN 2 : ARCHIVES -->
             <div id="tasks-archive-subview" class="tasks-subview-container" style="display: none;">
               <div class="archive-header-nav">
-                <button class="btn-archive-back" type="button" onclick="closeArchiveSubView()">← Back to Tasks</button>
-                <span class="archive-header-title">Archives</span>
+                <button class="btn-archive-back" type="button" onclick="closeSubViews()">← Tasks</button>
+                <span class="archive-header-title">Archive History</span>
                 <button class="btn-archive-clean" type="button" onclick="archiveDayNow()" title="Archive completed now">Clean Day</button>
               </div>
 
@@ -160,6 +174,20 @@
                 <ul class="task-list" id="archivedPastList" style="display: none; margin-top: 8px;"></ul>
               </div>
             </div>
+
+            <!-- SOUS-ÉCRAN 3 : PLANNED FOR LATER -->
+            <div id="tasks-planned-subview" class="tasks-subview-container" style="display: none;">
+              <div class="archive-header-nav">
+                <button class="btn-archive-back" type="button" onclick="closeSubViews()">← Tasks</button>
+                <span class="archive-header-title">Planned for Later</span>
+                <a href="/span-plan/" class="plan-bridge-btn" style="padding: 4px 10px; font-size: 12px;">Open Plan ↗</a>
+              </div>
+
+              <div class="archive-sub-section">
+                <ul class="task-list" id="plannedTasksList"></ul>
+              </div>
+            </div>
+
           </div>
 
           <!-- PANNEAU 3 : TRACK / STATS (MOBILE SLIDER) -->
@@ -196,7 +224,7 @@
     </main>
   </div>
 
-  <!-- MODALE TRACK (ACCESSIBLE SUR DESKTOP ET AU CLIC SUR LA JAUGE) -->
+  <!-- MODALE TRACK (DESKTOP & CLIC SUR JAUGE) -->
   <div class="modal-overlay" id="trackModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -259,6 +287,9 @@
           <button type="button" class="stepper-btn" onclick="stepEstimate(1)">+</button>
           <span style="font-size: 13px; color: var(--text-muted); margin-left: 8px;">blocks (~<span id="editEstMinutes">25</span> min)</span>
         </div>
+
+        <label class="modal-label">Scheduled Date</label>
+        <input type="date" class="modal-input" id="editScheduledDate">
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--card-border);">
           <span class="modal-label" style="margin: 0;">Priority (Favorite)</span>
@@ -326,7 +357,7 @@
     </div>
   </div>
 
-  <!-- NAVIGATION MOBILE EN BAS -->
+  <!-- NAVIGATION MOBILE EN BAS (Pinned fermement à 0px sans espace flottant) -->
   <nav class="nav-bar mobile-nav">
     <div class="nav-items">
       <button class="nav-btn active" id="nav-btn-focus" onclick="switchView('focus', this)">
@@ -346,11 +377,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=2.1"></script>
-  <script src="js/timer.js?v=2.1"></script>
-  <script src="js/tasks.js?v=2.1"></script>
-  <script src="js/track.js?v=2.1"></script>
-  <script src="js/sync.js?v=2.1"></script>
-  <script src="js/app.js?v=2.1"></script>
+  <script src="js/audio.js?v=2.2"></script>
+  <script src="js/timer.js?v=2.2"></script>
+  <script src="js/tasks.js?v=2.2"></script>
+  <script src="js/track.js?v=2.2"></script>
+  <script src="js/sync.js?v=2.2"></script>
+  <script src="js/app.js?v=2.2"></script>
 </body>
 </html>
