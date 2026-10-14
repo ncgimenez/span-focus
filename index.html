@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
       </div>
     </header>
 
-    <!-- BARRE D'OBJECTIF JOURNALIÈRE -->
+    <!-- DAILY GOAL PROGRESS TRACKER -->
     <div class="goal-tracker" onclick="toggleTrackModal()" title="Click to view & edit daily target">
       <div class="goal-meta">
         <span>Daily Goal</span>
@@ -50,12 +50,12 @@
       </div>
     </div>
 
-    <!-- WORKSPACE PRINCIPAL -->
+    <!-- MAIN WORKSPACE -->
     <main class="workspace-main">
       <div class="views-viewport">
         <div class="views-slider" id="viewsSlider">
 
-          <!-- PANNEAU 1 : FOCUS TIMER -->
+          <!-- PANEL 1: FOCUS TIMER -->
           <div id="view-focus" class="view-panel">
             <div class="spotlight-container">
               <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
@@ -105,24 +105,22 @@
             </section>
           </div>
 
-          <!-- PANNEAU 2 : TASKS -->
+          <!-- PANEL 2: TASKS -->
           <div id="view-tasks" class="view-panel">
             
-            <!-- SOUS-ÉCRAN 1 : LISTE PRINCIPALE -->
+            <!-- SUB-VIEW 1: MAIN TASK LIST -->
             <div id="tasks-main-subview" class="tasks-subview-container">
               <div class="task-input-container">
                 <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
                 <select class="category-select" id="taskCategory">
-                  <option value="None">None</option>
-                  <option value="Code" id="optCatCode">Code</option>
-                  <option value="Study" id="optCatStudy">Study</option>
-                  <option value="Write" id="optCatWrite">Write</option>
-                  <option value="Admin" id="optCatAdmin">Admin</option>
+                  <option value="Work" id="optCatWork">Work</option>
+                  <option value="Home" id="optCatHome">Home</option>
+                  <option value="Fun" id="optCatFun">Fun</option>
                 </select>
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
-              <!-- BARRE SYMÉTRIQUE : ARCHIVE À GAUCHE | PLANNED À DROITE -->
+              <!-- SYMMETRIC ACTION BAR: ARCHIVE (LEFT) | PLANNED (RIGHT) -->
               <div class="tasks-action-bar">
                 <button class="btn-subview-nav" type="button" onclick="openArchiveSubView()">
                   <span>🗄️ Archive</span>
@@ -134,15 +132,15 @@
                 </button>
               </div>
 
-              <!-- CONTENEUR DES TÂCHES STRUCTURÉ -->
+              <!-- STRUCTURED TASK SECTIONS -->
               <div class="tasks-sections-wrapper">
-                <!-- SECTION PRIORITÉS -->
+                <!-- PRIORITIES SECTION (LOCKED TOP) -->
                 <div class="tasks-group" id="groupPriorities" style="display: none;">
                   <div class="tasks-group-header">⭐ Priorities</div>
                   <ul class="task-list" id="prioritiesList"></ul>
                 </div>
 
-                <!-- SECTION TÂCHES COURANTES -->
+                <!-- REGULAR TASKS SECTION -->
                 <div class="tasks-group" id="groupTasks">
                   <div class="tasks-group-header" id="labelTasksHeader">Tasks</div>
                   <ul class="task-list" id="taskList"></ul>
@@ -150,11 +148,11 @@
               </div>
 
               <div class="shortcuts-legend">
-                Shortcuts: Swipe right: Spotlight • Enter: check • Tab: edit • Long-press: star
+                Shortcuts: Swipe right: Focus • Enter: check • Tab: edit • Long-press: star
               </div>
             </div>
 
-            <!-- SOUS-ÉCRAN 2 : ARCHIVES -->
+            <!-- SUB-VIEW 2: ARCHIVES -->
             <div id="tasks-archive-subview" class="tasks-subview-container" style="display: none;">
               <div class="archive-header-nav">
                 <button class="btn-archive-back" type="button" onclick="closeSubViews()">← Tasks</button>
@@ -175,12 +173,12 @@
               </div>
             </div>
 
-            <!-- SOUS-ÉCRAN 3 : PLANNED FOR LATER -->
+            <!-- SUB-VIEW 3: PLANNED FOR LATER -->
             <div id="tasks-planned-subview" class="tasks-subview-container" style="display: none;">
               <div class="archive-header-nav">
                 <button class="btn-archive-back" type="button" onclick="closeSubViews()">← Tasks</button>
                 <span class="archive-header-title">Planned for Later</span>
-                <a href="/span-plan/" class="plan-bridge-btn" style="padding: 4px 10px; font-size: 12px;">Open Plan ↗</a>
+                <a href="/span-plan/" class="plan-bridge-btn" style="padding: 5px 12px; font-size: 13px;">Open Plan ↗</a>
               </div>
 
               <div class="archive-sub-section">
@@ -190,7 +188,7 @@
 
           </div>
 
-          <!-- PANNEAU 3 : TRACK / STATS (MOBILE SLIDER) -->
+          <!-- PANEL 3: TRACK / STATS (MOBILE SLIDER VIEW) -->
           <div id="view-stats" class="view-panel">
             <div class="stat-card">
               <div class="stat-header">
@@ -224,7 +222,7 @@
     </main>
   </div>
 
-  <!-- MODALE TRACK (DESKTOP & CLIC SUR JAUGE) -->
+  <!-- DESKTOP TRACK MODAL -->
   <div class="modal-overlay" id="trackModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -261,7 +259,7 @@
     </div>
   </div>
 
-  <!-- MODALE ÉDITION -->
+  <!-- TASK EDIT MODAL -->
   <div class="modal-overlay" id="editModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -274,10 +272,9 @@
 
         <label class="modal-label">Category</label>
         <div class="category-pills" id="modalCategoryPills">
-          <button type="button" class="cat-pill" data-cat="Code" onclick="selectEditCategory('Code')">Code</button>
-          <button type="button" class="cat-pill" data-cat="Study" onclick="selectEditCategory('Study')">Study</button>
-          <button type="button" class="cat-pill" data-cat="Write" onclick="selectEditCategory('Write')">Write</button>
-          <button type="button" class="cat-pill" data-cat="Admin" onclick="selectEditCategory('Admin')">Admin</button>
+          <button type="button" class="cat-pill" data-cat="Work" onclick="selectEditCategory('Work')">Work</button>
+          <button type="button" class="cat-pill" data-cat="Home" onclick="selectEditCategory('Home')">Home</button>
+          <button type="button" class="cat-pill" data-cat="Fun" onclick="selectEditCategory('Fun')">Fun</button>
         </div>
 
         <label class="modal-label">Estimated Pomodoros</label>
@@ -303,7 +300,7 @@
     </div>
   </div>
 
-  <!-- MODALE SETTINGS -->
+  <!-- SETTINGS MODAL -->
   <div class="modal-overlay" id="settingsModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -333,18 +330,6 @@
           </div>
         </div>
 
-        <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Rename Category</div>
-        <div style="display: flex; gap: 6px; margin-top: 8px;">
-          <select id="renameCategorySelect" class="modal-input" style="flex: 1; cursor: pointer;" onchange="syncRenameCategoryInput()">
-            <option value="Code">Code</option>
-            <option value="Study">Study</option>
-            <option value="Write">Write</option>
-            <option value="Admin">Admin</option>
-          </select>
-          <input type="text" id="renameCategoryInput" placeholder="New label..." class="modal-input" style="flex: 1.4;" onkeydown="if(event.key==='Enter') saveRenamedCategory()">
-          <button class="btn-theme-toggle" type="button" onclick="saveRenamedCategory()">Save</button>
-        </div>
-
         <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Data Management</div>
         <div class="backup-section">
           <button class="btn-backup" onclick="exportData()">Download JSON</button>
@@ -357,7 +342,7 @@
     </div>
   </div>
 
-  <!-- NAVIGATION MOBILE EN BAS (Pinned fermement à 0px sans espace flottant) -->
+  <!-- FIXED BOTTOM MOBILE NAV -->
   <nav class="nav-bar mobile-nav">
     <div class="nav-items">
       <button class="nav-btn active" id="nav-btn-focus" onclick="switchView('focus', this)">
@@ -377,11 +362,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=2.2"></script>
-  <script src="js/timer.js?v=2.2"></script>
-  <script src="js/tasks.js?v=2.2"></script>
-  <script src="js/track.js?v=2.2"></script>
-  <script src="js/sync.js?v=2.2"></script>
-  <script src="js/app.js?v=2.2"></script>
+  <script src="js/audio.js?v=3.0"></script>
+  <script src="js/timer.js?v=3.0"></script>
+  <script src="js/tasks.js?v=3.0"></script>
+  <script src="js/track.js?v=3.0"></script>
+  <script src="js/sync.js?v=3.0"></script>
+  <script src="js/app.js?v=3.0"></script>
 </body>
 </html>
