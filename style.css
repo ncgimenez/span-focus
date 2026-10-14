@@ -471,7 +471,7 @@ body {
   gap: 12px;
 }
 
-/* QUICK ADD BAR (STABLE & CONFORTABLE THICKNESS) */
+/* QUICK ADD BAR */
 .task-input-container {
   display: flex;
   align-items: center;
@@ -479,7 +479,8 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
-  padding: 8px 10px 8px 14px;
+  padding: 10px 12px 10px 14px;
+  min-height: 48px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   z-index: 10;
 }
@@ -519,7 +520,7 @@ body {
   color: var(--text-main);
   font-size: 14px;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 7px 16px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -620,7 +621,7 @@ body {
 }
 
 /* ============================================================== */
-/* 2-ROW TASK CARD (SPAN PLAN ARCHITECTURE)                       */
+/* 1-ROW SINGLE COMPACT TASK CARD                                 */
 /* ============================================================== */
 .task-item-wrapper {
   position: relative;
@@ -631,12 +632,14 @@ body {
 .task-item {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   background: #18181b; /* OPAQUE SANS TRANSPARENCE */
   border: 1px solid var(--card-border);
   border-left: 3.5px solid var(--cat-none);
   padding: 10px 14px;
+  min-height: 48px;
   border-radius: 14px;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
@@ -647,7 +650,7 @@ body {
   background: #ffffff;
 }
 
-/* BORDURES CATEGORIES */
+/* BORDURES CATEGORIES (LISERÉ UNIQUE) */
 .task-item[data-cat="Work"] { border-left-color: var(--cat-work); }
 .task-item[data-cat="Home"] { border-left-color: var(--cat-home); }
 .task-item[data-cat="Fun"]  { border-left-color: var(--cat-fun); }
@@ -668,15 +671,7 @@ body {
   100% { border-color: var(--card-border); box-shadow: none; }
 }
 
-/* LIGNE 1 : CHECKBOX + TITRE + MENU ⋮ */
-.task-row-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-}
-
+/* ZONE GAUCHE : CHECKBOX + TITRE */
 .task-main-left {
   display: flex;
   align-items: center;
@@ -719,9 +714,44 @@ body {
   text-decoration: line-through;
 }
 
+/* ZONE DROITE : MÉTADONNÉES EN LIGNE + MENU ⋮ */
+.task-right-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.task-meta-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.task-meta-focus {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--streak);
+  background: rgba(226, 179, 64, 0.15);
+  border: 1px solid rgba(226, 179, 64, 0.3);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+.task-meta-star {
+  font-size: 13px;
+  color: var(--streak);
+  line-height: 1;
+}
+
 /* MENU COMPACT ⋮ */
 .task-menu-container {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .btn-task-menu {
@@ -792,52 +822,6 @@ body {
   color: var(--danger);
 }
 
-/* LIGNE 2 : METADONNÉES */
-.task-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 29px;
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.task-meta-time {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-}
-
-.task-meta-tag {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 1px 6px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.task-meta-tag[data-cat="Work"] { color: var(--cat-work); }
-.task-meta-tag[data-cat="Home"] { color: var(--cat-home); }
-.task-meta-tag[data-cat="Fun"]  { color: var(--cat-fun); }
-
-.task-meta-focus {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--streak);
-  background: rgba(226, 179, 64, 0.15);
-  border: 1px solid rgba(226, 179, 64, 0.3);
-  padding: 1px 6px;
-  border-radius: 5px;
-}
-
-.task-meta-star {
-  font-size: 13px;
-  color: var(--streak);
-}
-
 /* MICRO PASTILLES INLINE TAGS (#TAG) */
 .task-inline-tag {
   display: inline-flex;
@@ -878,7 +862,7 @@ body.is-typing-mode .shortcuts-legend {
   transition: opacity 0.25s ease, filter 0.25s ease;
 }
 
-/* REPLI DOUX DES PRIORITÉS LORS DE LA SAISIE (OPTION B) */
+/* REPLI DES PRIORITÉS PENDANT LA SAISIE ACTIVE */
 body.is-typing-mode #groupPriorities {
   max-height: 0;
   opacity: 0;
