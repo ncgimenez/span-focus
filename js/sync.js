@@ -1,4 +1,4 @@
-// Supabase Configuration shared across the Span Suite
+// Supabase configuration shared across the Span Suite
 const SUPABASE_URL = 'https://xzoukiveknyuxmbrcsvb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_8g571gv3CFOyJ0lMtaAf4w_CcITQovd';
 
@@ -26,7 +26,7 @@ function copyCurrentSyncKey() {
   });
 }
 
-// Keep visible username field and hidden password field synchronized for Password Managers
+// Synchronize visible username input and hidden password input for Keychain prompt
 function syncKeychainInputs(value) {
   const inputKey = document.getElementById('inputSyncKey');
   const inputSecret = document.getElementById('inputSyncSecret');
@@ -42,8 +42,8 @@ async function handleLinkClick() {
 
   SYNC_USER_ID = key;
   localStorage.setItem('span_sync_user', key);
-
-  // Sync hidden password field to trigger iOS Keychain prompt
+  
+  // Align secret password field for iOS Keychain prompt
   syncKeychainInputs(key);
   updateSyncKeyDisplay();
 
@@ -57,28 +57,30 @@ function updateSyncKeyDisplay() {
   syncKeychainInputs(SYNC_USER_ID);
 }
 
+// Save Focus state to cloud (tasks, archived, active)
 async function saveStateToCloud() {
   if (isCloudSyncInProgress || !supabaseClient) return;
   try {
     const payload = {
       id: SYNC_USER_ID,
-      tasks: window.SpanState.tasks || [],
-      archived_tasks: window.SpanState.archivedTasks || [],
-      active_task: window.SpanState.activeTask || null,
+      focus_tasks: window.SpanState.tasks || [],
+      focus_archived: window.SpanState.archivedTasks || [],
+      focus_active: window.SpanState.activeTask || null,
       updated_at: new Date().toISOString()
     };
     await supabaseClient.from('user_state').upsert(payload);
   } catch (err) {
-    console.warn('Cloud sync write error:', err.message);
+    console.warn('Cloud sync write warning:', err.message);
   }
 }
 
+// Load Focus state from cloud
 async function loadStateFromCloud() {
   if (!supabaseClient) return;
   try {
     const { data, error } = await supabaseClient
       .from('user_state')
-      .select('tasks, archived_tasks, active_task')
+      .select('focus_tasks, focus_archived, focus_active')
       .eq('id', SYNC_USER_ID)
       .single();
 
@@ -87,38 +89,32 @@ async function loadStateFromCloud() {
       return;
     }
 
-    if (data) {
+    if (data && data.focus_tasks && Array.isArray(data.focus_tasks)) {
       isCloudSyncInProgress = true;
-      if (Array.isArray(data.tasks)) {
-        window.SpanState.tasks = data.tasks;
-        localStorage.setItem('span_tasks', JSON.stringify(data.tasks));
-      }
-      if (Array.isArray(data.archived_tasks)) {
-        window.SpanState.archivedTasks = data.archived_tasks;
-        localStorage.setItem('span_archived_tasks', JSON.stringify(data.archived_tasks));
-      }
-      if (data.active_task !== undefined) {
-        window.SpanState.activeTask = data.active_task;
-        localStorage.setItem('span_active_task', JSON.stringify(data.active_task));
-      }
+      window.SpanState.tasks = data.focus_tasks;
+      window.SpanState.archivedTasks = data.focus_archived || [];
+      window.SpanState.activeTask = data.focus_active || null;
+
+      localStorage.setItem('span_tasks', JSON.stringify(data.focus_tasks));
+      localStorage.setItem('span_archived_tasks', JSON.stringify(data.focus_archived || []));
+      localStorage.setItem('span_active_task', JSON.stringify(data.focus_active || null));
 
       if (typeof renderTasks === 'function') renderTasks();
       if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
       if (typeof renderPlannedTasks === 'function') renderPlannedTasks();
       if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
       if (typeof updateStats === 'function') updateStats();
-
       isCloudSyncInProgress = false;
     }
   } catch (err) {
-    console.warn('Cloud sync connection bypass:', err.message);
+    console.warn('Cloud sync bypass:', err.message);
   }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   updateSyncKeyDisplay();
 
-  // Handle manual input or password manager autofills
+  // Watch for manual edits or password manager autofills
   const inputKey = document.getElementById('inputSyncKey');
   if (inputKey) {
     inputKey.addEventListener('input', (e) => {
@@ -128,7 +124,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial silent cloud check
+  // Load cloud data asynchronously without locking the UI
   setTimeout(() => {
     loadStateFromCloud();
   }, 100);
