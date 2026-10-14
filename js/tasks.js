@@ -1,4 +1,3 @@
-// Initialisation de l'état partagé global
 window.SpanState = window.SpanState || {};
 
 window.SpanState.categoryLabels = JSON.parse(localStorage.getItem('span_category_labels')) || {
@@ -9,7 +8,7 @@ window.SpanState.categoryLabels = JSON.parse(localStorage.getItem('span_category
 };
 
 window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false, isFavorite: false },
+  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false, isFavorite: true },
   { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false, isFavorite: false }
 ];
 
@@ -27,8 +26,8 @@ let editingCategory = 'None';
 let editingEstimate = 1;
 let editingIsFavorite = false;
 let isPastOpen = false;
+let newlyAddedTaskId = null;
 
-// Migration des tâches
 const nowInit = new Date();
 const todayStrInit = nowInit.toISOString().slice(0, 10);
 
@@ -39,6 +38,7 @@ tasks = tasks.map(t => {
     title: t.title || t.text || 'Untitled Task',
     category: t.category || 'None',
     isFavorite: !!t.isFavorite,
+    scheduledDate: t.scheduledDate || null,
     completed: isDone,
     completedAt: isDone ? (t.completedAt || nowInit.toISOString()) : null,
     completedDate: isDone ? (t.completedDate || todayStrInit) : null
@@ -47,13 +47,27 @@ tasks = tasks.map(t => {
 
 function triggerHapticFeedback() {
   if (navigator.vibrate) {
-    try { navigator.vibrate(18); } catch (e) {}
+    try { navigator.vibrate(20); } catch (e) {}
   }
 }
 
-// Calcul du quota maximum d'étoiles autorisées
 function getMaxFavoritesAllowed() {
   return activeTask ? 2 : 3;
+}
+
+// Vérifie si une tâche programmée pour aujourd'hui doit revenir dans la liste active
+function checkScheduledTasksForToday() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let changed = false;
+
+  tasks.forEach(t => {
+    if (t.scheduledDate && t.scheduledDate <= todayStr && !t.completed) {
+      t.scheduledDate = null;
+      changed = true;
+    }
+  });
+
+  if (changed) saveTasks();
 }
 
 function autoArchivePastDays() {
@@ -91,6 +105,7 @@ function saveTasks() {
 
   renderTasks();
   renderArchivedTasks();
+  renderPlannedTasks();
   updateSpotlightUI();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
@@ -140,115 +155,138 @@ function updateCategoryDOMNames() {
   syncRenameCategoryInput();
 }
 
-function sortTasks() {
-  const favs = tasks.filter(t => !t.completed && t.isFavorite);
-  const regular = tasks.filter(t => !t.completed && !t.isFavorite);
-  const done = tasks.filter(t => t.completed);
-  tasks = [...favs, ...regular, ...done];
+function handleInputFocus(isFocused) {
+  document.body.classList.toggle('is-typing-mode', isFocused);
 }
 
+// RENDU DE LA LISTE AVEC SÉPARATION STRICTE : PRIORITIES VS TASKS
 function renderTasks() {
-  const list = document.getElementById('taskList');
-  if (!list) return;
-  list.innerHTML = '';
+  const prioritiesList = document.getElementById('prioritiesList');
+  const regularList = document.getElementById('taskList');
+  const groupPriorities = document.getElementById('groupPriorities');
 
-  const remaining = tasks.filter(t => !t.completed);
-  const completedToday = tasks.filter(t => t.completed);
+  if (!regularList || !prioritiesList) return;
 
-  const countEl = document.getElementById('tasksRemainingCount');
-  if (countEl) {
-    countEl.textContent = `${remaining.length} remaining • ${completedToday.length} done`;
+  prioritiesList.innerHTML = '';
+  regularList.innerHTML = '';
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Tâches actives d'aujourd'hui (non programmées pour plus tard)
+  const activeToday = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr));
+  const doneToday = tasks.filter(t => t.completed);
+
+  const favTasks = activeToday.filter(t => t.isFavorite);
+  const regularTasks = activeToday.filter(t => !t.isFavorite);
+
+  // Mise à jour des compteurs des boutons de sous-écrans
+  const archBadge = document.getElementById('archiveCountBadge');
+  if (archBadge) archBadge.textContent = doneToday.length + archivedTasks.length;
+
+  const plannedTasks = tasks.filter(t => !t.completed && t.scheduledDate && t.scheduledDate > todayStr);
+  const plannedBadge = document.getElementById('plannedCountBadge');
+  if (plannedBadge) plannedBadge.textContent = plannedTasks.length;
+
+  // Affichage de la section Priorities
+  if (groupPriorities) {
+    groupPriorities.style.display = favTasks.length > 0 ? 'block' : 'none';
   }
+  favTasks.forEach(task => {
+    prioritiesList.appendChild(createTaskDOMElement(task));
+  });
 
-  const estTimeEl = document.getElementById('tasksEstTimeLeft');
-  if (estTimeEl) {
-    const totalBlocks = remaining.reduce((acc, t) => acc + (t.estimate || 1), 0);
-    const mins = totalBlocks * 25;
-    const hrs = Math.floor(mins / 60);
-    const m = mins % 60;
-    estTimeEl.textContent = hrs > 0 ? `~${hrs}h${m > 0 ? m + 'm' : ''}` : `~${mins}m`;
-  }
+  // Affichage de la section Tasks (avec les terminées en dessous)
+  regularTasks.forEach(task => {
+    regularList.appendChild(createTaskDOMElement(task));
+  });
+  doneToday.forEach(task => {
+    regularList.appendChild(createTaskDOMElement(task));
+  });
 
-  tasks.forEach((task, index) => {
-    const li = document.createElement('li');
-    const isTargetVisible = (index === selectedTaskIndex) || (selectedTaskIndex === -1 && index === 0);
-    li.className = `task-item ${task.completed ? 'completed' : ''} ${index === selectedTaskIndex ? 'selected' : ''} ${isTargetVisible ? 'show-focus-btn' : ''}`;
-    li.draggable = !task.completed;
-    li.dataset.index = index;
+  // Reset animation flag
+  newlyAddedTaskId = null;
+}
 
-    // Gestion du clic long (Option C : 500ms d'appui)
-    let pressTimer = null;
-    const startPress = () => {
-      pressTimer = setTimeout(() => {
-        triggerHapticFeedback();
-        toggleFavorite(task.id);
-      }, 500);
-    };
-    const cancelPress = () => clearTimeout(pressTimer);
+// CRÉATION ÉLÉMENT DOM AVEC GESTION SWIPE VERS LA DROITE
+function createTaskDOMElement(task) {
+  const wrapper = document.createElement('li');
+  wrapper.className = 'task-item-wrapper';
 
-    li.addEventListener('touchstart', startPress, { passive: true });
-    li.addEventListener('touchend', cancelPress);
-    li.addEventListener('touchcancel', cancelPress);
-    li.addEventListener('mousedown', startPress);
-    li.addEventListener('mouseup', cancelPress);
-    li.addEventListener('mouseleave', cancelPress);
+  const isJustAdded = task.id === newlyAddedTaskId;
 
-    li.addEventListener('mouseenter', () => {
-      selectedTaskIndex = index;
-      updateTaskSelectionUI();
-    });
-
-    const taskTitle = task.title || task.text || '';
-    const hasCategory = task.category && task.category !== 'None';
-    const catLabel = hasCategory ? (categoryLabels[task.category] || task.category) : '';
-    const tagHtml = hasCategory 
-      ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${catLabel}</span>`
-      : '';
-
-    // ÉTOILE VISIBLE UNIQUEMENT SI FAVORITE (Élimine le fouillis d'étoiles)
-    const favStar = (!task.completed && task.isFavorite) ? `
-      <span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>
-    ` : '';
-
-    li.innerHTML = `
+  wrapper.innerHTML = `
+    <div class="swipe-background-right">🎯 Spotlight</div>
+    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''}" id="task-node-${task.id}">
       <div class="task-left" onclick="openEditModalForTask('${task.id}')">
-        <div class="checkbox" onclick="event.stopPropagation(); toggleTask(${index})">${task.completed ? '✓' : ''}</div>
-        ${favStar}
-        <span class="task-text">${taskTitle}</span>
-        ${tagHtml}
+        <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">${task.completed ? '✓' : ''}</div>
+        ${(!task.completed && task.isFavorite) ? `<span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>` : ''}
+        <span class="task-text">${task.title}</span>
+        ${task.category && task.category !== 'None' ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${categoryLabels[task.category] || task.category}</span>` : ''}
         <span class="task-est">⏱ ${task.estimate || 1}</span>
       </div>
       <div class="task-actions">
-        <button class="btn-task-action btn-focus-target" type="button" onclick="event.stopPropagation(); setSpotlightTask(${index})" title="Focus this task">🎯</button>
-        <button class="btn-task-action" type="button" onclick="event.stopPropagation(); deleteTask(${index})" title="Delete">✕</button>
+        <button class="btn-task-action btn-focus-target" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')" title="Focus this task">🎯</button>
+        <button class="btn-task-action" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')" title="Delete">✕</button>
       </div>
-    `;
-    list.appendChild(li);
+    </div>
+  `;
+
+  const itemNode = wrapper.querySelector('.task-item');
+
+  // GESTION DU SWIPE VERS LA DROITE POUR ENVOYER EN SPOTLIGHT
+  let touchStartX = 0;
+  let touchDiffX = 0;
+  let isSwiping = false;
+
+  itemNode.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchDiffX = 0;
+    isSwiping = false;
+  }, { passive: true });
+
+  itemNode.addEventListener('touchmove', (e) => {
+    const currentX = e.touches[0].clientX;
+    touchDiffX = currentX - touchStartX;
+
+    // Détection stricte d'un glissement vers la droite
+    if (touchDiffX > 10) {
+      isSwiping = true;
+      itemNode.style.transition = 'none';
+      const moveDistance = Math.min(touchDiffX, 90);
+      itemNode.style.transform = `translateX(${moveDistance}px)`;
+    }
+  }, { passive: true });
+
+  itemNode.addEventListener('touchend', () => {
+    if (isSwiping) {
+      itemNode.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
+      if (touchDiffX > 70) {
+        triggerHapticFeedback();
+        itemNode.style.transform = `translateX(120px)`;
+        setTimeout(() => {
+          setSpotlightTaskById(task.id);
+        }, 150);
+      } else {
+        itemNode.style.transform = `translateX(0px)`;
+      }
+    }
   });
-}
 
-function updateTaskSelectionUI() {
-  document.querySelectorAll('#taskList .task-item').forEach((item, idx) => {
-    item.classList.toggle('selected', idx === selectedTaskIndex);
-    item.classList.toggle('show-focus-btn', idx === selectedTaskIndex);
-  });
-}
+  // Long press pour basculer favori
+  let pressTimer = null;
+  const startPress = () => {
+    pressTimer = setTimeout(() => {
+      triggerHapticFeedback();
+      toggleFavorite(task.id);
+    }, 500);
+  };
+  const cancelPress = () => clearTimeout(pressTimer);
 
-function toggleFavorite(id) {
-  const t = tasks.find(x => String(x.id) === String(id));
-  if (!t) return;
+  itemNode.addEventListener('touchstart', startPress, { passive: true });
+  itemNode.addEventListener('touchend', cancelPress);
+  itemNode.addEventListener('touchcancel', cancelPress);
 
-  const maxAllowed = getMaxFavoritesAllowed();
-  const currentFavs = tasks.filter(x => x.isFavorite && !x.completed && String(x.id) !== String(id));
-
-  if (!t.isFavorite && currentFavs.length >= maxAllowed) {
-    alert(`Maximum ${maxAllowed} priorités favorites autorisées.`);
-    return;
-  }
-
-  t.isFavorite = !t.isFavorite;
-  sortTasks();
-  saveTasks();
+  return wrapper;
 }
 
 function addTask() {
@@ -265,22 +303,22 @@ function addTask() {
     category: category,
     estimate: 1,
     completed: false,
-    isFavorite: false
+    isFavorite: false,
+    scheduledDate: null
   };
 
+  newlyAddedTaskId = newTask.id;
   tasks.unshift(newTask);
-  sortTasks();
   if (input) input.value = '';
 
-  selectedTaskIndex = 0;
   saveTasks();
 }
 
-function toggleTask(index) {
-  if (!tasks[index]) return;
-  const t = tasks[index];
-  t.completed = !t.completed;
+function toggleTaskById(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
 
+  t.completed = !t.completed;
   if (t.completed) {
     triggerHapticFeedback();
     const now = new Date();
@@ -296,35 +334,173 @@ function toggleTask(index) {
     dismissSpotlightTask();
   }
 
-  sortTasks();
   saveTasks();
 }
 
-function deleteTask(index) {
-  if (!tasks[index]) return;
-  if (activeTask && activeTask.id === tasks[index].id) dismissSpotlightTask();
-  tasks.splice(index, 1);
-  selectedTaskIndex = 0;
+function deleteTaskById(id) {
+  if (activeTask && activeTask.id === id) dismissSpotlightTask();
+  tasks = tasks.filter(t => String(t.id) !== String(id));
   saveTasks();
 }
 
+function toggleFavorite(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+
+  const maxAllowed = getMaxFavoritesAllowed();
+  const currentFavs = tasks.filter(x => x.isFavorite && !x.completed && String(x.id) !== String(id));
+
+  if (!t.isFavorite && currentFavs.length >= maxAllowed) {
+    alert(`Maximum ${maxAllowed} priorités favorites autorisées.`);
+    return;
+  }
+
+  t.isFavorite = !t.isFavorite;
+  saveTasks();
+}
+
+// SPOTLIGHT & BASCLUE DIRECTE VERS LE TIMER
+function setSpotlightTaskById(id) {
+  const target = tasks.find(t => String(t.id) === String(id));
+  if (!target) return;
+
+  target.isFavorite = false;
+  activeTask = target;
+  window.SpanState.activeTask = activeTask;
+
+  const favs = tasks.filter(t => t.isFavorite && !t.completed);
+  if (favs.length > 2) {
+    favs[favs.length - 1].isFavorite = false;
+  }
+
+  saveTasks();
+  if (typeof switchView === 'function') {
+    switchView('focus', document.getElementById('nav-btn-focus'));
+  }
+}
+
+function dismissSpotlightTask() {
+  if (activeTask) {
+    const prev = tasks.find(t => String(t.id) === String(activeTask.id));
+    if (prev && !prev.completed) {
+      const currentFavs = tasks.filter(t => t.isFavorite && !t.completed);
+      if (currentFavs.length >= 3) {
+        currentFavs[currentFavs.length - 1].isFavorite = false;
+      }
+      prev.isFavorite = true;
+    }
+  }
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  saveTasks();
+}
+
+function completeSpotlightTask() {
+  if (!activeTask) return;
+  const found = tasks.find(t => String(t.id) === String(activeTask.id));
+  if (found) {
+    found.completed = true;
+    found.completedAt = new Date().toISOString();
+    found.completedDate = new Date().toISOString().slice(0, 10);
+    found.isFavorite = false;
+  }
+  activeTask = null;
+  window.SpanState.activeTask = null;
+  saveTasks();
+}
+
+function updateSpotlightUI() {
+  const card = document.getElementById('spotlightCard');
+  const emptyBtn = document.getElementById('spotlightEmptyBtn');
+  const spotlightText = document.getElementById('spotlightText');
+  const dropdown = document.getElementById('taskPickerDropdown');
+
+  if (dropdown) dropdown.style.display = 'none';
+
+  if (card && emptyBtn) {
+    if (activeTask) {
+      card.style.display = 'flex';
+      emptyBtn.style.display = 'none';
+      if (spotlightText) spotlightText.textContent = activeTask.title;
+    } else {
+      card.style.display = 'none';
+      emptyBtn.style.display = 'block';
+    }
+  }
+}
+
+// SÉLECTEUR DE TÂCHES ÉPURÉ SUR FOCUS : FAVORIS EN TÊTE
+function toggleTaskPicker() {
+  const dropdown = document.getElementById('taskPickerDropdown');
+  if (!dropdown) return;
+
+  if (dropdown.style.display === 'block') {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const pending = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr));
+
+  if (pending.length === 0) {
+    dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted); padding: 12px;">No pending tasks</div>`;
+  } else {
+    const favs = pending.filter(t => t.isFavorite);
+    const others = pending.filter(t => !t.isFavorite);
+
+    let html = '';
+    if (favs.length > 0) {
+      html += `<div class="task-picker-header">⭐ Priorities</div>`;
+      html += favs.map(t => renderPickerRow(t)).join('');
+    }
+    if (others.length > 0) {
+      html += `<div class="task-picker-header">Tasks</div>`;
+      html += others.map(t => renderPickerRow(t)).join('');
+    }
+    dropdown.innerHTML = html;
+  }
+  dropdown.style.display = 'block';
+}
+
+function renderPickerRow(t) {
+  const catText = (t.category && t.category !== 'None') ? (categoryLabels[t.category] || t.category) : '';
+  return `
+    <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
+      <span>${t.isFavorite ? '⭐ ' : ''}${t.title}</span>
+      <span style="color:var(--text-muted)">${catText}</span>
+    </div>
+  `;
+}
+
+function selectPickerTask(taskId) {
+  const found = tasks.find(x => String(x.id) === String(taskId));
+  if (found) {
+    found.isFavorite = false;
+    activeTask = found;
+    window.SpanState.activeTask = activeTask;
+  }
+  saveTasks();
+}
+
+// GESTION DES SOUS-ÉCRANS (ARCHIVES & PLANNED)
 function openArchiveSubView() {
-  const main = document.getElementById('tasks-main-subview');
-  const archive = document.getElementById('tasks-archive-subview');
-  if (main && archive) {
-    main.style.display = 'none';
-    archive.style.display = 'block';
-    renderArchivedTasks();
-  }
+  document.getElementById('tasks-main-subview').style.display = 'none';
+  document.getElementById('tasks-planned-subview').style.display = 'none';
+  document.getElementById('tasks-archive-subview').style.display = 'block';
+  renderArchivedTasks();
 }
 
-function closeArchiveSubView() {
-  const main = document.getElementById('tasks-main-subview');
-  const archive = document.getElementById('tasks-archive-subview');
-  if (main && archive) {
-    archive.style.display = 'none';
-    main.style.display = 'block';
-  }
+function openPlannedSubView() {
+  document.getElementById('tasks-main-subview').style.display = 'none';
+  document.getElementById('tasks-archive-subview').style.display = 'none';
+  document.getElementById('tasks-planned-subview').style.display = 'block';
+  renderPlannedTasks();
+}
+
+function closeSubViews() {
+  document.getElementById('tasks-archive-subview').style.display = 'none';
+  document.getElementById('tasks-planned-subview').style.display = 'none';
+  document.getElementById('tasks-main-subview').style.display = 'block';
 }
 
 function renderArchivedTasks() {
@@ -340,7 +516,7 @@ function renderArchivedTasks() {
 
   const completedToday = tasks.filter(t => t.completed);
   if (completedToday.length === 0) {
-    todayList.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); padding: 8px 4px;">No tasks completed today yet</li>`;
+    todayList.innerHTML = `<li style="font-size: 13px; color: var(--text-muted); padding: 8px 4px;">No tasks completed today yet</li>`;
   } else {
     completedToday.forEach(t => {
       const li = document.createElement('li');
@@ -348,7 +524,7 @@ function renderArchivedTasks() {
       const timeStr = t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       li.innerHTML = `
         <div class="task-left">
-          <span class="task-text">${t.title || t.text}</span>
+          <span class="task-text">${t.title}</span>
           ${timeStr ? `<span class="task-time-pill">${timeStr}</span>` : ''}
         </div>
       `;
@@ -357,7 +533,7 @@ function renderArchivedTasks() {
   }
 
   if (archivedTasks.length === 0) {
-    pastList.innerHTML = `<li style="font-size: 12px; color: var(--text-muted); padding: 8px 4px;">No past archives</li>`;
+    pastList.innerHTML = `<li style="font-size: 13px; color: var(--text-muted); padding: 8px 4px;">No past archives</li>`;
   } else {
     archivedTasks.forEach(t => {
       const li = document.createElement('li');
@@ -365,7 +541,7 @@ function renderArchivedTasks() {
       const dateStr = t.archivedDate || (t.archivedAt ? t.archivedAt.slice(0, 10) : '');
       li.innerHTML = `
         <div class="task-left">
-          <span class="task-text">${t.title || t.text}</span>
+          <span class="task-text">${t.title}</span>
           ${dateStr ? `<span class="task-time-pill">${dateStr}</span>` : ''}
         </div>
         <div class="task-actions">
@@ -375,6 +551,44 @@ function renderArchivedTasks() {
       `;
       pastList.appendChild(li);
     });
+  }
+}
+
+function renderPlannedTasks() {
+  const list = document.getElementById('plannedTasksList');
+  if (!list) return;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const planned = tasks.filter(t => !t.completed && t.scheduledDate && t.scheduledDate > todayStr);
+
+  if (planned.length === 0) {
+    list.innerHTML = `<li style="font-size: 13px; color: var(--text-muted); padding: 14px 4px; text-align: center;">No upcoming tasks planned yet.</li>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  planned.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    li.innerHTML = `
+      <div class="task-left" onclick="openEditModalForTask('${t.id}')">
+        <span class="task-text">${t.title}</span>
+        <span class="task-time-pill">📅 ${t.scheduledDate}</span>
+      </div>
+      <div class="task-actions">
+        <button class="btn-task-action" type="button" onclick="moveTaskToToday('${t.id}')" title="Move to Today">☀️</button>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+}
+
+function moveTaskToToday(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (t) {
+    t.scheduledDate = null;
+    saveTasks();
+    closeSubViews();
   }
 }
 
@@ -415,7 +629,6 @@ function unarchiveTask(id) {
     delete item.completedAt;
     delete item.completedDate;
     tasks.unshift(item);
-    sortTasks();
     saveTasks();
   }
 }
@@ -425,127 +638,18 @@ function deleteArchivedTask(id) {
   saveTasks();
 }
 
-// SPOTLIGHT
-function setSpotlightTask(index) {
-  const target = tasks[index];
-  target.isFavorite = false; // Quand elle passe en Spotlight, elle n'est plus en simple étoile
-  activeTask = target;
-  window.SpanState.activeTask = activeTask;
-
-  // Réajustement des étoiles si nécessaire (max 2 si Spotlight actif)
-  const favs = tasks.filter(t => t.isFavorite && !t.completed);
-  if (favs.length > 2) {
-    favs[favs.length - 1].isFavorite = false;
-  }
-
-  sortTasks();
-  saveTasks();
-  if (typeof switchView === 'function') {
-    switchView('focus', document.getElementById('nav-btn-focus'));
-  }
-}
-
-function dismissSpotlightTask() {
-  if (activeTask) {
-    // RÈGLE : au retrait du Spotlight, la tâche reçoit automatiquement une étoile ⭐
-    const prev = tasks.find(t => String(t.id) === String(activeTask.id));
-    if (prev && !prev.completed) {
-      const currentFavs = tasks.filter(t => t.isFavorite && !t.completed);
-      if (currentFavs.length >= 3) {
-        currentFavs[currentFavs.length - 1].isFavorite = false;
-      }
-      prev.isFavorite = true;
-    }
-  }
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  sortTasks();
-  saveTasks();
-}
-
-function completeSpotlightTask() {
-  if (!activeTask) return;
-  const found = tasks.find(t => String(t.id) === String(activeTask.id));
-  if (found) {
-    found.completed = true;
-    found.completedAt = new Date().toISOString();
-    found.completedDate = new Date().toISOString().slice(0, 10);
-    found.isFavorite = false;
-  }
-  activeTask = null;
-  window.SpanState.activeTask = null;
-  sortTasks();
-  saveTasks();
-}
-
-function updateSpotlightUI() {
-  const card = document.getElementById('spotlightCard');
-  const emptyBtn = document.getElementById('spotlightEmptyBtn');
-  const spotlightText = document.getElementById('spotlightText');
-  const dropdown = document.getElementById('taskPickerDropdown');
-
-  if (dropdown) dropdown.style.display = 'none';
-
-  if (card && emptyBtn) {
-    if (activeTask) {
-      card.style.display = 'flex';
-      emptyBtn.style.display = 'none';
-      if (spotlightText) spotlightText.textContent = activeTask.title || activeTask.text || '';
-    } else {
-      card.style.display = 'none';
-      emptyBtn.style.display = 'block';
-    }
-  }
-}
-
-function toggleTaskPicker() {
-  const dropdown = document.getElementById('taskPickerDropdown');
-  if (!dropdown) return;
-
-  if (dropdown.style.display === 'block') {
-    dropdown.style.display = 'none';
-    return;
-  }
-  const pending = tasks.filter(t => !t.completed);
-  if (pending.length === 0) {
-    dropdown.innerHTML = `<div class="task-picker-item" style="color:var(--text-muted); padding: 10px;">No pending tasks</div>`;
-  } else {
-    dropdown.innerHTML = pending.map(t => {
-      const hasCat = t.category && t.category !== 'None';
-      const catText = hasCat ? (categoryLabels[t.category] || t.category) : '';
-      return `
-        <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
-          <span>${t.title || t.text}</span>
-          <span style="color:var(--text-muted)">${catText}</span>
-        </div>
-      `;
-    }).join('');
-  }
-  dropdown.style.display = 'block';
-}
-
-function selectPickerTask(taskId) {
-  const found = tasks.find(x => String(x.id) === String(taskId));
-  if (found) {
-    found.isFavorite = false;
-    activeTask = found;
-    window.SpanState.activeTask = activeTask;
-  }
-  sortTasks();
-  saveTasks();
-}
-
-// MODALE D'ÉDITION AVEC OPTION B (FAVORI)
+// MODALE D'ÉDITION AVEC DATE PROGRAMMÉE
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
-  editingTaskId = id; 
+
+  editingTaskId = id;
   editingCategory = (task.category && task.category !== 'None') ? task.category : 'None';
   editingEstimate = task.estimate || 1;
   editingIsFavorite = !!task.isFavorite;
 
   const titleInput = document.getElementById('editTaskTitle');
-  if (titleInput) titleInput.value = task.title || task.text || '';
+  if (titleInput) titleInput.value = task.title;
 
   const estEl = document.getElementById('editPomodoroEstimate');
   if (estEl) estEl.textContent = editingEstimate;
@@ -553,31 +657,18 @@ function openEditModalForTask(id) {
   const minEl = document.getElementById('editEstMinutes');
   if (minEl) minEl.textContent = editingEstimate * 25;
 
+  const dateInput = document.getElementById('editScheduledDate');
+  if (dateInput) dateInput.value = task.scheduledDate || '';
+
   document.querySelectorAll('.cat-pill').forEach(btn => {
     const catKey = btn.dataset.cat;
     btn.textContent = categoryLabels[catKey] || catKey;
     btn.classList.toggle('active', catKey === editingCategory);
   });
 
-  // Bouton Priorité / Favori dans la modale
-  let favBtn = document.getElementById('modalFavToggleBtn');
-  if (!favBtn) {
-    const body = document.querySelector('#editModalOverlay .modal-body');
-    if (body) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--card-border);';
-      row.innerHTML = `
-        <span class="modal-label" style="margin: 0;">Priority (Favorite)</span>
-        <button type="button" id="modalFavToggleBtn" class="btn-theme-toggle" onclick="toggleModalFavorite()">⭐ Normal</button>
-      `;
-      body.appendChild(row);
-      favBtn = document.getElementById('modalFavToggleBtn');
-    }
-  }
-
+  const favBtn = document.getElementById('modalFavToggleBtn');
   if (favBtn) {
-    favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Not Priority';
-    favBtn.style.borderColor = editingIsFavorite ? 'var(--streak)' : 'var(--card-border)';
+    favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Normal';
   }
 
   const modal = document.getElementById('editModalOverlay');
@@ -587,10 +678,7 @@ function openEditModalForTask(id) {
 function toggleModalFavorite() {
   editingIsFavorite = !editingIsFavorite;
   const favBtn = document.getElementById('modalFavToggleBtn');
-  if (favBtn) {
-    favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Not Priority';
-    favBtn.style.borderColor = editingIsFavorite ? 'var(--streak)' : 'var(--card-border)';
-  }
+  if (favBtn) favBtn.textContent = editingIsFavorite ? '⭐ Priority Active' : '☆ Normal';
 }
 
 function selectEditCategory(cat) {
@@ -616,6 +704,7 @@ function closeEditModal() {
 
 function saveTaskModal() {
   const titleInput = document.getElementById('editTaskTitle');
+  const dateInput = document.getElementById('editScheduledDate');
   const title = titleInput ? titleInput.value.trim() : '';
   if (!title) return;
 
@@ -625,6 +714,7 @@ function saveTaskModal() {
     task.category = editingCategory || 'None';
     task.estimate = editingEstimate;
     task.isFavorite = editingIsFavorite;
+    task.scheduledDate = dateInput ? (dateInput.value || null) : null;
 
     if (activeTask && String(activeTask.id) === String(task.id)) {
       activeTask = task;
@@ -632,40 +722,9 @@ function saveTaskModal() {
     }
   }
   closeEditModal();
-  sortTasks();
   saveTasks();
 }
 
-// Raccourcis clavier
-window.addEventListener('keydown', (e) => {
-  const modal = document.getElementById('editModalOverlay');
-  const isModalOpen = modal && modal.style.display === 'flex';
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || isModalOpen) return;
-
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (typeof toggleTimer === 'function') toggleTimer();
-  } else if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (tasks.length > 0) {
-      selectedTaskIndex = (selectedTaskIndex + 1) % tasks.length;
-      updateTaskSelectionUI();
-    }
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (tasks.length > 0) {
-      selectedTaskIndex = (selectedTaskIndex - 1 + tasks.length) % tasks.length;
-      updateTaskSelectionUI();
-    }
-  } else if (e.key === 'Enter') {
-    if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) toggleTask(selectedTaskIndex);
-  } else if (e.key === 'Tab') {
-    e.preventDefault();
-    if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) openEditModalForTask(tasks[selectedTaskIndex].id);
-  } else if (e.key === 'd' || e.key === 'D') {
-    if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.length) deleteTask(selectedTaskIndex);
-  }
-});
-
-sortTasks();
+// Initialisations
 autoArchivePastDays();
+checkScheduledTasksForToday();
