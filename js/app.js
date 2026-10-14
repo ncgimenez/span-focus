@@ -2,9 +2,8 @@ const appViews = ['focus', 'tasks', 'stats'];
 let activeTabIndex = 0;
 
 function switchView(viewName, btnElement) {
-  // Sur grand écran (mode Dashboard), le switch est ignoré car tout est visible
   if (window.innerWidth >= 650) {
-    if (viewName === 'stats') toggleStatsModal();
+    if (viewName === 'stats') toggleTrackModal();
     return;
   }
 
@@ -32,19 +31,20 @@ function switchView(viewName, btnElement) {
   }
 }
 
-// GESTION MODALE STATS
-function toggleStatsModal() {
-  const modal = document.getElementById('statsModalOverlay');
-  const modalContent = document.getElementById('modalStatsContent');
-  const originalStats = document.getElementById('view-stats');
-
+// GESTION MODALE TRACK
+function toggleTrackModal() {
+  const modal = document.getElementById('trackModalOverlay');
   if (!modal) return;
 
   const isOpen = modal.style.display === 'flex';
   if (!isOpen) {
-    if (modalContent && originalStats) {
-      modalContent.innerHTML = originalStats.innerHTML;
-    }
+    // Aligner le curseur avec la valeur actuelle
+    const targetMin = (window.SpanState && window.SpanState.dailyTargetMinutes) || 100;
+    const modalRangeInput = document.getElementById('modalGoalRangeInput');
+    const modalSummaryEl = document.getElementById('modalTargetSummary');
+    if (modalRangeInput) modalRangeInput.value = targetMin;
+    if (modalSummaryEl) modalSummaryEl.textContent = `${targetMin} min (~${Math.round(targetMin / 25)} blocks)`;
+
     modal.style.display = 'flex';
     if (typeof renderChart === 'function') renderChart();
   } else {
@@ -117,7 +117,7 @@ window.addEventListener('resize', () => {
   }
 });
 
-// GESTES TACTILES (SUR MOBILE UNIQUEMENT)
+// Gestes tactiles sur mobile
 let touchStartX = 0;
 let touchStartY = 0;
 let touchDiffX = 0;
