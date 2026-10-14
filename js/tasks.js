@@ -1,15 +1,15 @@
 window.SpanState = window.SpanState || {};
 
-window.SpanState.categoryLabels = JSON.parse(localStorage.getItem('span_category_labels')) || {
-  Code: 'Code',
-  Study: 'Study',
-  Write: 'Write',
-  Admin: 'Admin'
+// Standardized Span Tri-Category System
+window.SpanState.categoryLabels = {
+  Work: 'Work',
+  Home: 'Home',
+  Fun: 'Fun'
 };
 
 window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-  { id: 't_1', title: "Build Span Focus MVP", category: "Code", estimate: 2, completed: false, isFavorite: true },
-  { id: 't_2', title: "Review Weekly Plan", category: "Admin", estimate: 1, completed: false, isFavorite: false }
+  { id: 't_1', title: "Review Weekly Plan", category: "Work", estimate: 2, completed: false, isFavorite: true },
+  { id: 't_2', title: "Grocery shopping", category: "Home", estimate: 1, completed: false, isFavorite: false }
 ];
 
 window.SpanState.archivedTasks = JSON.parse(localStorage.getItem('span_archived_tasks')) || [];
@@ -22,7 +22,7 @@ var activeTask = window.SpanState.activeTask;
 
 let selectedTaskIndex = 0;
 let editingTaskId = null;
-let editingCategory = 'None';
+let editingCategory = 'Work';
 let editingEstimate = 1;
 let editingIsFavorite = false;
 let isPastOpen = false;
@@ -31,14 +31,23 @@ let newlyAddedTaskId = null;
 const nowInit = new Date();
 const todayStrInit = nowInit.toISOString().slice(0, 10);
 
+// Migrate legacy categories to the unified tri-category system
+function normalizeCategory(cat) {
+  if (cat === 'Code' || cat === 'Write' || cat === 'Study') return 'Work';
+  if (cat === 'Admin' || cat === 'Personal') return 'Home';
+  if (cat === 'Fun') return 'Fun';
+  return 'Work';
+}
+
 tasks = tasks.map(t => {
   const isDone = !!t.completed;
   return {
     ...t,
     title: t.title || t.text || 'Untitled Task',
-    category: t.category || 'None',
+    category: normalizeCategory(t.category),
     isFavorite: !!t.isFavorite,
     scheduledDate: t.scheduledDate || null,
+    scheduledTime: t.scheduledTime || null,
     completed: isDone,
     completedAt: isDone ? (t.completedAt || nowInit.toISOString()) : null,
     completedDate: isDone ? (t.completedDate || todayStrInit) : null
@@ -109,56 +118,34 @@ function saveTasks() {
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
-function syncRenameCategoryInput() {
-  const select = document.getElementById('renameCategorySelect');
-  const input = document.getElementById('renameCategoryInput');
-  if (!select || !input) return;
-  const key = select.value;
-  input.value = categoryLabels[key] || key;
-}
-
-function saveRenamedCategory() {
-  const select = document.getElementById('renameCategorySelect');
-  const input = document.getElementById('renameCategoryInput');
-  if (!select || !input) return;
-
-  const key = select.value;
-  const newName = input.value.trim();
-  if (!newName) return;
-
-  categoryLabels[key] = newName;
-  window.SpanState.categoryLabels = categoryLabels;
-  localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
-
-  updateCategoryDOMNames();
-  renderTasks();
-  renderArchivedTasks();
-  if (typeof renderChart === 'function') renderChart();
-  saveTasks();
-}
-
-function updateCategoryDOMNames() {
-  const keys = ['Code', 'Study', 'Write', 'Admin'];
-  keys.forEach(key => {
-    const currentName = categoryLabels[key] || key;
-    const opt = document.getElementById(`optCat${key}`);
-    if (opt) opt.textContent = currentName;
-
-    document.querySelectorAll(`.cat-pill[data-cat="${key}"]`).forEach(pill => {
-      pill.textContent = currentName;
-    });
-
-    const renameSelectOpt = document.querySelector(`#renameCategorySelect option[value="${key}"]`);
-    if (renameSelectOpt) renameSelectOpt.textContent = `${key} (${currentName})`;
-  });
-  syncRenameCategoryInput();
-}
-
 function handleInputFocus(isFocused) {
   document.body.classList.toggle('is-typing-mode', isFocused);
 }
 
-// RENDU DE LA LISTE
+// Close all task contextual menus when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.task-menu-container')) {
+    document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
+      menu.classList.remove('show');
+    });
+  }
+});
+
+function toggleTaskActionMenu(taskId, event) {
+  event.stopPropagation();
+  const targetMenu = document.getElementById(`menu-dropdown-${taskId}`);
+  const isAlreadyOpen = targetMenu && targetMenu.classList.contains('show');
+
+  document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
+    menu.classList.remove('show');
+  });
+
+  if (!isAlreadyOpen && targetMenu) {
+    targetMenu.classList.add('show');
+  }
+}
+
+// RENDER TASK LIST WITH PRIORITY & REGULAR SECTIONS
 function renderTasks() {
   const prioritiesList = document.getElementById('prioritiesList');
   const regularList = document.getElementById('taskList');
@@ -177,6 +164,7 @@ function renderTasks() {
   const favTasks = activeToday.filter(t => t.isFavorite);
   const regularTasks = activeToday.filter(t => !t.isFavorite);
 
+  // Update counter badges
   const archBadge = document.getElementById('archiveCountBadge');
   if (archBadge) archBadge.textContent = doneToday.length + archivedTasks.length;
 
@@ -201,35 +189,56 @@ function renderTasks() {
   newlyAddedTaskId = null;
 }
 
-// CRÉATION ÉLÉMENT DOM SANS SUPERPOSITION ET AVEC SWIPE SÉCURISÉ
+// 2-ROW TASK CARD (SPAN PLAN ARCHITECTURE)
 function createTaskDOMElement(task) {
   const wrapper = document.createElement('li');
   wrapper.className = 'task-item-wrapper';
 
   const isJustAdded = task.id === newlyAddedTaskId;
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
+  const durationMinutes = (task.estimate || 1) * 25;
 
   wrapper.innerHTML = `
-    <div class="swipe-background-right" id="swipe-bg-${task.id}">🎯 Spotlight</div>
-    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" id="task-node-${task.id}">
-      <div class="task-left" onclick="openEditModalForTask('${task.id}')">
-        <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">${task.completed ? '✓' : ''}</div>
-        ${isCurrentlyInFocus ? `<span class="active-focus-badge" title="Active Focus Task">🎯 Focus</span>` : ''}
-        ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>` : ''}
-        <span class="task-text">${task.title}</span>
-        ${task.category && task.category !== 'None' ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${categoryLabels[task.category] || task.category}</span>` : ''}
-        <span class="task-est">⏱ ${task.estimate || 1}</span>
+    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" 
+         id="task-node-${task.id}" 
+         data-cat="${task.category || 'Work'}"
+         onclick="openEditModalForTask('${task.id}')">
+      
+      <!-- LINE 1: CHECKBOX + TITLE + COMPACT MENU ⋮ -->
+      <div class="task-row-main">
+        <div class="task-main-left">
+          <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
+            ${task.completed ? '✓' : ''}
+          </div>
+          <span class="task-title-text">${task.title}</span>
+        </div>
+
+        <div class="task-menu-container">
+          <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
+          <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
+            <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus this task</button>
+            <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
+            <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">✏️ Edit task</button>
+            <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+          </div>
+        </div>
       </div>
-      <div class="task-actions">
-        <button class="btn-task-action" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')" title="Delete">✕</button>
+
+      <!-- LINE 2: METADATA SUB-ROW -->
+      <div class="task-row-meta">
+        ${task.scheduledTime ? `<span class="task-meta-time">🕒 ${task.scheduledTime} •</span>` : ''}
+        <span class="task-meta-time">⏱ ${durationMinutes}m</span>
+        ${task.category ? `<span class="task-meta-tag" data-cat="${task.category}">${task.category}</span>` : ''}
+        ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
+        ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
       </div>
+
     </div>
   `;
 
   const itemNode = wrapper.querySelector('.task-item');
-  const swipeBg = wrapper.querySelector('.swipe-background-right');
 
-  // GESTION DU SWIPE VERS LA DROITE
+  // SWIPE RIGHT TO TRIGGER FOCUS DIRECTLY
   let touchStartX = 0;
   let touchStartY = 0;
   let touchDiffX = 0;
@@ -242,7 +251,6 @@ function createTaskDOMElement(task) {
     touchDiffX = 0;
     touchDiffY = 0;
     isHorizontalGesture = null;
-    if (swipeBg) swipeBg.style.opacity = '0';
   }, { passive: true });
 
   itemNode.addEventListener('touchmove', (e) => {
@@ -254,9 +262,8 @@ function createTaskDOMElement(task) {
     }
 
     if (isHorizontalGesture === true && touchDiffX > 10) {
-      if (swipeBg) swipeBg.style.opacity = '1';
       itemNode.style.transition = 'none';
-      const moveDistance = Math.min(touchDiffX, 100);
+      const moveDistance = Math.min(touchDiffX, 75);
       itemNode.style.transform = `translateX(${moveDistance}px)`;
     }
   }, { passive: true });
@@ -266,33 +273,17 @@ function createTaskDOMElement(task) {
       itemNode.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
       if (touchDiffX > 65) {
         triggerHapticFeedback();
-        itemNode.style.transform = `translateX(130px)`;
+        itemNode.style.transform = `translateX(120px)`;
         setTimeout(() => {
           setSpotlightTaskById(task.id);
-        }, 160);
+        }, 150);
       } else {
         itemNode.style.transform = `translateX(0px)`;
-        if (swipeBg) swipeBg.style.opacity = '0';
       }
     } else {
       itemNode.style.transform = `translateX(0px)`;
-      if (swipeBg) swipeBg.style.opacity = '0';
     }
   });
-
-  // Long press pour basculer favori
-  let pressTimer = null;
-  const startPress = () => {
-    pressTimer = setTimeout(() => {
-      triggerHapticFeedback();
-      toggleFavorite(task.id);
-    }, 500);
-  };
-  const cancelPress = () => clearTimeout(pressTimer);
-
-  itemNode.addEventListener('touchstart', startPress, { passive: true });
-  itemNode.addEventListener('touchend', cancelPress);
-  itemNode.addEventListener('touchcancel', cancelPress);
 
   return wrapper;
 }
@@ -301,7 +292,7 @@ function addTask() {
   const input = document.getElementById('taskInput');
   const catSelect = document.getElementById('taskCategory');
   const text = input ? input.value.trim() : '';
-  const category = catSelect ? catSelect.value : 'None';
+  const category = catSelect ? catSelect.value : 'Work';
 
   if (!text) return;
 
@@ -312,7 +303,8 @@ function addTask() {
     estimate: 1,
     completed: false,
     isFavorite: false,
-    scheduledDate: null
+    scheduledDate: null,
+    scheduledTime: null
   };
 
   newlyAddedTaskId = newTask.id;
@@ -359,7 +351,7 @@ function toggleFavorite(id) {
   const currentFavs = tasks.filter(x => x.isFavorite && !x.completed && String(x.id) !== String(id));
 
   if (!t.isFavorite && currentFavs.length >= maxAllowed) {
-    alert(`Maximum ${maxAllowed} priorités favorites autorisées.`);
+    alert(`Maximum ${maxAllowed} priority tasks allowed.`);
     return;
   }
 
@@ -469,11 +461,10 @@ function toggleTaskPicker() {
 }
 
 function renderPickerRow(t) {
-  const catText = (t.category && t.category !== 'None') ? (categoryLabels[t.category] || t.category) : '';
   return `
     <div class="task-picker-item" onclick="selectPickerTask('${t.id}')">
       <span>${t.isFavorite ? '⭐ ' : ''}${t.title}</span>
-      <span style="color:var(--text-muted)">${catText}</span>
+      <span style="color:var(--cat-${(t.category || 'work').toLowerCase()}); font-weight:600;">${t.category}</span>
     </div>
   `;
 }
@@ -528,8 +519,8 @@ function renderArchivedTasks() {
       li.className = 'task-item completed';
       const timeStr = t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       li.innerHTML = `
-        <div class="task-left">
-          <span class="task-text">${t.title}</span>
+        <div class="task-row-main">
+          <span class="task-title-text">${t.title}</span>
           ${timeStr ? `<span class="task-time-pill">${timeStr}</span>` : ''}
         </div>
       `;
@@ -545,13 +536,13 @@ function renderArchivedTasks() {
       li.className = 'task-item completed';
       const dateStr = t.archivedDate || (t.archivedAt ? t.archivedAt.slice(0, 10) : '');
       li.innerHTML = `
-        <div class="task-left">
-          <span class="task-text">${t.title}</span>
+        <div class="task-row-main">
+          <span class="task-title-text">${t.title}</span>
           ${dateStr ? `<span class="task-time-pill">${dateStr}</span>` : ''}
-        </div>
-        <div class="task-actions">
-          <button class="btn-task-action" type="button" onclick="unarchiveTask('${t.id}')" title="Restore">↩</button>
-          <button class="btn-task-action" type="button" onclick="deleteArchivedTask('${t.id}')" title="Delete permanently">✕</button>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-task-menu" type="button" onclick="unarchiveTask('${t.id}')" title="Restore">↩</button>
+            <button class="btn-task-menu" type="button" onclick="deleteArchivedTask('${t.id}')" title="Delete">✕</button>
+          </div>
         </div>
       `;
       pastList.appendChild(li);
@@ -575,13 +566,12 @@ function renderPlannedTasks() {
   planned.forEach(t => {
     const li = document.createElement('li');
     li.className = 'task-item';
+    li.dataset.cat = t.category || 'Work';
     li.innerHTML = `
-      <div class="task-left" onclick="openEditModalForTask('${t.id}')">
-        <span class="task-text">${t.title}</span>
+      <div class="task-row-main" onclick="openEditModalForTask('${t.id}')">
+        <span class="task-title-text">${t.title}</span>
         <span class="task-time-pill">📅 ${t.scheduledDate}</span>
-      </div>
-      <div class="task-actions">
-        <button class="btn-task-action" type="button" onclick="moveTaskToToday('${t.id}')" title="Move to Today">☀️</button>
+        <button class="btn-task-menu" type="button" onclick="event.stopPropagation(); moveTaskToToday('${t.id}')" title="Move to Today">☀️</button>
       </div>
     `;
     list.appendChild(li);
@@ -648,7 +638,7 @@ function openEditModalForTask(id) {
   if (!task) return;
 
   editingTaskId = id;
-  editingCategory = (task.category && task.category !== 'None') ? task.category : 'None';
+  editingCategory = task.category || 'Work';
   editingEstimate = task.estimate || 1;
   editingIsFavorite = !!task.isFavorite;
 
@@ -666,7 +656,6 @@ function openEditModalForTask(id) {
 
   document.querySelectorAll('.cat-pill').forEach(btn => {
     const catKey = btn.dataset.cat;
-    btn.textContent = categoryLabels[catKey] || catKey;
     btn.classList.toggle('active', catKey === editingCategory);
   });
 
@@ -686,7 +675,7 @@ function toggleModalFavorite() {
 }
 
 function selectEditCategory(cat) {
-  editingCategory = editingCategory === cat ? 'None' : cat;
+  editingCategory = cat;
   document.querySelectorAll('.cat-pill').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.cat === editingCategory);
   });
@@ -715,7 +704,7 @@ function saveTaskModal() {
   const task = tasks.find(t => String(t.id) === String(editingTaskId));
   if (task) {
     task.title = title;
-    task.category = editingCategory || 'None';
+    task.category = editingCategory || 'Work';
     task.estimate = editingEstimate;
     task.isFavorite = editingIsFavorite;
     task.scheduledDate = dateInput ? (dateInput.value || null) : null;
