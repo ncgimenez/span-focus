@@ -8,8 +8,8 @@ window.SpanState.categoryLabels = {
 };
 
 window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
-  { id: 't_1', title: "Review Weekly Plan", category: "Work", estimate: 2, completed: false, isFavorite: true },
-  { id: 't_2', title: "Grocery shopping", category: "Home", estimate: 1, completed: false, isFavorite: false }
+  { id: 't_1', title: "Review Weekly Plan #work", category: "Work", estimate: 2, completed: false, isFavorite: true },
+  { id: 't_2', title: "Grocery shopping #home", category: "Home", estimate: 1, completed: false, isFavorite: false }
 ];
 
 window.SpanState.archivedTasks = JSON.parse(localStorage.getItem('span_archived_tasks')) || [];
@@ -27,24 +27,38 @@ let editingEstimate = 1;
 let editingIsFavorite = false;
 let isPastOpen = false;
 let newlyAddedTaskId = null;
+let activeTagFilter = null;
 
 const nowInit = new Date();
 const todayStrInit = nowInit.toISOString().slice(0, 10);
 
-// Migrate legacy categories to the unified tri-category system
-function normalizeCategory(cat) {
-  if (cat === 'Code' || cat === 'Write' || cat === 'Study') return 'Work';
-  if (cat === 'Admin' || cat === 'Personal') return 'Home';
-  if (cat === 'Fun') return 'Fun';
-  return 'Work';
-}
+// Migration of legacy categories into inline #tags and the unified tri-category system
+function normalizeTaskAndMigrateTags(t) {
+  let title = t.title || t.text || 'Untitled Task';
+  let cat = t.category || 'Work';
 
-tasks = tasks.map(t => {
+  // If previous custom category existed, convert to inline #tag if not already tagged
+  const legacyCustomCats = ['Code', 'Study', 'Write', 'Admin', 'Finances', 'Organisation', 'Important', 'Personal'];
+  if (legacyCustomCats.includes(cat)) {
+    const tagCandidate = `#${cat.toLowerCase()}`;
+    if (!title.toLowerCase().includes(tagCandidate)) {
+      title = `${title} ${tagCandidate}`;
+    }
+    // Remap to tri-category
+    if (['Code', 'Write', 'Study'].includes(cat)) cat = 'Work';
+    else if (['Admin', 'Finances', 'Organisation', 'Important', 'Personal'].includes(cat)) cat = 'Home';
+    else cat = 'Work';
+  }
+
+  if (cat !== 'Work' && cat !== 'Home' && cat !== 'Fun') {
+    cat = 'Work';
+  }
+
   const isDone = !!t.completed;
   return {
     ...t,
-    title: t.title || t.text || 'Untitled Task',
-    category: normalizeCategory(t.category),
+    title: title.trim(),
+    category: cat,
     isFavorite: !!t.isFavorite,
     scheduledDate: t.scheduledDate || null,
     scheduledTime: t.scheduledTime || null,
@@ -52,7 +66,9 @@ tasks = tasks.map(t => {
     completedAt: isDone ? (t.completedAt || nowInit.toISOString()) : null,
     completedDate: isDone ? (t.completedDate || todayStrInit) : null
   };
-});
+}
+
+tasks = tasks.map(normalizeTaskAndMigrateTags);
 
 function triggerHapticFeedback() {
   if (navigator.vibrate) {
@@ -62,6 +78,43 @@ function triggerHapticFeedback() {
 
 function getMaxFavoritesAllowed() {
   return activeTask ? 2 : 3;
+}
+
+// Convert #tags in titles into clickable pill badges
+function renderTitleWithTags(titleStr) {
+  if (!titleStr) return 'Untitled Task';
+  return titleStr.replace(/#([\w\-]+)/g, (match, tag) => {
+    return `<span class="task-inline-tag" onclick="event.stopPropagation(); setTagFilter('${tag}')">#${tag}</span>`;
+  });
+}
+
+function setTagFilter(tag) {
+  if (activeTagFilter === tag) {
+    clearTagFilter();
+  } else {
+    activeTagFilter = tag;
+    updateTagFilterUI();
+    renderTasks();
+  }
+}
+
+function clearTagFilter() {
+  activeTagFilter = null;
+  updateTagFilterUI();
+  renderTasks();
+}
+
+function updateTagFilterUI() {
+  const bar = document.getElementById('tagFilterActiveBar');
+  const label = document.getElementById('tagFilterActiveLabel');
+  if (bar && label) {
+    if (activeTagFilter) {
+      label.textContent = `Filter: #${activeTagFilter}`;
+      bar.classList.add('show');
+    } else {
+      bar.classList.remove('show');
+    }
+  }
 }
 
 function checkScheduledTasksForToday() {
@@ -115,6 +168,7 @@ function saveTasks() {
   renderArchivedTasks();
   renderPlannedTasks();
   updateSpotlightUI();
+  if (typeof updateStats === 'function') updateStats();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
@@ -122,7 +176,7 @@ function handleInputFocus(isFocused) {
   document.body.classList.toggle('is-typing-mode', isFocused);
 }
 
-// Close all task contextual menus when clicking outside
+// Close task popover menus when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.task-menu-container')) {
     document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
@@ -158,13 +212,19 @@ function renderTasks() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const activeToday = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr));
-  const doneToday = tasks.filter(t => t.completed);
+  // Filter tasks based on schedule and active #tag filter
+  const filterByTagCondition = (t) => {
+    if (!activeTagFilter) return true;
+    return t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`);
+  };
+
+  const activeToday = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr) && filterByTagCondition(t));
+  const doneToday = tasks.filter(t => t.completed && filterByTagCondition(t));
 
   const favTasks = activeToday.filter(t => t.isFavorite);
   const regularTasks = activeToday.filter(t => !t.isFavorite);
 
-  // Update counter badges
+  // Update counters
   const archBadge = document.getElementById('archiveCountBadge');
   if (archBadge) archBadge.textContent = doneToday.length + archivedTasks.length;
 
@@ -186,7 +246,16 @@ function renderTasks() {
     regularList.appendChild(createTaskDOMElement(task));
   });
 
-  newlyAddedTaskId = null;
+  // Smooth auto-scroll to newly added task so it is never pushed offscreen
+  if (newlyAddedTaskId) {
+    setTimeout(() => {
+      const addedNode = document.getElementById(`task-node-${newlyAddedTaskId}`);
+      if (addedNode) {
+        addedNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      newlyAddedTaskId = null;
+    }, 50);
+  }
 }
 
 // 2-ROW TASK CARD (SPAN PLAN ARCHITECTURE)
@@ -210,7 +279,7 @@ function createTaskDOMElement(task) {
           <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
             ${task.completed ? '✓' : ''}
           </div>
-          <span class="task-title-text">${task.title}</span>
+          <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
         </div>
 
         <div class="task-menu-container">
