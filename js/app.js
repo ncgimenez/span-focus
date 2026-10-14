@@ -1,29 +1,27 @@
 const appViews = ['focus', 'tasks', 'stats'];
 let activeTabIndex = 0;
-let isSideTrackPinned = localStorage.getItem('span_pin_track') === 'true';
 
 function switchView(viewName, btnElement) {
+  // Sur grand écran (mode Dashboard), le switch est ignoré car tout est visible
+  if (window.innerWidth >= 650) {
+    if (viewName === 'stats') toggleStatsModal();
+    return;
+  }
+
   const index = appViews.indexOf(viewName);
   if (index === -1) return;
 
   activeTabIndex = index;
   localStorage.setItem('span_active_view', viewName);
 
-  // Déplacement fluide du slider
   const slider = document.getElementById('viewsSlider');
   if (slider) {
     slider.style.transform = `translateX(-${index * (100 / 3)}%)`;
   }
 
-  // Mise à jour de la navbar mobile
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   const navBtn = btnElement || document.getElementById(`nav-btn-${viewName}`);
   if (navBtn) navBtn.classList.add('active');
-
-  // Mise à jour de la navbar desktop
-  document.querySelectorAll('.d-nav-btn').forEach(btn => btn.classList.remove('active'));
-  const dNavBtn = document.getElementById(`dnav-${viewName}`);
-  if (dNavBtn) dNavBtn.classList.add('active');
 
   const titles = { focus: 'Focus', tasks: 'Tasks', stats: 'Track' };
   const header = document.getElementById('headerTitle');
@@ -34,31 +32,23 @@ function switchView(viewName, btnElement) {
   }
 }
 
-// GESTION DU VOLET STATS LATÉRAL (DESKTOP)
-function toggleSideTrackPanel() {
-  const panel = document.getElementById('sideTrackPanel');
-  if (!panel) return;
-
-  const isOpening = !panel.classList.contains('active');
-  panel.classList.toggle('active', isOpening);
-
-  if (isOpening) {
-    renderSideTrackContent();
-  }
-}
-
-function togglePinSideTrack() {
-  isSideTrackPinned = !isSideTrackPinned;
-  localStorage.setItem('span_pin_track', isSideTrackPinned ? 'true' : 'false');
-  const btn = document.getElementById('btnPinTrack');
-  if (btn) btn.classList.toggle('pinned', isSideTrackPinned);
-}
-
-function renderSideTrackContent() {
-  const container = document.getElementById('sideTrackContent');
+// GESTION MODALE STATS
+function toggleStatsModal() {
+  const modal = document.getElementById('statsModalOverlay');
+  const modalContent = document.getElementById('modalStatsContent');
   const originalStats = document.getElementById('view-stats');
-  if (container && originalStats) {
-    container.innerHTML = originalStats.innerHTML;
+
+  if (!modal) return;
+
+  const isOpen = modal.style.display === 'flex';
+  if (!isOpen) {
+    if (modalContent && originalStats) {
+      modalContent.innerHTML = originalStats.innerHTML;
+    }
+    modal.style.display = 'flex';
+    if (typeof renderChart === 'function') renderChart();
+  } else {
+    modal.style.display = 'none';
   }
 }
 
@@ -111,20 +101,19 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
   if (typeof updateGoalBar === 'function') updateGoalBar();
 
-  // Volet épinglé sur grand écran
-  if (window.innerWidth >= 860 && isSideTrackPinned) {
-    const panel = document.getElementById('sideTrackPanel');
-    if (panel) {
-      panel.classList.add('active');
-      const pinBtn = document.getElementById('btnPinTrack');
-      if (pinBtn) pinBtn.classList.add('pinned');
-      renderSideTrackContent();
-    }
+  if (window.innerWidth < 650) {
+    const savedView = localStorage.getItem('span_active_view') || 'focus';
+    if (savedView !== 'focus') switchView(savedView);
   }
+});
 
-  const savedView = localStorage.getItem('span_active_view') || 'focus';
-  if (savedView !== 'focus') {
-    switchView(savedView);
+// Écoute des redimensionnements de fenêtre
+window.addEventListener('resize', () => {
+  const slider = document.getElementById('viewsSlider');
+  if (window.innerWidth >= 650 && slider) {
+    slider.style.transform = 'none';
+  } else if (window.innerWidth < 650) {
+    switchView(appViews[activeTabIndex]);
   }
 });
 
@@ -136,7 +125,7 @@ let touchDiffY = 0;
 let isHorizontalGesture = null;
 
 document.addEventListener('touchstart', (e) => {
-  if (window.innerWidth >= 860) return;
+  if (window.innerWidth >= 650) return;
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
   touchDiffX = 0;
@@ -145,7 +134,7 @@ document.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 document.addEventListener('touchmove', (e) => {
-  if (window.innerWidth >= 860) return;
+  if (window.innerWidth >= 650) return;
   touchDiffX = e.touches[0].clientX - touchStartX;
   touchDiffY = e.touches[0].clientY - touchStartY;
 
@@ -155,7 +144,7 @@ document.addEventListener('touchmove', (e) => {
 }, { passive: true });
 
 document.addEventListener('touchend', () => {
-  if (window.innerWidth >= 860) return;
+  if (window.innerWidth >= 650) return;
   if (isHorizontalGesture === true && Math.abs(touchDiffX) > 50) {
     if (touchDiffX < 0 && activeTabIndex < appViews.length - 1) {
       switchView(appViews[activeTabIndex + 1]);
