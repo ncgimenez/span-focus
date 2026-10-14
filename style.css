@@ -9,10 +9,10 @@
   --streak: #e2b340;
   --danger: #ef4444;
 
-  /* SPAN COLOR PALETTE */
-  --cat-work: #818cf8;
-  --cat-home: #10b981;
-  --cat-fun: #fb7185;
+  /* SPAN UNIFIED TRI-CATEGORY PALETTE */
+  --cat-work: #818cf8; /* Indigo */
+  --cat-home: #10b981; /* Emerald */
+  --cat-fun: #fb7185;  /* Coral */
   --cat-none: #71717a;
 
   --ring-bg: rgba(255, 255, 255, 0.08);
@@ -80,6 +80,7 @@ body {
   align-items: center;
   padding: 8px 4px;
   width: 100%;
+  transition: opacity 0.2s ease;
 }
 
 .brand {
@@ -470,13 +471,22 @@ body {
   gap: 12px;
 }
 
+/* QUICK ADD BAR (STABLE & CONFORTABLE THICKNESS) */
 .task-input-container {
   display: flex;
+  align-items: center;
   gap: 8px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 8px 10px 8px 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  z-index: 10;
+}
+
+.task-input-container:focus-within {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.45);
 }
 
 .task-input {
@@ -495,7 +505,12 @@ body {
   font-size: 13px;
   outline: none;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.category-select option {
+  background: #18181b;
+  color: #fff;
 }
 
 .btn-add {
@@ -507,6 +522,11 @@ body {
   padding: 8px 16px;
   border-radius: 10px;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 /* ACTION BAR: ARCHIVE & PLANNED */
@@ -516,6 +536,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 2px 2px;
+  transition: opacity 0.2s ease;
 }
 
 .btn-subview-nav {
@@ -548,6 +569,33 @@ body {
   border-radius: 6px;
 }
 
+/* TAG FILTER ACTIVE NOTICE BAR */
+.tag-filter-active-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(129, 140, 248, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--cat-work);
+  font-weight: 600;
+}
+
+.tag-filter-active-bar.show {
+  display: flex;
+}
+
+.tag-filter-clear-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* SECTIONS */
 .tasks-sections-wrapper {
   display: flex;
@@ -568,7 +616,7 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
 }
 
 /* ============================================================== */
@@ -584,11 +632,11 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: #18181b;
+  gap: 5px;
+  background: #18181b; /* OPAQUE SANS TRANSPARENCE */
   border: 1px solid var(--card-border);
-  border-left: 3px solid var(--cat-none);
-  padding: 12px 14px;
+  border-left: 3.5px solid var(--cat-none);
+  padding: 10px 14px;
   border-radius: 14px;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
@@ -599,12 +647,12 @@ body {
   background: #ffffff;
 }
 
-/* BORDURES CATÉGORIES */
+/* BORDURES CATEGORIES */
 .task-item[data-cat="Work"] { border-left-color: var(--cat-work); }
 .task-item[data-cat="Home"] { border-left-color: var(--cat-home); }
 .task-item[data-cat="Fun"]  { border-left-color: var(--cat-fun); }
 
-/* TÂCHE EN COURS DE FOCUS */
+/* TÂCHE EN SPOTLIGHT / FOCUS DANS LE TIMER */
 .task-item.in-focus-active {
   border-color: var(--streak) !important;
   border-left-width: 4px;
@@ -638,8 +686,8 @@ body {
 }
 
 .checkbox {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   border-radius: 6px;
   border: 1.5px solid var(--text-muted);
   display: flex;
@@ -647,17 +695,17 @@ body {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  font-size: 11px;
 }
 
 .task-item.completed .checkbox {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
-  font-size: 12px;
 }
 
 .task-title-text {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
   color: var(--text-main);
   white-space: nowrap;
@@ -671,7 +719,7 @@ body {
   text-decoration: line-through;
 }
 
-/* MENU ⋮ D'ACTIONS */
+/* MENU COMPACT ⋮ */
 .task-menu-container {
   position: relative;
 }
@@ -681,13 +729,15 @@ body {
   border: none;
   color: var(--text-muted);
   font-size: 16px;
-  cursor: pointer;
-  padding: 4px 6px;
   line-height: 1;
+  padding: 3px 6px;
+  cursor: pointer;
   border-radius: 6px;
+  opacity: 0.7;
 }
 
 .btn-task-menu:hover {
+  opacity: 1;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
 }
@@ -700,7 +750,7 @@ body {
   background: #202024;
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  min-width: 150px;
+  min-width: 160px;
   padding: 4px;
   z-index: 60;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -742,14 +792,15 @@ body {
   color: var(--danger);
 }
 
-/* LIGNE 2 : MÉTADONNÉES */
+/* LIGNE 2 : METADONNÉES */
 .task-row-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 30px;
+  padding-left: 29px;
   font-size: 12px;
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .task-meta-time {
@@ -787,11 +838,62 @@ body {
   color: var(--streak);
 }
 
+/* MICRO PASTILLES INLINE TAGS (#TAG) */
+.task-inline-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 2px;
+  transition: all 0.15s ease;
+}
+
+.task-inline-tag:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .shortcuts-legend {
   font-size: 12px;
   color: var(--text-muted);
   text-align: center;
   margin-top: 10px;
+}
+
+/* ============================================================== */
+/* QUICK CAPTURE FOCUS DIMMING & OPTION B REPLI PRIORITÉS          */
+/* ============================================================== */
+body.is-typing-mode .app-header,
+body.is-typing-mode .goal-tracker,
+body.is-typing-mode .tasks-action-bar,
+body.is-typing-mode .shortcuts-legend {
+  opacity: 0.18;
+  filter: blur(1px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+/* REPLI DOUX DES PRIORITÉS LORS DE LA SAISIE (OPTION B) */
+body.is-typing-mode #groupPriorities {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  transform: translateY(-8px);
+  transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+#groupPriorities {
+  max-height: 500px;
+  opacity: 1;
+  overflow: visible;
+  transform: translateY(0);
+  transition: max-height 0.28s ease, opacity 0.25s ease, transform 0.25s ease;
 }
 
 /* SUB-VIEWS */
@@ -935,7 +1037,7 @@ input[type="range"] {
   margin-right: 8px;
 }
 
-/* MODALS */
+/* MODALES */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -1022,7 +1124,7 @@ input[type="range"] {
   border-radius: 10px;
   font-size: 13px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .cat-pill.active {
@@ -1030,6 +1132,10 @@ input[type="range"] {
   color: var(--text-main);
   border-color: rgba(255, 255, 255, 0.35);
 }
+
+.cat-pill.active[data-cat="Work"] { color: var(--cat-work); border-color: var(--cat-work); }
+.cat-pill.active[data-cat="Home"] { color: var(--cat-home); border-color: var(--cat-home); }
+.cat-pill.active[data-cat="Fun"]  { color: var(--cat-fun);  border-color: var(--cat-fun);  }
 
 .pomodoro-stepper {
   display: flex;
@@ -1158,19 +1264,6 @@ input[type="range"] {
 
 .nav-btn.active {
   color: var(--text-main);
-}
-
-/* TYPING COMPACTION */
-body.is-typing-mode .goal-tracker {
-  opacity: 0.15;
-}
-
-body.is-typing-mode .task-item {
-  padding: 8px 12px;
-}
-
-body.is-typing-mode .shortcuts-legend {
-  display: none;
 }
 
 /* DESKTOP DASHBOARD (>= 650px) */
