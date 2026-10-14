@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.1">
 </head>
 <body>
 
@@ -113,11 +113,17 @@
               <div class="task-input-container">
                 <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
                 <select class="category-select" id="taskCategory">
-                  <option value="Work" id="optCatWork">Work</option>
-                  <option value="Home" id="optCatHome">Home</option>
-                  <option value="Fun" id="optCatFun">Fun</option>
+                  <option value="Work">Work</option>
+                  <option value="Home">Home</option>
+                  <option value="Fun">Fun</option>
                 </select>
                 <button class="btn-add" onclick="addTask()">Add</button>
+              </div>
+
+              <!-- ACTIVE TAG FILTER BANNER -->
+              <div class="tag-filter-active-bar" id="tagFilterActiveBar">
+                <span id="tagFilterActiveLabel">Filter: #tag</span>
+                <button type="button" class="tag-filter-clear-btn" onclick="clearTagFilter()">✕ Clear</button>
               </div>
 
               <!-- SYMMETRIC ACTION BAR: ARCHIVE (LEFT) | PLANNED (RIGHT) -->
@@ -134,7 +140,7 @@
 
               <!-- STRUCTURED TASK SECTIONS -->
               <div class="tasks-sections-wrapper">
-                <!-- PRIORITIES SECTION (LOCKED TOP) -->
+                <!-- PRIORITIES SECTION (COLLAPSIBLE ON TYPING) -->
                 <div class="tasks-group" id="groupPriorities" style="display: none;">
                   <div class="tasks-group-header">⭐ Priorities</div>
                   <ul class="task-list" id="prioritiesList"></ul>
@@ -317,7 +323,9 @@
         </div>
 
         <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Multi-Device Sync</div>
-        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+        
+        <!-- SEMENTIC FORM TO TRIGGER BROWSER / KEYCHAIN PASSWORD SAVER -->
+        <form id="keychainSyncForm" onsubmit="event.preventDefault(); handleLinkClick();" autocomplete="on" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
           <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
             <div style="font-size: 13px; color: var(--text-muted);">
               Key: <strong id="displaySyncKey" style="color: var(--text-main); font-family: monospace;">...</strong>
@@ -325,10 +333,11 @@
             <button class="btn-theme-toggle" type="button" onclick="copyCurrentSyncKey()">Copy</button>
           </div>
           <div style="display: flex; gap: 6px; width: 100%;">
-            <input type="text" id="inputSyncKey" placeholder="Paste device key to link..." style="flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 10px; border-radius: 8px; font-size: 13px; outline: none;">
-            <button class="btn-theme-toggle" type="button" onclick="handleLinkClick()">Link</button>
+            <input type="text" name="username" id="inputSyncKey" autocomplete="username" placeholder="Paste device key to link..." style="flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 10px; border-radius: 8px; font-size: 13px; outline: none;">
+            <input type="password" name="password" id="inputSyncSecret" autocomplete="current-password" style="display: none;">
+            <button class="btn-theme-toggle" type="submit">Link</button>
           </div>
-        </div>
+        </form>
 
         <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Data Management</div>
         <div class="backup-section">
@@ -362,11 +371,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.0"></script>
-  <script src="js/timer.js?v=3.0"></script>
-  <script src="js/tasks.js?v=3.0"></script>
-  <script src="js/track.js?v=3.0"></script>
-  <script src="js/sync.js?v=3.0"></script>
-  <script src="js/app.js?v=3.0"></script>
+  <script src="js/audio.js?v=3.1"></script>
+  <script src="js/timer.js?v=3.1"></script>
+  <script src="js/tasks.js?v=3.1"></script>
+  <script src="js/track.js?v=3.1"></script>
+  <script src="js/sync.js?v=3.1"></script>
+  <script src="js/app.js?v=3.1"></script>
 </body>
 </html>
