@@ -1,8 +1,8 @@
-// Branché sur l'état global partagé
 window.SpanState = window.SpanState || {};
 
 window.SpanState.dailyTargetMinutes = parseInt(localStorage.getItem('span_daily_target_minutes')) || 100;
 window.SpanState.trackingData = JSON.parse(localStorage.getItem('span_tracking')) || {
+  date: new Date().toISOString().slice(0, 10),
   totalSecondsToday: 0,
   categories: { Code: 0, Study: 0, Write: 0, Admin: 0, None: 0 }
 };
@@ -19,10 +19,28 @@ const colors = {
   None: '#71717a'
 };
 
+// VÉRIFICATION DE MINUIT : Remise automatique à 0%
+function checkMidnightReset() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  
+  if (trackingData.date !== todayStr) {
+    trackingData.date = todayStr;
+    trackingData.totalSecondsToday = 0;
+    trackingData.categories = { Code: 0, Study: 0, Write: 0, Admin: 0, None: 0 };
+    
+    window.SpanState.trackingData = trackingData;
+    localStorage.setItem('span_tracking', JSON.stringify(trackingData));
+    
+    updateGoalBar();
+    renderChart();
+    if (typeof saveStateToCloud === 'function') saveStateToCloud();
+  }
+}
+
 function logFocusedSecond() {
+  checkMidnightReset();
   trackingData.totalSecondsToday++;
   
-  // Récupération sécurisée de la tâche active
   const currentTask = (window.SpanState && window.SpanState.activeTask) ? window.SpanState.activeTask : null;
   const rawCat = (currentTask && currentTask.category) ? currentTask.category : 'None';
   
@@ -37,8 +55,10 @@ function logFocusedSecond() {
 }
 
 function updateGoalBar() {
+  checkMidnightReset();
   const targetSec = dailyTargetMinutes * 60;
   const pct = Math.min(Math.round((trackingData.totalSecondsToday / targetSec) * 100), 100);
+  
   const percentEl = document.getElementById('goalPercent');
   const barEl = document.getElementById('goalBar');
   if (percentEl) percentEl.textContent = `${pct}%`;
@@ -46,14 +66,28 @@ function updateGoalBar() {
 }
 
 function updateDailyGoalTarget(val) {
-  dailyTargetMinutes = parseInt(val);
+  dailyTargetMinutes = parseInt(val, 10);
   window.SpanState.dailyTargetMinutes = dailyTargetMinutes;
   localStorage.setItem('span_daily_target_minutes', dailyTargetMinutes);
+  
   const summaryEl = document.getElementById('targetDisplaySummary');
   if (summaryEl) {
     summaryEl.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
   }
+  
+  const modalSummaryEl = document.getElementById('modalTargetSummary');
+  if (modalSummaryEl) {
+    modalSummaryEl.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
+  }
+
+  // Aligner les deux curseurs (mobile & modale)
+  const rangeInput = document.getElementById('goalRangeInput');
+  const modalRangeInput = document.getElementById('modalGoalRangeInput');
+  if (rangeInput && rangeInput.value != val) rangeInput.value = val;
+  if (modalRangeInput && modalRangeInput.value != val) modalRangeInput.value = val;
+
   updateGoalBar();
+  if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
 function toggleChartUnit() {
@@ -66,20 +100,22 @@ function toggleChartUnit() {
 function renderChart() {
   const cats = trackingData.categories;
   const total = Object.values(cats).reduce((a, b) => a + b, 0);
-  const pie = document.getElementById('pieChart');
-  const legend = document.getElementById('pieLegend');
 
-  if (!pie || !legend) return;
+  // Cible à la fois le panneau mobile et la modale Track
+  const pies = [document.getElementById('pieChart'), document.getElementById('modalPieChart')].filter(Boolean);
+  const legends = [document.getElementById('pieLegend'), document.getElementById('modalPieLegend')].filter(Boolean);
+
+  if (pies.length === 0) return;
 
   if (total === 0) {
-    pie.style.background = 'conic-gradient(rgba(255,255,255,0.08) 0deg 360deg)';
-    legend.innerHTML = '<span style="color:var(--text-muted)">No sessions recorded today</span>';
+    pies.forEach(p => p.style.background = 'conic-gradient(rgba(255,255,255,0.08) 0deg 360deg)');
+    legends.forEach(l => l.innerHTML = '<span style="color:var(--text-muted)">No sessions recorded today</span>');
     return;
   }
 
   let gradientSteps = [];
   let currentDeg = 0;
-  legend.innerHTML = '';
+  let legendHtml = '';
 
   const labels = (window.SpanState && window.SpanState.categoryLabels) || JSON.parse(localStorage.getItem('span_category_labels')) || {};
 
@@ -101,7 +137,7 @@ function renderChart() {
       displayName = labels[cat] || cat;
     }
 
-    legend.innerHTML += `
+    legendHtml += `
       <div class="legend-item">
         <span><span class="legend-dot" style="background:${catColor}"></span>${displayName}</span>
         <span style="font-weight:600">${valString}</span>
@@ -109,74 +145,11 @@ function renderChart() {
     `;
   }
 
-  if (gradientSteps.length > 0) {
-    pie.style.background = `conic-gradient(${gradientSteps.join(', ')})`;
-  }
+  pies.forEach(p => {
+    if (gradientSteps.length > 0) p.style.background = `conic-gradient(${gradientSteps.join(', ')})`;
+  });
+  legends.forEach(l => l.innerHTML = legendHtml);
 }
 
-// Clic sur la barre de goal -> redirection fluide vers Track
-function goToTrackView() {
-  if (typeof switchView === 'function') {
-    switchView('stats', document.getElementById('nav-btn-stats'));
-  }
-}
-
-// Export / Import
-function exportData() {
-  const exportObject = { 
-    tasks: window.SpanState.tasks || tasks, 
-    trackingData, 
-    activeTask: window.SpanState.activeTask || activeTask, 
-    dailyTargetMinutes, 
-    categoryLabels: window.SpanState.categoryLabels || {},
-    version: "1.2" 
-  };
-  const blob = new Blob([JSON.stringify(exportObject, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `span-focus-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (imported.tasks) {
-        tasks = imported.tasks;
-        window.SpanState.tasks = tasks;
-      }
-      if (imported.trackingData) {
-        trackingData = imported.trackingData;
-        window.SpanState.trackingData = trackingData;
-      }
-      if (imported.activeTask) {
-        activeTask = imported.activeTask;
-        window.SpanState.activeTask = activeTask;
-      }
-      if (imported.dailyTargetMinutes) {
-        dailyTargetMinutes = imported.dailyTargetMinutes;
-        window.SpanState.dailyTargetMinutes = dailyTargetMinutes;
-      }
-      if (imported.categoryLabels) {
-        categoryLabels = imported.categoryLabels;
-        window.SpanState.categoryLabels = categoryLabels;
-        localStorage.setItem('span_category_labels', JSON.stringify(categoryLabels));
-      }
-      saveTasks();
-      localStorage.setItem('span_tracking', JSON.stringify(trackingData));
-      updateGoalBar();
-      renderChart();
-      if (typeof updateCategoryDOMNames === 'function') updateCategoryDOMNames();
-      alert('Preferences imported!');
-    } catch {
-      alert('Invalid file format.');
-    }
-  };
-  reader.readAsText(file);
-}
+// Vérification immédiate au chargement
+checkMidnightReset();
