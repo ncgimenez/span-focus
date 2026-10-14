@@ -129,3 +129,4 @@ window.addEventListener('DOMContentLoaded', () => {
     loadStateFromCloud();
   }, 100);
 });
+ 
