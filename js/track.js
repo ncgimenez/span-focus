@@ -1,155 +1,173 @@
 window.SpanState = window.SpanState || {};
 
-window.SpanState.dailyTargetMinutes = parseInt(localStorage.getItem('span_daily_target_minutes')) || 100;
-window.SpanState.trackingData = JSON.parse(localStorage.getItem('span_tracking')) || {
-  date: new Date().toISOString().slice(0, 10),
-  totalSecondsToday: 0,
-  categories: { Code: 0, Study: 0, Write: 0, Admin: 0, None: 0 }
+let dailyGoalMinutes = parseInt(localStorage.getItem('span_daily_goal_target')) || 100;
+let showPercentageInChart = false;
+
+const CATEGORY_COLORS = {
+  Work: '#818cf8',
+  Home: '#10b981',
+  Fun: '#fb7185'
 };
 
-var dailyTargetMinutes = window.SpanState.dailyTargetMinutes;
-var trackingData = window.SpanState.trackingData;
+function initTrack() {
+  const goalRange = document.getElementById('goalRangeInput');
+  const modalRange = document.getElementById('modalGoalRangeInput');
 
-let showAsPercentage = true;
-const colors = { 
-  Code: '#6366f1', 
-  Study: '#10b981', 
-  Write: '#ec4899', 
-  Admin: '#f59e0b',
-  None: '#71717a'
-};
+  if (goalRange) goalRange.value = dailyGoalMinutes;
+  if (modalRange) modalRange.value = dailyGoalMinutes;
 
-// VÉRIFICATION DE MINUIT : Remise automatique à 0%
-function checkMidnightReset() {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  
-  if (trackingData.date !== todayStr) {
-    trackingData.date = todayStr;
-    trackingData.totalSecondsToday = 0;
-    trackingData.categories = { Code: 0, Study: 0, Write: 0, Admin: 0, None: 0 };
-    
-    window.SpanState.trackingData = trackingData;
-    localStorage.setItem('span_tracking', JSON.stringify(trackingData));
-    
-    updateGoalBar();
-    renderChart();
-    if (typeof saveStateToCloud === 'function') saveStateToCloud();
-  }
+  updateTargetDisplay(dailyGoalMinutes);
+  updateStats();
 }
 
-function logFocusedSecond() {
-  checkMidnightReset();
-  trackingData.totalSecondsToday++;
-  
-  const currentTask = (window.SpanState && window.SpanState.activeTask) ? window.SpanState.activeTask : null;
-  const rawCat = (currentTask && currentTask.category) ? currentTask.category : 'None';
-  
-  trackingData.categories[rawCat] = (trackingData.categories[rawCat] || 0) + 1;
-  
-  if (trackingData.totalSecondsToday % 5 === 0) {
-    localStorage.setItem('span_tracking', JSON.stringify(trackingData));
-    updateGoalBar();
-    renderChart();
-    if (typeof saveStateToCloud === 'function') saveStateToCloud();
-  }
+function updateDailyGoalTarget(value) {
+  dailyGoalMinutes = parseInt(value) || 100;
+  localStorage.setItem('span_daily_goal_target', dailyGoalMinutes);
+
+  const goalRange = document.getElementById('goalRangeInput');
+  const modalRange = document.getElementById('modalGoalRangeInput');
+
+  if (goalRange && goalRange.value !== String(dailyGoalMinutes)) goalRange.value = dailyGoalMinutes;
+  if (modalRange && modalRange.value !== String(dailyGoalMinutes)) modalRange.value = dailyGoalMinutes;
+
+  updateTargetDisplay(dailyGoalMinutes);
+  updateStats();
 }
 
-function updateGoalBar() {
-  checkMidnightReset();
-  const targetSec = dailyTargetMinutes * 60;
-  const pct = Math.min(Math.round((trackingData.totalSecondsToday / targetSec) * 100), 100);
-  
-  const percentEl = document.getElementById('goalPercent');
-  const barEl = document.getElementById('goalBar');
-  if (percentEl) percentEl.textContent = `${pct}%`;
-  if (barEl) barEl.style.width = `${pct}%`;
-}
-
-function updateDailyGoalTarget(val) {
-  dailyTargetMinutes = parseInt(val, 10);
-  window.SpanState.dailyTargetMinutes = dailyTargetMinutes;
-  localStorage.setItem('span_daily_target_minutes', dailyTargetMinutes);
-  
+function updateTargetDisplay(mins) {
+  const targetLabel = `${mins} min`;
   const summaryEl = document.getElementById('targetDisplaySummary');
-  if (summaryEl) {
-    summaryEl.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
-  }
-  
   const modalSummaryEl = document.getElementById('modalTargetSummary');
-  if (modalSummaryEl) {
-    modalSummaryEl.textContent = `${dailyTargetMinutes} min (~${Math.round(dailyTargetMinutes / 25)} blocks)`;
-  }
 
-  // Aligner les deux curseurs (mobile & modale)
-  const rangeInput = document.getElementById('goalRangeInput');
-  const modalRangeInput = document.getElementById('modalGoalRangeInput');
-  if (rangeInput && rangeInput.value != val) rangeInput.value = val;
-  if (modalRangeInput && modalRangeInput.value != val) modalRangeInput.value = val;
-
-  updateGoalBar();
-  if (typeof saveStateToCloud === 'function') saveStateToCloud();
+  if (summaryEl) summaryEl.textContent = targetLabel;
+  if (modalSummaryEl) modalSummaryEl.textContent = targetLabel;
 }
 
 function toggleChartUnit() {
-  showAsPercentage = !showAsPercentage;
-  const btn = document.getElementById('btnToggleUnit');
-  if (btn) btn.textContent = `Show: ${showAsPercentage ? 'Time' : '%'}`;
-  renderChart();
+  showPercentageInChart = !showPercentageInChart;
+  const toggleBtn = document.getElementById('btnToggleUnit');
+  if (toggleBtn) {
+    toggleBtn.textContent = showPercentageInChart ? 'Show: Time' : 'Show: %';
+  }
+  updateStats();
 }
 
-function renderChart() {
-  const cats = trackingData.categories;
-  const total = Object.values(cats).reduce((a, b) => a + b, 0);
+function calculateCategoryBreakdown() {
+  const tasks = window.SpanState.tasks || [];
+  const archived = window.SpanState.archivedTasks || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Cible à la fois le panneau mobile et la modale Track
-  const pies = [document.getElementById('pieChart'), document.getElementById('modalPieChart')].filter(Boolean);
-  const legends = [document.getElementById('pieLegend'), document.getElementById('modalPieLegend')].filter(Boolean);
+  const breakdown = {
+    Work: 0,
+    Home: 0,
+    Fun: 0
+  };
 
-  if (pies.length === 0) return;
+  let totalMinutesToday = 0;
 
-  if (total === 0) {
-    pies.forEach(p => p.style.background = 'conic-gradient(rgba(255,255,255,0.08) 0deg 360deg)');
-    legends.forEach(l => l.innerHTML = '<span style="color:var(--text-muted)">No sessions recorded today</span>');
+  // Completed tasks today in current list
+  tasks.forEach(t => {
+    if (t.completed && (!t.completedDate || t.completedDate === todayStr)) {
+      const cat = (t.category && breakdown[t.category] !== undefined) ? t.category : 'Work';
+      const duration = (t.estimate || 1) * 25;
+      breakdown[cat] += duration;
+      totalMinutesToday += duration;
+    }
+  });
+
+  // Completed tasks today in archives
+  archived.forEach(t => {
+    const isToday = t.archivedDate === todayStr || (t.archivedAt && t.archivedAt.slice(0, 10) === todayStr);
+    if (isToday) {
+      const cat = (t.category && breakdown[t.category] !== undefined) ? t.category : 'Work';
+      const duration = (t.estimate || 1) * 25;
+      breakdown[cat] += duration;
+      totalMinutesToday += duration;
+    }
+  });
+
+  return { breakdown, totalMinutesToday };
+}
+
+function updateStats() {
+  const { breakdown, totalMinutesToday } = calculateCategoryBreakdown();
+
+  // 1. Update Daily Goal Top Bar
+  const pct = Math.min(100, Math.round((totalMinutesToday / Math.max(1, dailyGoalMinutes)) * 100));
+  const goalBar = document.getElementById('goalBar');
+  const goalPercent = document.getElementById('goalPercent');
+
+  if (goalBar) goalBar.style.width = `${pct}%`;
+  if (goalPercent) goalPercent.textContent = `${pct}%`;
+
+  // 2. Render Pie Charts & Legends
+  renderPieUI('pieChart', 'pieLegend', breakdown, totalMinutesToday);
+  renderPieUI('modalPieChart', 'modalPieLegend', breakdown, totalMinutesToday);
+}
+
+function renderPieUI(chartId, legendId, breakdown, totalMinutes) {
+  const chartEl = document.getElementById(chartId);
+  const legendEl = document.getElementById(legendId);
+
+  if (!chartEl || !legendEl) return;
+
+  const categories = ['Work', 'Home', 'Fun'];
+
+  if (totalMinutes === 0) {
+    chartEl.style.background = 'conic-gradient(rgba(255, 255, 255, 0.08) 0deg 360deg)';
+    legendEl.innerHTML = categories.map(cat => `
+      <div class="legend-item">
+        <div>
+          <span class="legend-dot" style="background: ${CATEGORY_COLORS[cat]};"></span>
+          <span>${cat}</span>
+        </div>
+        <span style="color: var(--text-muted);">0m</span>
+      </div>
+    `).join('');
     return;
   }
 
-  let gradientSteps = [];
-  let currentDeg = 0;
-  let legendHtml = '';
+  // Generate Conic Gradient Segments
+  let currentAngle = 0;
+  const gradientStops = [];
 
-  const labels = (window.SpanState && window.SpanState.categoryLabels) || JSON.parse(localStorage.getItem('span_category_labels')) || {};
+  categories.forEach(cat => {
+    const mins = breakdown[cat] || 0;
+    const sliceAngle = (mins / totalMinutes) * 360;
+    const endAngle = currentAngle + sliceAngle;
+    gradientStops.push(`${CATEGORY_COLORS[cat]} ${currentAngle}deg ${endAngle}deg`);
+    currentAngle = endAngle;
+  });
 
-  for (const [cat, secs] of Object.entries(cats)) {
-    if (secs === 0) continue;
+  chartEl.style.background = `conic-gradient(${gradientStops.join(', ')})`;
 
-    const slicePct = (secs / total);
-    const deg = slicePct * 360;
-    const catColor = colors[cat] || '#71717a';
-    gradientSteps.push(`${catColor} ${currentDeg}deg ${currentDeg + deg}deg`);
-    currentDeg += deg;
+  // Render Legend Rows
+  legendEl.innerHTML = categories.map(cat => {
+    const mins = breakdown[cat] || 0;
+    const valText = showPercentageInChart 
+      ? `${Math.round((mins / totalMinutes) * 100)}%` 
+      : `${mins}m`;
 
-    const valString = showAsPercentage 
-      ? `${Math.round(slicePct * 100)}%` 
-      : `${Math.round(secs / 60)} min`;
-
-    let displayName = 'None';
-    if (cat !== 'None') {
-      displayName = labels[cat] || cat;
-    }
-
-    legendHtml += `
+    return `
       <div class="legend-item">
-        <span><span class="legend-dot" style="background:${catColor}"></span>${displayName}</span>
-        <span style="font-weight:600">${valString}</span>
+        <div>
+          <span class="legend-dot" style="background: ${CATEGORY_COLORS[cat]};"></span>
+          <span>${cat}</span>
+        </div>
+        <strong style="color: var(--text-main); font-weight: 600;">${valText}</strong>
       </div>
     `;
-  }
-
-  pies.forEach(p => {
-    if (gradientSteps.length > 0) p.style.background = `conic-gradient(${gradientSteps.join(', ')})`;
-  });
-  legends.forEach(l => l.innerHTML = legendHtml);
+  }).join('');
 }
 
-// Vérification immédiate au chargement
-checkMidnightReset();
+function toggleTrackModal() {
+  const modal = document.getElementById('trackModalOverlay');
+  if (!modal) return;
+  const isOpening = modal.style.display !== 'flex';
+  modal.style.display = isOpening ? 'flex' : 'none';
+  if (isOpening) updateStats();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initTrack();
+});
