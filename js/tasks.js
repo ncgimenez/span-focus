@@ -37,14 +37,12 @@ function normalizeTaskAndMigrateTags(t) {
   let title = t.title || t.text || 'Untitled Task';
   let cat = t.category || 'Work';
 
-  // If previous custom category existed, convert to inline #tag if not already tagged
   const legacyCustomCats = ['Code', 'Study', 'Write', 'Admin', 'Finances', 'Organisation', 'Important', 'Personal'];
   if (legacyCustomCats.includes(cat)) {
     const tagCandidate = `#${cat.toLowerCase()}`;
     if (!title.toLowerCase().includes(tagCandidate)) {
       title = `${title} ${tagCandidate}`;
     }
-    // Remap to tri-category
     if (['Code', 'Write', 'Study'].includes(cat)) cat = 'Work';
     else if (['Admin', 'Finances', 'Organisation', 'Important', 'Personal'].includes(cat)) cat = 'Home';
     else cat = 'Work';
@@ -118,17 +116,7 @@ function updateTagFilterUI() {
 }
 
 function checkScheduledTasksForToday() {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  let changed = false;
-
-  tasks.forEach(t => {
-    if (t.scheduledDate && t.scheduledDate <= todayStr && !t.completed) {
-      t.scheduledDate = null;
-      changed = true;
-    }
-  });
-
-  if (changed) saveTasks();
+  // Keeps scheduledDate intact so planned tasks always show up in Planned view
 }
 
 function autoArchivePastDays() {
@@ -176,7 +164,7 @@ function handleInputFocus(isFocused) {
   document.body.classList.toggle('is-typing-mode', isFocused);
 }
 
-// Close task popover menus when clicking outside
+// Close task contextual dropdowns when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.task-menu-container')) {
     document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
@@ -212,7 +200,6 @@ function renderTasks() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Filter tasks based on schedule and active #tag filter
   const filterByTagCondition = (t) => {
     if (!activeTagFilter) return true;
     return t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`);
@@ -224,13 +211,14 @@ function renderTasks() {
   const favTasks = activeToday.filter(t => t.isFavorite);
   const regularTasks = activeToday.filter(t => !t.isFavorite);
 
-  // Update counters
+  // Counter badge for archives
   const archBadge = document.getElementById('archiveCountBadge');
   if (archBadge) archBadge.textContent = doneToday.length + archivedTasks.length;
 
-  const plannedTasks = tasks.filter(t => !t.completed && t.scheduledDate && t.scheduledDate > todayStr);
+  // Counter badge for ALL planned tasks (every task with scheduledDate)
+  const allPlannedTasks = tasks.filter(t => !!t.scheduledDate);
   const plannedBadge = document.getElementById('plannedCountBadge');
-  if (plannedBadge) plannedBadge.textContent = plannedTasks.length;
+  if (plannedBadge) plannedBadge.textContent = allPlannedTasks.length;
 
   if (groupPriorities) {
     groupPriorities.style.display = favTasks.length > 0 ? 'block' : 'none';
@@ -246,7 +234,6 @@ function renderTasks() {
     regularList.appendChild(createTaskDOMElement(task));
   });
 
-  // Smooth auto-scroll to newly added task so it is never pushed offscreen
   if (newlyAddedTaskId) {
     setTimeout(() => {
       const addedNode = document.getElementById(`task-node-${newlyAddedTaskId}`);
@@ -258,7 +245,7 @@ function renderTasks() {
   }
 }
 
-// 2-ROW TASK CARD (SPAN PLAN ARCHITECTURE)
+// 1-ROW SINGLE HORIZONTAL COMPACT TASK CARD
 function createTaskDOMElement(task) {
   const wrapper = document.createElement('li');
   wrapper.className = 'task-item-wrapper';
@@ -273,15 +260,20 @@ function createTaskDOMElement(task) {
          data-cat="${task.category || 'Work'}"
          onclick="openEditModalForTask('${task.id}')">
       
-      <!-- LINE 1: CHECKBOX + TITLE + COMPACT MENU ⋮ -->
-      <div class="task-row-main">
-        <div class="task-main-left">
-          <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
-            ${task.completed ? '✓' : ''}
-          </div>
-          <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
+      <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS SUPPORT) -->
+      <div class="task-main-left">
+        <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
+          ${task.completed ? '✓' : ''}
         </div>
+        <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
+      </div>
 
+      <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
+      <div class="task-right-meta">
+        <span class="task-meta-time">⏱ ${durationMinutes}m</span>
+        ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
+        ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
+        
         <div class="task-menu-container">
           <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
           <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
@@ -293,21 +285,12 @@ function createTaskDOMElement(task) {
         </div>
       </div>
 
-      <!-- LINE 2: METADATA SUB-ROW -->
-      <div class="task-row-meta">
-        ${task.scheduledTime ? `<span class="task-meta-time">🕒 ${task.scheduledTime} •</span>` : ''}
-        <span class="task-meta-time">⏱ ${durationMinutes}m</span>
-        ${task.category ? `<span class="task-meta-tag" data-cat="${task.category}">${task.category}</span>` : ''}
-        ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
-        ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
-      </div>
-
     </div>
   `;
 
   const itemNode = wrapper.querySelector('.task-item');
 
-  // SWIPE RIGHT TO TRIGGER FOCUS DIRECTLY
+  // Swipe right gesture to trigger focus directly
   let touchStartX = 0;
   let touchStartY = 0;
   let touchDiffX = 0;
@@ -588,8 +571,10 @@ function renderArchivedTasks() {
       li.className = 'task-item completed';
       const timeStr = t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       li.innerHTML = `
-        <div class="task-row-main">
+        <div class="task-main-left">
           <span class="task-title-text">${t.title}</span>
+        </div>
+        <div class="task-right-meta">
           ${timeStr ? `<span class="task-time-pill">${timeStr}</span>` : ''}
         </div>
       `;
@@ -605,8 +590,10 @@ function renderArchivedTasks() {
       li.className = 'task-item completed';
       const dateStr = t.archivedDate || (t.archivedAt ? t.archivedAt.slice(0, 10) : '');
       li.innerHTML = `
-        <div class="task-row-main">
+        <div class="task-main-left">
           <span class="task-title-text">${t.title}</span>
+        </div>
+        <div class="task-right-meta">
           ${dateStr ? `<span class="task-time-pill">${dateStr}</span>` : ''}
           <div style="display: flex; gap: 4px;">
             <button class="btn-task-menu" type="button" onclick="unarchiveTask('${t.id}')" title="Restore">↩</button>
@@ -619,28 +606,45 @@ function renderArchivedTasks() {
   }
 }
 
+// RENDER ALL PLANNED TASKS (COMPREHENSIVE VIEW)
 function renderPlannedTasks() {
   const list = document.getElementById('plannedTasksList');
   if (!list) return;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const planned = tasks.filter(t => !t.completed && t.scheduledDate && t.scheduledDate > todayStr);
+  
+  // Includes all tasks that have a scheduled date, sorted chronologically
+  const planned = tasks
+    .filter(t => !!t.scheduledDate)
+    .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
 
   if (planned.length === 0) {
-    list.innerHTML = `<li style="font-size: 13px; color: var(--text-muted); padding: 14px 4px; text-align: center;">No upcoming tasks planned yet.</li>`;
+    list.innerHTML = `<li style="font-size: 13px; color: var(--text-muted); padding: 14px 4px; text-align: center;">No scheduled tasks found.</li>`;
     return;
   }
 
   list.innerHTML = '';
   planned.forEach(t => {
+    const isToday = (t.scheduledDate === todayStr);
+    const isPast = (t.scheduledDate < todayStr);
+    const dateLabel = isToday ? 'Today' : t.scheduledDate;
+
     const li = document.createElement('li');
-    li.className = 'task-item';
+    li.className = `task-item ${t.completed ? 'completed' : ''}`;
     li.dataset.cat = t.category || 'Work';
+
     li.innerHTML = `
-      <div class="task-row-main" onclick="openEditModalForTask('${t.id}')">
-        <span class="task-title-text">${t.title}</span>
-        <span class="task-time-pill">📅 ${t.scheduledDate}</span>
-        <button class="btn-task-menu" type="button" onclick="event.stopPropagation(); moveTaskToToday('${t.id}')" title="Move to Today">☀️</button>
+      <div class="task-main-left" onclick="openEditModalForTask('${t.id}')">
+        <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${t.id}')">
+          ${t.completed ? '✓' : ''}
+        </div>
+        <span class="task-title-text">${renderTitleWithTags(t.title)}</span>
+      </div>
+      <div class="task-right-meta">
+        <span class="task-time-pill" style="${isToday ? 'color: var(--cat-home); font-weight: 600;' : (isPast ? 'color: var(--danger);' : '')}">
+          📅 ${dateLabel}
+        </span>
+        ${!isToday ? `<button class="btn-task-menu" type="button" onclick="event.stopPropagation(); moveTaskToToday('${t.id}')" title="Move to Today">☀️</button>` : ''}
       </div>
     `;
     list.appendChild(li);
@@ -650,7 +654,7 @@ function renderPlannedTasks() {
 function moveTaskToToday(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (t) {
-    t.scheduledDate = null;
+    t.scheduledDate = new Date().toISOString().slice(0, 10);
     saveTasks();
     closeSubViews();
   }
