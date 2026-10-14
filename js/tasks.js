@@ -55,7 +55,6 @@ function getMaxFavoritesAllowed() {
   return activeTask ? 2 : 3;
 }
 
-// Vérifie si une tâche programmée pour aujourd'hui doit revenir dans la liste active
 function checkScheduledTasksForToday() {
   const todayStr = new Date().toISOString().slice(0, 10);
   let changed = false;
@@ -159,7 +158,7 @@ function handleInputFocus(isFocused) {
   document.body.classList.toggle('is-typing-mode', isFocused);
 }
 
-// RENDU DE LA LISTE AVEC SÉPARATION STRICTE : PRIORITIES VS TASKS
+// RENDU DE LA LISTE
 function renderTasks() {
   const prioritiesList = document.getElementById('prioritiesList');
   const regularList = document.getElementById('taskList');
@@ -172,14 +171,12 @@ function renderTasks() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Tâches actives d'aujourd'hui (non programmées pour plus tard)
   const activeToday = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr));
   const doneToday = tasks.filter(t => t.completed);
 
   const favTasks = activeToday.filter(t => t.isFavorite);
   const regularTasks = activeToday.filter(t => !t.isFavorite);
 
-  // Mise à jour des compteurs des boutons de sous-écrans
   const archBadge = document.getElementById('archiveCountBadge');
   if (archBadge) archBadge.textContent = doneToday.length + archivedTasks.length;
 
@@ -187,7 +184,6 @@ function renderTasks() {
   const plannedBadge = document.getElementById('plannedCountBadge');
   if (plannedBadge) plannedBadge.textContent = plannedTasks.length;
 
-  // Affichage de la section Priorities
   if (groupPriorities) {
     groupPriorities.style.display = favTasks.length > 0 ? 'block' : 'none';
   }
@@ -195,7 +191,6 @@ function renderTasks() {
     prioritiesList.appendChild(createTaskDOMElement(task));
   });
 
-  // Affichage de la section Tasks (avec les terminées en dessous)
   regularTasks.forEach(task => {
     regularList.appendChild(createTaskDOMElement(task));
   });
@@ -203,72 +198,85 @@ function renderTasks() {
     regularList.appendChild(createTaskDOMElement(task));
   });
 
-  // Reset animation flag
   newlyAddedTaskId = null;
 }
 
-// CRÉATION ÉLÉMENT DOM AVEC GESTION SWIPE VERS LA DROITE
+// CRÉATION ÉLÉMENT DOM SANS SUPERPOSITION ET AVEC SWIPE SÉCURISÉ
 function createTaskDOMElement(task) {
   const wrapper = document.createElement('li');
   wrapper.className = 'task-item-wrapper';
 
   const isJustAdded = task.id === newlyAddedTaskId;
+  const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
 
   wrapper.innerHTML = `
-    <div class="swipe-background-right">🎯 Spotlight</div>
-    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''}" id="task-node-${task.id}">
+    <div class="swipe-background-right" id="swipe-bg-${task.id}">🎯 Spotlight</div>
+    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" id="task-node-${task.id}">
       <div class="task-left" onclick="openEditModalForTask('${task.id}')">
         <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">${task.completed ? '✓' : ''}</div>
-        ${(!task.completed && task.isFavorite) ? `<span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>` : ''}
+        ${isCurrentlyInFocus ? `<span class="active-focus-badge" title="Active Focus Task">🎯 Focus</span>` : ''}
+        ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="star-badge" onclick="event.stopPropagation(); toggleFavorite('${task.id}')" title="Priority task">⭐</span>` : ''}
         <span class="task-text">${task.title}</span>
         ${task.category && task.category !== 'None' ? `<span class="task-tag" style="background: rgba(255,255,255,0.06); color: var(--tag-${task.category.toLowerCase()})">${categoryLabels[task.category] || task.category}</span>` : ''}
         <span class="task-est">⏱ ${task.estimate || 1}</span>
       </div>
       <div class="task-actions">
-        <button class="btn-task-action btn-focus-target" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')" title="Focus this task">🎯</button>
         <button class="btn-task-action" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')" title="Delete">✕</button>
       </div>
     </div>
   `;
 
   const itemNode = wrapper.querySelector('.task-item');
+  const swipeBg = wrapper.querySelector('.swipe-background-right');
 
-  // GESTION DU SWIPE VERS LA DROITE POUR ENVOYER EN SPOTLIGHT
+  // GESTION DU SWIPE VERS LA DROITE
   let touchStartX = 0;
+  let touchStartY = 0;
   let touchDiffX = 0;
-  let isSwiping = false;
+  let touchDiffY = 0;
+  let isHorizontalGesture = null;
 
   itemNode.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
     touchDiffX = 0;
-    isSwiping = false;
+    touchDiffY = 0;
+    isHorizontalGesture = null;
+    if (swipeBg) swipeBg.style.opacity = '0';
   }, { passive: true });
 
   itemNode.addEventListener('touchmove', (e) => {
-    const currentX = e.touches[0].clientX;
-    touchDiffX = currentX - touchStartX;
+    touchDiffX = e.touches[0].clientX - touchStartX;
+    touchDiffY = e.touches[0].clientY - touchStartY;
 
-    // Détection stricte d'un glissement vers la droite
-    if (touchDiffX > 10) {
-      isSwiping = true;
+    if (isHorizontalGesture === null && (Math.abs(touchDiffX) > 10 || Math.abs(touchDiffY) > 10)) {
+      isHorizontalGesture = Math.abs(touchDiffX) > Math.abs(touchDiffY);
+    }
+
+    if (isHorizontalGesture === true && touchDiffX > 10) {
+      if (swipeBg) swipeBg.style.opacity = '1';
       itemNode.style.transition = 'none';
-      const moveDistance = Math.min(touchDiffX, 90);
+      const moveDistance = Math.min(touchDiffX, 100);
       itemNode.style.transform = `translateX(${moveDistance}px)`;
     }
   }, { passive: true });
 
   itemNode.addEventListener('touchend', () => {
-    if (isSwiping) {
-      itemNode.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
-      if (touchDiffX > 70) {
+    if (isHorizontalGesture === true) {
+      itemNode.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+      if (touchDiffX > 65) {
         triggerHapticFeedback();
-        itemNode.style.transform = `translateX(120px)`;
+        itemNode.style.transform = `translateX(130px)`;
         setTimeout(() => {
           setSpotlightTaskById(task.id);
-        }, 150);
+        }, 160);
       } else {
         itemNode.style.transform = `translateX(0px)`;
+        if (swipeBg) swipeBg.style.opacity = '0';
       }
+    } else {
+      itemNode.style.transform = `translateX(0px)`;
+      if (swipeBg) swipeBg.style.opacity = '0';
     }
   });
 
@@ -330,7 +338,7 @@ function toggleTaskById(id) {
     delete t.completedDate;
   }
 
-  if (activeTask && activeTask.id === t.id) {
+  if (activeTask && String(activeTask.id) === String(t.id)) {
     dismissSpotlightTask();
   }
 
@@ -338,7 +346,7 @@ function toggleTaskById(id) {
 }
 
 function deleteTaskById(id) {
-  if (activeTask && activeTask.id === id) dismissSpotlightTask();
+  if (activeTask && String(activeTask.id) === String(id)) dismissSpotlightTask();
   tasks = tasks.filter(t => String(t.id) !== String(id));
   saveTasks();
 }
@@ -359,7 +367,6 @@ function toggleFavorite(id) {
   saveTasks();
 }
 
-// SPOTLIGHT & BASCLUE DIRECTE VERS LE TIMER
 function setSpotlightTaskById(id) {
   const target = tasks.find(t => String(t.id) === String(id));
   if (!target) return;
@@ -429,7 +436,6 @@ function updateSpotlightUI() {
   }
 }
 
-// SÉLECTEUR DE TÂCHES ÉPURÉ SUR FOCUS : FAVORIS EN TÊTE
 function toggleTaskPicker() {
   const dropdown = document.getElementById('taskPickerDropdown');
   if (!dropdown) return;
@@ -482,7 +488,6 @@ function selectPickerTask(taskId) {
   saveTasks();
 }
 
-// GESTION DES SOUS-ÉCRANS (ARCHIVES & PLANNED)
 function openArchiveSubView() {
   document.getElementById('tasks-main-subview').style.display = 'none';
   document.getElementById('tasks-planned-subview').style.display = 'none';
@@ -638,7 +643,6 @@ function deleteArchivedTask(id) {
   saveTasks();
 }
 
-// MODALE D'ÉDITION AVEC DATE PROGRAMMÉE
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
@@ -725,6 +729,5 @@ function saveTaskModal() {
   saveTasks();
 }
 
-// Initialisations
 autoArchivePastDays();
 checkScheduledTasksForToday();
