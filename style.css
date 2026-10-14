@@ -1004,6 +1004,9 @@ input[type="range"] {
   color: var(--text-main);
 }
 
+
+
+
 /* ============================================================== */
 /* MODE DASHBOARD DESKTOP & DEMI-ÉCRAN (>= 650px)                  */
 /* ============================================================== */
@@ -1012,13 +1015,13 @@ input[type="range"] {
     display: none !important;
   }
 
-  /* Transformation du slider en Dashboard 2 colonnes */
+  /* Transformation en Dashboard 2 colonnes */
   .views-slider {
     width: 100% !important;
     transform: none !important;
     display: grid !important;
-    grid-template-columns: 360px 1fr !important;
-    gap: 24px !important;
+    grid-template-columns: 380px 1fr !important;
+    gap: 28px !important;
     height: 100% !important;
   }
 
@@ -1027,34 +1030,55 @@ input[type="range"] {
     padding: 0 8px 16px 8px !important;
   }
 
-  /* Panneau Track masqué du flux principal et géré via le bouton Stats */
   #view-stats {
     display: none !important;
   }
 
-  .btn-stats-toggle {
+  .btn-track-desktop {
     display: inline-flex !important;
   }
 
   #view-focus {
     border-right: 1px solid var(--card-border);
-    padding-right: 24px !important;
+    padding-right: 28px !important;
     justify-content: flex-start !important;
   }
 
   .timer-circle-wrapper {
-    width: 240px;
-    height: 240px;
-    margin-bottom: 12px;
+    width: 250px;
+    height: 250px;
+    margin-bottom: 14px;
   }
 
   .time-display {
-    font-size: 64px;
+    font-size: 68px;
   }
 }
 
 @media (max-width: 649px) {
-  .btn-stats-toggle {
-    display: none;
+  .btn-track-desktop {
+    display: none !important;
   }
 }
+
+/* STYLE DU BOUTON PLAN */
+.plan-bridge-btn {
+  text-decoration: none;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 7px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.plan-bridge-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
