@@ -238,11 +238,18 @@ function tickTimer() {
   updateDisplay();
 }
 
+function updateTimerVisualState(running) {
+  if (toggleBtn) toggleBtn.classList.toggle('is-running', running);
+  const circleWrap = document.querySelector('.timer-circle-wrapper');
+  if (circleWrap) circleWrap.classList.toggle('is-running', running);
+}
+
 function toggleTimer() {
   if (isRunning) {
     clearInterval(timerInterval);
     toggleBtn.textContent = 'Resume';
     isRunning = false;
+    updateTimerVisualState(false);
     releaseWakeLock();
     handleTimerAudioSync(false, isBreakSession);
   } else {
@@ -252,6 +259,7 @@ function toggleTimer() {
     }
     isRunning = true;
     toggleBtn.textContent = 'Pause';
+    updateTimerVisualState(true);
     requestWakeLock();
     handleTimerAudioSync(true, isBreakSession);
 
@@ -268,10 +276,17 @@ function confirmCompletedSession() {
   clearInterval(timerInterval);
   isRunning = false;
   isOvertime = false;
+  updateTimerVisualState(false);
   display.classList.remove('overtime');
   releaseWakeLock();
   handleTimerAudioSync(false, isBreakSession);
-  alert('Focus session recorded!');
+  
+  if (typeof triggerCelebration === 'function') triggerCelebration();
+  if (typeof showToast === 'function') {
+    showToast('Focus session recorded!', '🎉');
+  } else {
+    alert('Focus session recorded!');
+  }
   resetTimer();
 }
 
@@ -279,6 +294,7 @@ function resetTimer() {
   clearInterval(timerInterval);
   isRunning = false;
   isOvertime = false;
+  updateTimerVisualState(false);
   display.classList.remove('overtime');
   secondsLeft = durationMinutes * 60;
   elapsedSeconds = 0;

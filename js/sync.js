@@ -20,9 +20,11 @@ let isCloudSyncInProgress = false;
 
 function copyCurrentSyncKey() {
   navigator.clipboard.writeText(SYNC_USER_ID).then(() => {
-    alert("Sync key copied to clipboard!");
+    if (typeof showToast === 'function') showToast("Sync key copied to clipboard!", "📋");
+    else alert("Sync key copied to clipboard!");
   }).catch(() => {
-    alert("Failed to copy sync key.");
+    if (typeof showToast === 'function') showToast("Failed to copy sync key.", "⚠️");
+    else alert("Failed to copy sync key.");
   });
 }
 
@@ -48,7 +50,8 @@ async function handleLinkClick() {
   updateSyncKeyDisplay();
 
   await loadStateFromCloud();
-  alert("Span Focus linked successfully!");
+  if (typeof showToast === 'function') showToast("Span Focus linked successfully!", "🔗");
+  else alert("Span Focus linked successfully!");
 }
 
 function updateSyncKeyDisplay() {

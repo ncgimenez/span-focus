@@ -107,8 +107,22 @@ function updateStats() {
   const pct = Math.min(100, Math.round((totalMinutes / dailyGoalMinutes) * 100));
   const goalPercent = document.getElementById('goalPercent');
   const goalBar = document.getElementById('goalBar');
+  const goalTracker = document.querySelector('.goal-tracker');
 
-  if (goalPercent) goalPercent.textContent = `${pct}%`;
+  if (pct >= 100 && totalMinutes > 0) {
+    if (goalPercent) goalPercent.textContent = `100% 🎉 Goal reached!`;
+    if (goalTracker) goalTracker.classList.add('goal-reached');
+    if (!window._hasCelebratedDailyGoal) {
+      window._hasCelebratedDailyGoal = true;
+      if (typeof triggerCelebration === 'function') triggerCelebration();
+      if (typeof showToast === 'function') showToast("Daily Goal Reached! 🏆 Amazing focus today!", "🎉");
+    }
+  } else {
+    if (goalPercent) goalPercent.textContent = `${pct}%`;
+    if (goalTracker) goalTracker.classList.remove('goal-reached');
+    if (pct < 100) window._hasCelebratedDailyGoal = false;
+  }
+
   if (goalBar) goalBar.style.width = `${pct}%`;
 
   // Update Category Pie / Donut Chart

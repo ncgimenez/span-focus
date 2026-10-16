@@ -45,9 +45,14 @@ function cycleSoundMode() {
   }
 }
 
+let noiseGainNode = null;
+
 function startNoise() {
   if (isNoisePlaying) return;
   initAudio();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 
   const bufferSize = audioCtx.sampleRate * 2;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -67,17 +72,39 @@ function startNoise() {
   filter.type = 'lowpass';
   filter.frequency.value = 400;
 
+  noiseGainNode = audioCtx.createGain();
+  // Smooth fade-in over 0.8s
+  noiseGainNode.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  noiseGainNode.gain.exponentialRampToValueAtTime(1.0, audioCtx.currentTime + 0.8);
+
   noiseNode.connect(filter);
-  filter.connect(audioCtx.destination);
+  filter.connect(noiseGainNode);
+  noiseGainNode.connect(audioCtx.destination);
   noiseNode.start();
   isNoisePlaying = true;
 }
 
 function stopNoise() {
   if (!isNoisePlaying || !noiseNode) return;
-  noiseNode.stop();
-  noiseNode.disconnect();
   isNoisePlaying = false;
+  if (noiseGainNode && audioCtx) {
+    const currTime = audioCtx.currentTime;
+    noiseGainNode.gain.setValueAtTime(Math.max(0.0001, noiseGainNode.gain.value), currTime);
+    noiseGainNode.gain.exponentialRampToValueAtTime(0.0001, currTime + 0.6);
+    const nodeToStop = noiseNode;
+    setTimeout(() => {
+      try {
+        nodeToStop.stop();
+        nodeToStop.disconnect();
+      } catch (e) {}
+    }, 650);
+  } else {
+    try {
+      noiseNode.stop();
+      noiseNode.disconnect();
+    } catch (e) {}
+  }
+  noiseNode = null;
 }
 
 function playBell() {

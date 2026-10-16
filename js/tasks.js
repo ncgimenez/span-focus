@@ -58,7 +58,9 @@ function normalizeTaskAndMigrateTags(t) {
     title: title.trim(),
     category: cat,
     isFavorite: !!t.isFavorite,
-    scheduledDate: t.scheduledDate || null,
+    isEvent: !!t.isEvent,
+    parentEventId: t.parentEventId || null,
+    scheduledDate: t.scheduledDate !== undefined ? t.scheduledDate : todayStrInit,
     scheduledTime: t.scheduledTime || null,
     completed: isDone,
     completedAt: isDone ? (t.completedAt || nowInit.toISOString()) : null,
@@ -187,16 +189,38 @@ function toggleTaskActionMenu(taskId, event) {
   }
 }
 
-// RENDER TASK LIST WITH PRIORITY & REGULAR SECTIONS
+let isBacklogOpen = false;
+
+function toggleBacklogAccordion() {
+  isBacklogOpen = !isBacklogOpen;
+  const list = document.getElementById('backlogList');
+  const arrow = document.getElementById('backlogToggleArrow');
+  if (list) list.style.display = isBacklogOpen ? 'flex' : 'none';
+  if (arrow) arrow.textContent = isBacklogOpen ? '▼' : '▶';
+}
+
+// RENDER TASK LIST: 1. FOCUS DAY • 2. PRIORITÉS • 3. TÂCHES DU JOUR • 4. BACKLOG SANS DATE
 function renderTasks() {
+  const focusDayList = document.getElementById('focusDayList');
+  const groupFocusDay = document.getElementById('groupFocusDay');
+  const focusDayCountBadge = document.getElementById('focusDayCountBadge');
+
   const prioritiesList = document.getElementById('prioritiesList');
-  const regularList = document.getElementById('taskList');
   const groupPriorities = document.getElementById('groupPriorities');
 
-  if (!regularList || !prioritiesList) return;
+  const regularList = document.getElementById('taskList');
+  const groupTasks = document.getElementById('groupTasks');
 
-  prioritiesList.innerHTML = '';
+  const backlogList = document.getElementById('backlogList');
+  const groupBacklog = document.getElementById('groupBacklog');
+  const backlogCountBadge = document.getElementById('backlogCountBadge');
+
+  if (!regularList) return;
+
+  if (focusDayList) focusDayList.innerHTML = '';
+  if (prioritiesList) prioritiesList.innerHTML = '';
   regularList.innerHTML = '';
+  if (backlogList) backlogList.innerHTML = '';
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -205,11 +229,48 @@ function renderTasks() {
     return t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`);
   };
 
-  const activeToday = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr) && filterByTagCondition(t));
+  // Completed items
   const doneToday = tasks.filter(t => t.completed && filterByTagCondition(t));
 
-  const favTasks = activeToday.filter(t => t.isFavorite);
-  const regularTasks = activeToday.filter(t => !t.isFavorite);
+  // Active items
+  const activeTasks = tasks.filter(t => !t.completed && filterByTagCondition(t));
+  const allActiveEvents = activeTasks.filter(t => t.isEvent);
+
+  const isNestedSubtask = (t) => {
+    return !t.isEvent && t.parentEventId && allActiveEvents.some(ev => String(ev.id) === String(t.parentEventId));
+  };
+
+  // 1. FOCUS DAY: Événements ou Blocs minutés prévus pour Aujourd'hui (ou en retard)
+  const focusDayItems = activeTasks.filter(t => {
+    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
+    const isFocusDayBlock = t.isEvent || t.scheduledTime;
+    return isToday && isFocusDayBlock && !isNestedSubtask(t);
+  });
+
+  // Tri chronologique des blocs du Focus Day (10h, 14h...)
+  focusDayItems.sort((a, b) => {
+    if (a.scheduledTime && b.scheduledTime) return a.scheduledTime.localeCompare(b.scheduledTime);
+    if (a.scheduledTime) return -1;
+    if (b.scheduledTime) return 1;
+    return 0;
+  });
+
+  // 2. PRIORITÉS: Tâches favorites d'aujourd'hui (hors Focus Day et hors sous-tâches)
+  const priorityItems = activeTasks.filter(t => {
+    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
+    return isToday && t.isFavorite && !t.isEvent && !t.scheduledTime && !isNestedSubtask(t);
+  });
+
+  // 3. TÂCHES FLOTTANTES DU JOUR: Tâches prévues aujourd'hui (sans heure fixe et non favorites)
+  const regularTodayItems = activeTasks.filter(t => {
+    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
+    return isToday && !t.isEvent && !t.scheduledTime && !t.isFavorite && !isNestedSubtask(t);
+  });
+
+  // 4. BACKLOG: Tâches sans date programmée
+  const backlogItems = activeTasks.filter(t => {
+    return !t.scheduledDate && !isNestedSubtask(t);
+  });
 
   // Counter badge for archives
   const archBadge = document.getElementById('archiveCountBadge');
@@ -220,18 +281,97 @@ function renderTasks() {
   const plannedBadge = document.getElementById('plannedCountBadge');
   if (plannedBadge) plannedBadge.textContent = allPlannedTasks.length;
 
-  if (groupPriorities) {
-    groupPriorities.style.display = favTasks.length > 0 ? 'block' : 'none';
-  }
-  favTasks.forEach(task => {
-    prioritiesList.appendChild(createTaskDOMElement(task));
-  });
+  // Helper pour rendre un élément + ses sous-tâches arborescentes
+  function renderItemAndSubtasks(item) {
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(createTaskDOMElement(item, false));
 
-  regularTasks.forEach(task => {
-    regularList.appendChild(createTaskDOMElement(task));
-  });
+    if (item.isEvent) {
+      const subtasks = activeTasks.filter(t => String(t.parentEventId) === String(item.id));
+      if (subtasks.length > 0) {
+        const subContainer = document.createElement('div');
+        subContainer.className = 'event-subtasks-container';
+        subtasks.forEach(sub => {
+          subContainer.appendChild(createTaskDOMElement(sub, true));
+        });
+        fragment.appendChild(subContainer);
+      }
+    }
+    return fragment;
+  }
+
+  // 1. Rendu FOCUS DAY
+  if (groupFocusDay && focusDayList) {
+    if (focusDayItems.length > 0) {
+      groupFocusDay.style.display = 'block';
+      if (focusDayCountBadge) focusDayCountBadge.textContent = focusDayItems.length;
+      focusDayItems.forEach(item => {
+        focusDayList.appendChild(renderItemAndSubtasks(item));
+      });
+    } else {
+      groupFocusDay.style.display = 'none';
+    }
+  }
+
+  // 2. Rendu PRIORITÉS
+  if (groupPriorities && prioritiesList) {
+    if (priorityItems.length > 0) {
+      groupPriorities.style.display = 'block';
+      priorityItems.forEach(item => {
+        prioritiesList.appendChild(renderItemAndSubtasks(item));
+      });
+    } else {
+      groupPriorities.style.display = 'none';
+    }
+  }
+
+  // 3. Rendu TÂCHES DU JOUR
+  const totalTodayActive = focusDayItems.length + priorityItems.length + regularTodayItems.length;
+  if (totalTodayActive === 0) {
+    // Otter Empty State
+    regularList.innerHTML = `
+      <div class="empty-state-card">
+        <svg class="otter-svg" viewBox="0 0 120 120" width="100" height="100">
+          <path d="M 15 90 Q 30 85, 45 90 T 75 90 T 105 90" fill="none" stroke="rgba(129, 140, 248, 0.45)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 25 100 Q 40 96, 55 100 T 85 100 T 100 100" fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="2" stroke-linecap="round"/>
+          <ellipse cx="60" cy="65" rx="32" ry="18" fill="#a78b71" transform="rotate(-5 60 65)"/>
+          <ellipse cx="60" cy="65" rx="20" ry="11" fill="#d4c3b3" transform="rotate(-5 60 65)"/>
+          <ellipse cx="28" cy="68" rx="8" ry="6" fill="#8c7058"/>
+          <circle cx="54" cy="62" r="4.5" fill="#8c7058"/>
+          <circle cx="66" cy="61" r="4.5" fill="#8c7058"/>
+          <circle cx="85" cy="55" r="14" fill="#a78b71"/>
+          <ellipse cx="89" cy="57" rx="8" ry="6" fill="#d4c3b3"/>
+          <ellipse cx="92" cy="54" rx="2.5" ry="2" fill="#3d2c1f"/>
+          <path d="M 81 50 Q 84 47, 87 50" fill="none" stroke="#3d2c1f" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="78" cy="45" r="3.5" fill="#755c47"/>
+          <text x="96" y="40" font-size="11" font-weight="bold" fill="#e2b340" opacity="0.9">z</text>
+          <text x="105" y="32" font-size="9" font-weight="bold" fill="#e2b340" opacity="0.7">z</text>
+        </svg>
+        <div class="empty-state-title">Tout est calme et pépère... 🦦</div>
+        <div class="empty-state-sub">Toutes les tâches du jour sont terminées. Profitez de votre session !</div>
+      </div>
+    `;
+  } else {
+    regularTodayItems.forEach(item => {
+      regularList.appendChild(renderItemAndSubtasks(item));
+    });
+  }
+
+  // 4. Rendu BACKLOG (Tâches sans date)
+  if (groupBacklog && backlogList) {
+    if (backlogItems.length > 0) {
+      groupBacklog.style.display = 'block';
+      if (backlogCountBadge) backlogCountBadge.textContent = backlogItems.length;
+      backlogItems.forEach(item => {
+        backlogList.appendChild(createTaskDOMElement(item, false));
+      });
+    } else {
+      groupBacklog.style.display = 'none';
+    }
+  }
+
   doneToday.forEach(task => {
-    regularList.appendChild(createTaskDOMElement(task));
+    regularList.appendChild(createTaskDOMElement(task, false));
   });
 
   if (newlyAddedTaskId) {
@@ -245,31 +385,45 @@ function renderTasks() {
   }
 }
 
-// 1-ROW SINGLE HORIZONTAL COMPACT TASK CARD
-function createTaskDOMElement(task) {
+// 1-ROW SINGLE HORIZONTAL COMPACT TASK/EVENT CARD
+function createTaskDOMElement(task, isSubtask = false) {
   const wrapper = document.createElement('li');
-  wrapper.className = 'task-item-wrapper';
+  wrapper.className = `task-item-wrapper ${isSubtask ? 'event-subtask-wrapper' : ''}`;
 
   const isJustAdded = task.id === newlyAddedTaskId;
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
   const durationMinutes = (task.estimate || 1) * 25;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayStr;
+
+  const childSubtasks = task.isEvent ? tasks.filter(t => String(t.parentEventId) === String(task.id)) : [];
+  const doneSubCount = childSubtasks.filter(t => t.completed).length;
+  const progressBadge = (task.isEvent && childSubtasks.length > 0)
+    ? `<span class="event-progress-pill" title="Sous-tâches terminées">${doneSubCount}/${childSubtasks.length}</span>`
+    : '';
 
   wrapper.innerHTML = `
-    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" 
+    <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${task.isEvent ? 'is-event-card' : ''} ${isSubtask ? 'is-subtask-item' : ''}" 
          id="task-node-${task.id}" 
          data-cat="${task.category || 'Work'}"
          onclick="openEditModalForTask('${task.id}')">
       
-      <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS SUPPORT) -->
+      <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS + EVENT BADGE SUPPORT) -->
       <div class="task-main-left">
+        ${isSubtask ? '<span class="subtask-indent-branch" aria-hidden="true">↳</span>' : ''}
         <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
           ${task.completed ? '✓' : ''}
         </div>
+        ${task.scheduledTime ? `<span class="focus-day-time-badge">🕒 ${task.scheduledTime}</span>` : ''}
+        ${task.isEvent ? '<span class="event-type-badge">📅</span>' : ''}
+        ${isOverdue ? '<span class="task-overdue-badge">⚠️ Retard</span>' : ''}
         <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
       </div>
 
-      <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
+      <!-- RIGHT AREA: DURATION + PRIORITY + PROGRESS + FOCUS BADGE + COMPACT MENU ⋮ -->
       <div class="task-right-meta">
+        ${progressBadge}
+        ${task.isEvent ? `<button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une tâche">+ Tâche</button>` : ''}
         <span class="task-meta-time">⏱ ${durationMinutes}m</span>
         ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
         ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
@@ -279,6 +433,15 @@ function createTaskDOMElement(task) {
           <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus this task</button>
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
+            ${(!task.scheduledDate || task.scheduledDate !== todayStr)
+              ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToToday('${task.id}')">⚡ Planifier pour aujourd'hui</button>`
+              : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Déplacer au backlog (sans date)</button>`
+            }
+            ${task.isEvent 
+              ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')">➕ Ajouter sous-tâche</button>
+                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convertir en tâche simple</button>`
+              : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToEvent('${task.id}')">📅 Convertir en Événement</button>`
+            }
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">✏️ Edit task</button>
             <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
           </div>
@@ -348,6 +511,8 @@ function addTask() {
 
   if (!text) return;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const newTask = {
     id: 't_' + Date.now(),
     title: text,
@@ -355,7 +520,9 @@ function addTask() {
     estimate: 1,
     completed: false,
     isFavorite: false,
-    scheduledDate: null,
+    isEvent: false,
+    parentEventId: null,
+    scheduledDate: todayStr,
     scheduledTime: null
   };
 
@@ -364,6 +531,25 @@ function addTask() {
   if (input) input.value = '';
 
   saveTasks();
+}
+
+function moveTaskToToday(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  t.scheduledDate = todayStr;
+  saveTasks();
+  if (typeof showToast === 'function') showToast("Planifiée pour aujourd'hui !", '⚡');
+}
+
+function moveTaskToBacklog(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  t.scheduledDate = null;
+  t.scheduledTime = null;
+  t.isFavorite = false;
+  saveTasks();
+  if (typeof showToast === 'function') showToast("Déplacée dans le backlog !", '📦');
 }
 
 function toggleTaskById(id) {
@@ -377,6 +563,9 @@ function toggleTaskById(id) {
     t.completedAt = now.toISOString();
     t.completedDate = now.toISOString().slice(0, 10);
     t.isFavorite = false;
+
+    if (typeof triggerCelebration === 'function') triggerCelebration();
+    if (typeof showToast === 'function') showToast('Task completed!', '✅');
   } else {
     delete t.completedAt;
     delete t.completedDate;
@@ -393,6 +582,7 @@ function deleteTaskById(id) {
   if (activeTask && String(activeTask.id) === String(id)) dismissSpotlightTask();
   tasks = tasks.filter(t => String(t.id) !== String(id));
   saveTasks();
+  if (typeof showToast === 'function') showToast('Task deleted', '🗑️');
 }
 
 function toggleFavorite(id) {
@@ -403,7 +593,11 @@ function toggleFavorite(id) {
   const currentFavs = tasks.filter(x => x.isFavorite && !x.completed && String(x.id) !== String(id));
 
   if (!t.isFavorite && currentFavs.length >= maxAllowed) {
-    alert(`Maximum ${maxAllowed} priority tasks allowed.`);
+    if (typeof showToast === 'function') {
+      showToast(`Maximum ${maxAllowed} priority tasks allowed.`, '⭐');
+    } else {
+      alert(`Maximum ${maxAllowed} priority tasks allowed.`);
+    }
     return;
   }
 
@@ -454,6 +648,8 @@ function completeSpotlightTask() {
     found.completedAt = new Date().toISOString();
     found.completedDate = new Date().toISOString().slice(0, 10);
     found.isFavorite = false;
+    if (typeof triggerCelebration === 'function') triggerCelebration();
+    if (typeof showToast === 'function') showToast('Focus task completed!', '🎯');
   }
   activeTask = null;
   window.SpanState.activeTask = null;
@@ -671,7 +867,11 @@ function togglePastArchives() {
 function archiveDayNow() {
   const completed = tasks.filter(t => t.completed);
   if (completed.length === 0) {
-    alert("No completed tasks to clean today.");
+    if (typeof showToast === 'function') {
+      showToast("No completed tasks to clean today.", "ℹ️");
+    } else {
+      alert("No completed tasks to clean today.");
+    }
     return;
   }
   const now = new Date();
@@ -685,6 +885,9 @@ function archiveDayNow() {
   tasks = tasks.filter(t => !t.completed);
   saveTasks();
   renderArchivedTasks();
+  if (typeof showToast === 'function') {
+    showToast("Completed tasks archived!", "🗄️");
+  }
 }
 
 function unarchiveTask(id) {
@@ -706,6 +909,61 @@ function deleteArchivedTask(id) {
   saveTasks();
 }
 
+let editingItemType = 'task';
+
+function setEditItemType(type) {
+  editingItemType = type;
+  const btnTask = document.getElementById('btnTypeTask');
+  const btnEvent = document.getElementById('btnTypeEvent');
+  const rowParent = document.getElementById('rowParentEvent');
+
+  if (btnTask) btnTask.classList.toggle('active', type === 'task');
+  if (btnEvent) btnEvent.classList.toggle('active', type === 'event');
+  if (rowParent) rowParent.style.display = (type === 'task') ? 'flex' : 'none';
+}
+
+function quickAddSubtaskPrompt(eventId) {
+  const parentEvent = tasks.find(t => String(t.id) === String(eventId));
+  const eventName = parentEvent ? parentEvent.title : 'Événement';
+  const title = prompt(`Ajouter une tâche sous "${eventName}" :`);
+  if (!title || !title.trim()) return;
+
+  const newTask = {
+    id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+    title: title.trim(),
+    category: parentEvent ? parentEvent.category : 'Work',
+    estimate: 1,
+    completed: false,
+    isFavorite: false,
+    isEvent: false,
+    parentEventId: String(eventId),
+    scheduledDate: parentEvent ? parentEvent.scheduledDate : null,
+    scheduledTime: null
+  };
+
+  newlyAddedTaskId = newTask.id;
+  tasks.push(newTask);
+  saveTasks();
+  if (typeof showToast === 'function') showToast(`Tâche ajoutée sous ${eventName}`, '📎');
+}
+
+function convertToEvent(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  t.isEvent = true;
+  t.parentEventId = null;
+  saveTasks();
+  if (typeof showToast === 'function') showToast('Converti en Événement !', '📅');
+}
+
+function convertToTask(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  t.isEvent = false;
+  saveTasks();
+  if (typeof showToast === 'function') showToast('Converti en Tâche !', '📝');
+}
+
 function openEditModalForTask(id) {
   const task = tasks.find(t => String(t.id) === String(id));
   if (!task) return;
@@ -715,8 +973,27 @@ function openEditModalForTask(id) {
   editingEstimate = task.estimate || 1;
   editingIsFavorite = !!task.isFavorite;
 
+  // Populate parent event options
+  const parentSelect = document.getElementById('editParentEvent');
+  if (parentSelect) {
+    parentSelect.innerHTML = '<option value="">(Tâche indépendante)</option>';
+    const availableEvents = tasks.filter(t => t.isEvent && !t.completed && String(t.id) !== String(id));
+    availableEvents.forEach(ev => {
+      const opt = document.createElement('option');
+      opt.value = ev.id;
+      opt.textContent = `📅 ${ev.title}`;
+      parentSelect.appendChild(opt);
+    });
+    parentSelect.value = task.parentEventId || '';
+  }
+
+  setEditItemType(task.isEvent ? 'event' : 'task');
+
   const titleInput = document.getElementById('editTaskTitle');
-  if (titleInput) titleInput.value = task.title;
+  if (titleInput) {
+    titleInput.value = task.title;
+    setTimeout(() => titleInput.focus(), 50);
+  }
 
   const estEl = document.getElementById('editPomodoroEstimate');
   if (estEl) estEl.textContent = editingEstimate;
@@ -726,6 +1003,9 @@ function openEditModalForTask(id) {
 
   const dateInput = document.getElementById('editScheduledDate');
   if (dateInput) dateInput.value = task.scheduledDate || '';
+
+  const timeInput = document.getElementById('editScheduledTime');
+  if (timeInput) timeInput.value = task.scheduledTime || '';
 
   document.querySelectorAll('.cat-pill').forEach(btn => {
     const catKey = btn.dataset.cat;
@@ -771,6 +1051,8 @@ function closeEditModal() {
 function saveTaskModal() {
   const titleInput = document.getElementById('editTaskTitle');
   const dateInput = document.getElementById('editScheduledDate');
+  const timeInput = document.getElementById('editScheduledTime');
+  const parentSelect = document.getElementById('editParentEvent');
   const title = titleInput ? titleInput.value.trim() : '';
   if (!title) return;
 
@@ -781,6 +1063,9 @@ function saveTaskModal() {
     task.estimate = editingEstimate;
     task.isFavorite = editingIsFavorite;
     task.scheduledDate = dateInput ? (dateInput.value || null) : null;
+    task.scheduledTime = timeInput ? (timeInput.value.trim() || null) : null;
+    task.isEvent = (editingItemType === 'event');
+    task.parentEventId = (editingItemType === 'task' && parentSelect) ? (parentSelect.value || null) : null;
 
     if (activeTask && String(activeTask.id) === String(task.id)) {
       activeTask = task;
@@ -789,7 +1074,54 @@ function saveTaskModal() {
   }
   closeEditModal();
   saveTasks();
+  if (typeof showToast === 'function') showToast('Modifications enregistrées !', '💾');
 }
+
+// Global Keyboard Shortcuts (Space: Timer, N: New task, Enter/Esc: Modals)
+document.addEventListener('keydown', (e) => {
+  const editModal = document.getElementById('editModalOverlay');
+  const settingsModal = document.getElementById('settingsModalOverlay');
+  const trackModal = document.getElementById('trackModalOverlay');
+
+  const isEditOpen = editModal && editModal.style.display === 'flex';
+  const isSettingsOpen = settingsModal && settingsModal.style.display === 'flex';
+  const isTrackOpen = trackModal && trackModal.style.display === 'flex';
+
+  // ESCAPE -> Close any open modal
+  if (e.key === 'Escape') {
+    if (isEditOpen) { closeEditModal(); e.preventDefault(); return; }
+    if (isSettingsOpen) { closeSettingsModal(); e.preventDefault(); return; }
+    if (isTrackOpen) { toggleTrackModal(); e.preventDefault(); return; }
+  }
+
+  // ENTER in Edit Modal -> Save changes
+  if (isEditOpen && e.key === 'Enter') {
+    e.preventDefault();
+    saveTaskModal();
+    return;
+  }
+
+  // Ignore global hotkeys when typing in input, select or textarea
+  const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+  if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+    return;
+  }
+
+  // SPACEBAR -> Start / Pause Timer
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (typeof toggleTimer === 'function') toggleTimer();
+  }
+
+  // N -> Jump to quick task capture
+  if (e.key === 'n' || e.key === 'N') {
+    const taskInput = document.getElementById('taskInput');
+    if (taskInput) {
+      e.preventDefault();
+      taskInput.focus();
+    }
+  }
+});
 
 autoArchivePastDays();
 checkScheduledTasksForToday();

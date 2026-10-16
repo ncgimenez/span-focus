@@ -158,3 +158,101 @@ document.addEventListener('touchend', () => {
   touchDiffY = 0;
   isHorizontalGesture = null;
 });
+
+// ==============================================================
+// TOAST NOTIFICATIONS HELPER
+// ==============================================================
+function showToast(message, icon = '✨') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-msg';
+  toast.innerHTML = `<span style="font-size: 15px;">${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 2800);
+}
+
+// ==============================================================
+// LIGHTWEIGHT CANVAS CELEBRATION (CONFETTI BURST)
+// ==============================================================
+function triggerCelebration(originX, originY) {
+  const canvas = document.getElementById('celebrationCanvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#818cf8', '#10b981', '#fb7185', '#e2b340', '#ffffff'];
+  const particles = [];
+  const startX = originX || window.innerWidth / 2;
+  const startY = originY || window.innerHeight / 2;
+
+  for (let i = 0; i < 42; i++) {
+    const angle = (Math.PI * 2 * i) / 42 + (Math.random() - 0.5);
+    const speed = 3 + Math.random() * 5;
+    particles.push({
+      x: startX,
+      y: startY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1.5,
+      size: 4 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      rotation: Math.random() * 360,
+      vRot: (Math.random() - 0.5) * 12
+    });
+  }
+
+  let animId = null;
+  function updateConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.15; // Gravity
+      p.alpha -= p.decay;
+      p.rotation += p.vRot;
+
+      if (p.alpha > 0) {
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      }
+    });
+
+    if (alive) {
+      animId = requestAnimationFrame(updateConfetti);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cancelAnimationFrame(animId);
+    }
+  }
+
+  updateConfetti();
+}
+
+// ==============================================================
+// SERVICE WORKER REGISTRATION (OFFLINE PWA)
+// ==============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      console.log('Span Focus Service Worker registered:', reg.scope);
+    }).catch((err) => {
+      console.warn('Service Worker registration skipped:', err.message);
+    });
+  });
+}

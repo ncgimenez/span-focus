@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.1">
+  <link rel="stylesheet" href="style.css?v=3.3">
 </head>
 <body>
 
@@ -138,18 +138,39 @@
                 </button>
               </div>
 
-              <!-- STRUCTURED TASK SECTIONS -->
+              <!-- STRUCTURED TASK SECTIONS (FOCUS DAY + TODAY + BACKLOG) -->
               <div class="tasks-sections-wrapper">
-                <!-- PRIORITIES SECTION (COLLAPSIBLE ON TYPING) -->
+                <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS DU JOUR) -->
+                <div class="tasks-group" id="groupFocusDay" style="display: none;">
+                  <div class="tasks-group-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🌅 Focus Day • Événements prévus</span>
+                    <span class="subview-badge" id="focusDayCountBadge">0</span>
+                  </div>
+                  <ul class="task-list" id="focusDayList"></ul>
+                </div>
+
+                <!-- SECTION 2: PRIORITIES SECTION -->
                 <div class="tasks-group" id="groupPriorities" style="display: none;">
-                  <div class="tasks-group-header">⭐ Priorities</div>
+                  <div class="tasks-group-header">⭐ Priorités du jour</div>
                   <ul class="task-list" id="prioritiesList"></ul>
                 </div>
 
-                <!-- REGULAR TASKS SECTION -->
+                <!-- SECTION 3: REGULAR TODAY TASKS -->
                 <div class="tasks-group" id="groupTasks">
-                  <div class="tasks-group-header" id="labelTasksHeader">Tasks</div>
+                  <div class="tasks-group-header" id="labelTasksHeader">⚡ Tâches du jour</div>
                   <ul class="task-list" id="taskList"></ul>
+                </div>
+
+                <!-- SECTION 4: UNPLANNED / SANS DATE (ACCORDÉON REPLIABLE) -->
+                <div class="tasks-group" id="groupBacklog" style="display: none;">
+                  <button type="button" class="backlog-toggle-header" onclick="toggleBacklogAccordion()">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                      <span id="backlogToggleArrow">▶</span>
+                      <span>📦 À planifier • Sans date</span>
+                    </span>
+                    <span class="subview-badge" id="backlogCountBadge">0</span>
+                  </button>
+                  <ul class="task-list" id="backlogList" style="display: none; margin-top: 8px;"></ul>
                 </div>
               </div>
 
@@ -273,6 +294,19 @@
         <button class="modal-close" onclick="closeEditModal()">✕</button>
       </div>
       <div class="modal-body">
+        <label class="modal-label">Type</label>
+        <div style="display: flex; gap: 8px; margin-bottom: 2px;">
+          <button type="button" class="cat-pill active" id="btnTypeTask" onclick="setEditItemType('task')">📝 Tâche</button>
+          <button type="button" class="cat-pill" id="btnTypeEvent" onclick="setEditItemType('event')">📅 Événement</button>
+        </div>
+
+        <div id="rowParentEvent" style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="modal-label">Rattachée à l'Événement</label>
+          <select id="editParentEvent" class="modal-input" style="cursor: pointer; padding: 10px 12px; font-size: 14px;">
+            <option value="">(Tâche indépendante)</option>
+          </select>
+        </div>
+
         <label class="modal-label">Title</label>
         <input type="text" class="modal-input" id="editTaskTitle">
 
@@ -291,8 +325,23 @@
           <span style="font-size: 13px; color: var(--text-muted); margin-left: 8px;">blocks (~<span id="editEstMinutes">25</span> min)</span>
         </div>
 
-        <label class="modal-label">Scheduled Date</label>
-        <input type="date" class="modal-input" id="editScheduledDate">
+        <div style="display: flex; gap: 10px;">
+          <div style="flex: 1.2;">
+            <label class="modal-label">Date prévue</label>
+            <input type="date" class="modal-input" id="editScheduledDate">
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = new Date().toISOString().slice(0, 10)">⚡ Aujourd'hui</button>
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = ''">📦 Sans date</button>
+            </div>
+          </div>
+          <div style="flex: 1;">
+            <label class="modal-label">Heure / Bloc</label>
+            <input type="time" class="modal-input" id="editScheduledTime">
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledTime').value = ''">✕ Sans heure</button>
+            </div>
+          </div>
+        </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--card-border);">
           <span class="modal-label" style="margin: 0;">Priority (Favorite)</span>
@@ -369,13 +418,19 @@
     </div>
   </nav>
 
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- CELEBRATION CONFETTI CANVAS -->
+  <canvas id="celebrationCanvas" class="celebration-canvas"></canvas>
+
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.1"></script>
-  <script src="js/timer.js?v=3.1"></script>
-  <script src="js/tasks.js?v=3.1"></script>
-  <script src="js/track.js?v=3.1"></script>
-  <script src="js/sync.js?v=3.1"></script>
-  <script src="js/app.js?v=3.1"></script>
+  <script src="js/audio.js?v=3.3"></script>
+  <script src="js/timer.js?v=3.3"></script>
+  <script src="js/tasks.js?v=3.3"></script>
+  <script src="js/track.js?v=3.3"></script>
+  <script src="js/sync.js?v=3.3"></script>
+  <script src="js/app.js?v=3.3"></script>
 </body>
 </html>
