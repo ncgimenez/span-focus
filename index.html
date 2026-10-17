@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.4">
+  <link rel="stylesheet" href="style.css?v=3.5">
 </head>
 <body>
 
@@ -157,43 +157,60 @@
                 </button>
               </div>
 
-              <!-- STRUCTURED TASK SECTIONS (FOCUS DAY + TODAY + BACKLOG) -->
+              <!-- STRUCTURED TASK SECTIONS (SPLIT INTO 2 COLUMNS ON DESKTOP) -->
               <div class="tasks-sections-wrapper">
-                <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS DU JOUR) -->
-                <div class="tasks-group" id="groupFocusDay" style="display: none;">
-                  <div class="tasks-group-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>🌅 Focus Day • Événements prévus</span>
-                    <span class="subview-badge" id="focusDayCountBadge">0</span>
-                  </div>
-                  <ul class="task-list" id="focusDayList"></ul>
-                </div>
-
-                <!-- SECTION 2: PRIORITIES SECTION -->
-                <div class="tasks-group" id="groupPriorities" style="display: none;">
-                  <div class="tasks-group-header">⭐ Priorités du jour</div>
-                  <ul class="task-list" id="prioritiesList"></ul>
-                </div>
-
-                <!-- SECTION 3: REGULAR TODAY TASKS -->
-                <div class="tasks-group" id="groupTasks">
-                  <div class="tasks-group-header" id="labelTasksHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>⚡ Tâches du jour</span>
+                
+                <!-- COLUMN A : MA JOURNÉE (AUJOURD'HUI / DEMAIN) -->
+                <div class="tasks-column tasks-column-today">
+                  <div class="column-title-bar">
+                    <div class="day-navigator">
+                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(-1)" title="Jour précédent">‹</button>
+                      <span class="day-nav-label" id="dayNavLabel">Aujourd'hui</span>
+                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(1)" title="Préparer le lendemain (›)">›</button>
+                    </div>
                     <span class="today-time-estimate" id="todayTimeEstimate" style="display: none;"></span>
                   </div>
-                  <ul class="task-list" id="taskList"></ul>
+
+                  <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS) -->
+                  <div class="tasks-group" id="groupFocusDay" style="display: none;">
+                    <div class="tasks-group-header" style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>🌅 Focus Day • Événements prévus</span>
+                      <span class="subview-badge" id="focusDayCountBadge">0</span>
+                    </div>
+                    <ul class="task-list" id="focusDayList"></ul>
+                  </div>
+
+                  <!-- SECTION 2: PRIORITIES SECTION -->
+                  <div class="tasks-group" id="groupPriorities" style="display: none;">
+                    <div class="tasks-group-header">⭐ Priorités du jour</div>
+                    <ul class="task-list" id="prioritiesList"></ul>
+                  </div>
+
+                  <!-- SECTION 3: REGULAR TODAY TASKS -->
+                  <div class="tasks-group" id="groupTasks">
+                    <div class="tasks-group-header" id="labelTasksHeader" style="display: flex; justify-content: space-between; align-items: center;">
+                      <span id="titleTasksHeader">⚡ Tâches du jour</span>
+                    </div>
+                    <ul class="task-list" id="taskList"></ul>
+                  </div>
                 </div>
 
-                <!-- SECTION 4: UNPLANNED / SANS DATE (OUVERT PAR DÉFAUT) -->
-                <div class="tasks-group" id="groupBacklog" style="display: none;">
-                  <button type="button" class="backlog-toggle-header" onclick="toggleBacklogAccordion()">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                      <span id="backlogToggleArrow">▼</span>
-                      <span>📥 Boîte de tâches • À planifier</span>
+                <!-- COLUMN B : BOÎTE DE TÂCHES (BACKLOG À PLANIFIER) -->
+                <div class="tasks-column tasks-column-backlog">
+                  <div class="column-title-bar">
+                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                      <span>📥 Boîte de tâches</span>
+                      <span class="subview-badge" id="backlogCountBadge">0</span>
                     </span>
-                    <span class="subview-badge" id="backlogCountBadge">0</span>
-                  </button>
-                  <ul class="task-list" id="backlogList" style="display: flex; margin-top: 8px;"></ul>
+                    <span style="font-size: 11.5px; color: var(--text-muted);">À planifier</span>
+                  </div>
+
+                  <!-- SECTION 4: UNPLANNED / SANS DATE -->
+                  <div class="tasks-group" id="groupBacklog">
+                    <ul class="task-list" id="backlogList" style="display: flex;"></ul>
+                  </div>
                 </div>
+
               </div>
 
               <div class="shortcuts-legend">
@@ -448,11 +465,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.4"></script>
-  <script src="js/timer.js?v=3.4"></script>
-  <script src="js/tasks.js?v=3.4"></script>
-  <script src="js/track.js?v=3.4"></script>
-  <script src="js/sync.js?v=3.4"></script>
-  <script src="js/app.js?v=3.4"></script>
+  <script src="js/audio.js?v=3.5"></script>
+  <script src="js/timer.js?v=3.5"></script>
+  <script src="js/tasks.js?v=3.5"></script>
+  <script src="js/track.js?v=3.5"></script>
+  <script src="js/sync.js?v=3.5"></script>
+  <script src="js/app.js?v=3.5"></script>
 </body>
 </html>

@@ -208,6 +208,54 @@ function toggleBacklogAccordion() {
   if (arrow) arrow.textContent = isBacklogOpen ? '▼' : '▶';
 }
 
+let currentDayOffset = 0;
+
+function navigateDayOffset(delta) {
+  currentDayOffset += delta;
+  updateDayNavUI();
+  renderTasks();
+}
+
+function getSelectedDateStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + currentDayOffset);
+  return d.toISOString().slice(0, 10);
+}
+
+function updateDayNavUI() {
+  const label = document.getElementById('dayNavLabel');
+  if (label) {
+    if (currentDayOffset === 0) {
+      label.textContent = "Aujourd'hui";
+    } else if (currentDayOffset === 1) {
+      label.textContent = "Demain 🌙";
+    } else if (currentDayOffset === -1) {
+      label.textContent = "Hier";
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + currentDayOffset);
+      label.textContent = d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+  }
+
+  const titleHeader = document.getElementById('titleTasksHeader');
+  if (titleHeader) {
+    if (currentDayOffset === 0) titleHeader.textContent = "⚡ Tâches du jour";
+    else if (currentDayOffset === 1) titleHeader.textContent = "🌙 Tâches de demain";
+    else titleHeader.textContent = `📅 Tâches`;
+  }
+}
+
+function moveTaskToSelectedDay(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  const targetDate = getSelectedDateStr();
+  t.scheduledDate = targetDate;
+  saveTasks();
+  const dayName = currentDayOffset === 0 ? "aujourd'hui" : (currentDayOffset === 1 ? "demain" : "la date sélectionnée");
+  if (typeof showToast === 'function') showToast(`Planifiée pour ${dayName} !`, '⚡');
+}
+
 // RENDER TASK LIST: 1. FOCUS DAY • 2. PRIORITÉS • 3. TÂCHES DU JOUR • 4. BACKLOG SANS DATE
 function renderTasks() {
   const focusDayList = document.getElementById('focusDayList');
@@ -231,7 +279,10 @@ function renderTasks() {
   regularList.innerHTML = '';
   if (backlogList) backlogList.innerHTML = '';
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayRealStr = new Date().toISOString().slice(0, 10);
+  const targetDateStr = getSelectedDateStr();
+
+  updateDayNavUI();
 
   // Update Category Filter Badges (All, Work, Home, Fun)
   const allActiveUnfiltered = tasks.filter(t => !t.completed);
@@ -261,11 +312,20 @@ function renderTasks() {
     return !t.isEvent && t.parentEventId && allActiveEvents.some(ev => String(ev.id) === String(t.parentEventId));
   };
 
-  // 1. FOCUS DAY: Événements ou Blocs minutés prévus pour Aujourd'hui (ou en retard)
+  const matchesSelectedDay = (t) => {
+    if (!t.scheduledDate) return false;
+    if (currentDayOffset === 0) {
+      // Pour aujourd'hui: la date d'aujourd'hui + les tâches non complétées en retard
+      return t.scheduledDate <= targetDateStr;
+    } else {
+      // Pour demain ou autre jour sélectionné: correspond exactement à la date cible
+      return t.scheduledDate === targetDateStr;
+    }
+  };
+
+  // 1. FOCUS DAY: Événements ou Blocs minutés prévus pour le jour sélectionné
   const focusDayItems = activeTasks.filter(t => {
-    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
-    const isFocusDayBlock = t.isEvent || t.scheduledTime;
-    return isToday && isFocusDayBlock && !isNestedSubtask(t);
+    return matchesSelectedDay(t) && (t.isEvent || t.scheduledTime) && !isNestedSubtask(t);
   });
 
   // Tri chronologique des blocs du Focus Day (10h, 14h...)
@@ -276,16 +336,14 @@ function renderTasks() {
     return 0;
   });
 
-  // 2. PRIORITÉS: Tâches favorites d'aujourd'hui (hors Focus Day et hors sous-tâches)
+  // 2. PRIORITÉS: Tâches favorites du jour sélectionné
   const priorityItems = activeTasks.filter(t => {
-    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
-    return isToday && t.isFavorite && !t.isEvent && !t.scheduledTime && !isNestedSubtask(t);
+    return matchesSelectedDay(t) && t.isFavorite && !t.isEvent && !t.scheduledTime && !isNestedSubtask(t);
   });
 
-  // 3. TÂCHES FLOTTANTES DU JOUR: Tâches prévues aujourd'hui (sans heure fixe et non favorites)
+  // 3. TÂCHES FLOTTANTES DU JOUR: Tâches du jour sans heure fixe
   const regularTodayItems = activeTasks.filter(t => {
-    const isToday = t.scheduledDate && t.scheduledDate <= todayStr;
-    return isToday && !t.isEvent && !t.scheduledTime && !t.isFavorite && !isNestedSubtask(t);
+    return matchesSelectedDay(t) && !t.isEvent && !t.scheduledTime && !t.isFavorite && !isNestedSubtask(t);
   });
 
   // 4. BACKLOG: Tâches sans date programmée
@@ -484,14 +542,17 @@ function createTaskDOMElement(task, isSubtask = false) {
   const isJustAdded = task.id === newlyAddedTaskId;
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
   const durationMinutes = (task.estimate || 1) * 25;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayStr;
+  const todayRealStr = new Date().toISOString().slice(0, 10);
+  const targetDateStr = getSelectedDateStr();
+  const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayRealStr;
 
   const childSubtasks = task.isEvent ? tasks.filter(t => String(t.parentEventId) === String(task.id)) : [];
   const doneSubCount = childSubtasks.filter(t => t.completed).length;
   const progressBadge = (task.isEvent && childSubtasks.length > 0)
     ? `<span class="event-progress-pill" title="Sous-tâches terminées">${doneSubCount}/${childSubtasks.length}</span>`
     : '';
+
+  const quickPlanBtnLabel = currentDayOffset === 0 ? "⚡ + Aujourd'hui" : (currentDayOffset === 1 ? "🌙 + Demain" : "📅 + Planifier");
 
   wrapper.innerHTML = `
     <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${task.isEvent ? 'is-event-card' : ''} ${isSubtask ? 'is-subtask-item' : ''}" 
@@ -515,10 +576,10 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-right-meta">
         ${progressBadge}
         ${task.isEvent ? `<button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une tâche">+ Tâche</button>` : ''}
-        ${!task.completed && (!task.scheduledDate || task.scheduledDate !== todayStr)
-          ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToToday('${task.id}')" title="Ajouter à ma journée">⚡ + Aujourd'hui</button>`
+        ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
+          ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="Ajouter à la journée">${quickPlanBtnLabel}</button>`
           : ''}
-        ${!task.completed && (task.scheduledDate === todayStr && !task.isEvent && !isSubtask)
+        ${!task.completed && (task.scheduledDate === targetDateStr && !task.isEvent && !isSubtask)
           ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦 Boîte</button>`
           : ''}
         <span class="task-meta-time">⏱ ${durationMinutes}m</span>
