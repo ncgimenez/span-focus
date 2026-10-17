@@ -752,6 +752,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
   const durationMinutes = (task.estimate || 1) * 25;
   const todayRealStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayRealStr;
   const targetDateStr = getSelectedDateStr();
   const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayRealStr;
 
@@ -801,8 +802,8 @@ function createTaskDOMElement(task, isSubtask = false) {
           <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus this task</button>
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
-            ${(!task.scheduledDate || task.scheduledDate !== todayStr)
-              ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToToday('${task.id}')">⚡ Planifier pour aujourd'hui</button>`
+            ${(!task.scheduledDate || task.scheduledDate !== targetDateStr)
+              ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Planifier pour ${currentDayOffset === 0 ? "aujourd'hui" : "demain"}</button>`
               : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Déplacer au backlog (sans date)</button>`
             }
             ${task.isEvent 

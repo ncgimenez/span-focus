@@ -208,23 +208,11 @@ function tickTimer() {
 
   if (timerMode === 'stopwatch') {
     const totalElapsed = Math.floor((now - stopwatchStartTime) / 1000);
-    const diff = totalElapsed - elapsedSeconds;
-    if (diff > 0) {
-      for (let i = 0; i < diff; i++) {
-        logFocusedSecond();
-      }
-      elapsedSeconds = totalElapsed;
-    }
+    elapsedSeconds = totalElapsed;
   } else {
     const remaining = Math.round((targetEndTime - now) / 1000);
     
     if (remaining >= 0) {
-      const diff = secondsLeft - remaining;
-      if (diff > 0 && !isBreakSession) {
-        for (let i = 0; i < diff; i++) {
-          logFocusedSecond();
-        }
-      }
       secondsLeft = remaining;
     } else {
       secondsLeft = remaining;
