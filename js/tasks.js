@@ -175,6 +175,8 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.task-menu-container')) {
     document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
       menu.classList.remove('show');
+      const item = menu.closest('.task-item');
+      if (item) item.style.zIndex = '';
     });
   }
 });
@@ -186,10 +188,14 @@ function toggleTaskActionMenu(taskId, event) {
 
   document.querySelectorAll('.task-actions-dropdown.show').forEach(menu => {
     menu.classList.remove('show');
+    const item = menu.closest('.task-item');
+    if (item) item.style.zIndex = '';
   });
 
   if (!isAlreadyOpen && targetMenu) {
     targetMenu.classList.add('show');
+    const item = targetMenu.closest('.task-item');
+    if (item) item.style.zIndex = '100';
   }
 }
 
@@ -960,7 +966,7 @@ function createTaskDOMElement(task, isSubtask = false) {
         
         <!-- EVENT HEADER: NO CHECKBOX! -->
         <div class="event-card-header">
-          <div class="event-header-left">
+          <div class="event-header-left" onclick="openEditModalForTask('${task.id}')" style="cursor: pointer;">
             ${task.scheduledTime ? `
               <div class="task-time-stacked" title="Créneau prévu : ${task.scheduledTime}${taskEndTime ? ' à ' + taskEndTime : ''}">
                 <span class="time-start">${task.scheduledTime}</span>
@@ -968,7 +974,7 @@ function createTaskDOMElement(task, isSubtask = false) {
               </div>
             ` : ''}
             <span class="event-type-badge">📅</span>
-            <span class="event-title-text">${renderTitleWithTags(task.title)}</span>
+            <span class="event-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
           <div class="event-header-right">
@@ -980,10 +986,10 @@ function createTaskDOMElement(task, isSubtask = false) {
             <div class="task-menu-container">
               <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Actions événement">⋮</button>
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ Voir les détails &amp; Modifier</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')">➕ Ajouter tâche dans cet événement</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convertir en tâche simple</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Retirer priorité' : '⭐ Mettre en priorité'}</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">✏️ Modifier</button>
                 <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Supprimer</button>
               </div>
             </div>
@@ -1034,7 +1040,7 @@ function createTaskDOMElement(task, isSubtask = false) {
               </div>
             ` : ''}
             ${isOverdue ? '<span class="task-overdue-badge">⚠️ Retard</span>' : ''}
-            <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
+            <span class="task-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
           <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
@@ -1053,8 +1059,9 @@ function createTaskDOMElement(task, isSubtask = false) {
             <div class="task-menu-container">
               <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus this task</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ Voir les détails &amp; Modifier</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus cette tâche</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Retirer priorité' : '⭐ Mettre en priorité'}</button>
                 ${(!task.scheduledDate || task.scheduledDate !== targetDateStr)
                   ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Planifier pour ${currentDayOffset === 0 ? "aujourd'hui" : "demain"}</button>`
                   : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Déplacer au backlog (sans date)</button>`
@@ -1065,8 +1072,7 @@ function createTaskDOMElement(task, isSubtask = false) {
                   ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); detachSubtask('${task.id}')">📎 Détacher de l'élément parent</button>` 
                   : ''
                 }
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">✏️ Edit task</button>
-                <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+                <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Supprimer</button>
               </div>
             </div>
           </div>
@@ -1679,6 +1685,11 @@ function openEditModalForTask(id) {
   }
 
   setEditItemType(task.isEvent ? 'event' : 'task');
+
+  const modalTitle = document.getElementById('editModalTitle');
+  if (modalTitle) {
+    modalTitle.textContent = task.isEvent ? "📅 Détails de l'Événement" : "✏️ Modifier la Tâche";
+  }
 
   const titleInput = document.getElementById('editTaskTitle');
   if (titleInput) {
