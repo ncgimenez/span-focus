@@ -1064,7 +1064,6 @@ function createTaskDOMElement(task, isSubtask = false) {
               ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦</button>`
               : ''}
             ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
-            ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
             ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
             
             <div class="task-menu-container">
@@ -1318,6 +1317,7 @@ function toggleFavorite(id) {
 }
 
 let isBacklogFocusActive = false;
+let isTodayFocusActive = false;
 
 function toggleFocusBacklog(forceState) {
   if (typeof forceState === 'boolean') {
@@ -1326,15 +1326,54 @@ function toggleFocusBacklog(forceState) {
     isBacklogFocusActive = !isBacklogFocusActive;
   }
 
+  if (isBacklogFocusActive) {
+    isTodayFocusActive = false;
+    document.body.classList.remove('focus-today-active');
+    const todayBtn = document.getElementById('btnTodayFocus');
+    if (todayBtn) {
+      todayBtn.classList.remove('active');
+      todayBtn.textContent = '🎯 Focus';
+    }
+  }
+
   document.body.classList.toggle('focus-backlog-active', isBacklogFocusActive);
   const btn = document.getElementById('btnBacklogFocus');
   if (btn) {
     btn.classList.toggle('active', isBacklogFocusActive);
-    btn.textContent = isBacklogFocusActive ? '🎯 Focus actif' : '🎯 Focus';
+    btn.innerHTML = isBacklogFocusActive ? '‹ Revenir à Ma Journée' : '🎯 Focus';
   }
 
   if (typeof showToast === 'function') {
-    showToast(isBacklogFocusActive ? 'Focus Backlog activé (journée estompée)' : 'Vue normale rétablie', '🎯');
+    showToast(isBacklogFocusActive ? '🎯 Mode Focus Backlog (journée masquée)' : 'Vue normale rétablie', '🎯');
+  }
+}
+
+function toggleFocusToday(forceState) {
+  if (typeof forceState === 'boolean') {
+    isTodayFocusActive = forceState;
+  } else {
+    isTodayFocusActive = !isTodayFocusActive;
+  }
+
+  if (isTodayFocusActive) {
+    isBacklogFocusActive = false;
+    document.body.classList.remove('focus-backlog-active');
+    const backlogBtn = document.getElementById('btnBacklogFocus');
+    if (backlogBtn) {
+      backlogBtn.classList.remove('active');
+      backlogBtn.textContent = '🎯 Focus';
+    }
+  }
+
+  document.body.classList.toggle('focus-today-active', isTodayFocusActive);
+  const btn = document.getElementById('btnTodayFocus');
+  if (btn) {
+    btn.classList.toggle('active', isTodayFocusActive);
+    btn.innerHTML = isTodayFocusActive ? '‹ Réafficher la Boîte' : '🎯 Focus';
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(isTodayFocusActive ? '🌅 Mode Focus Journée (boîte masquée)' : 'Vue normale rétablie', '🌅');
   }
 }
 

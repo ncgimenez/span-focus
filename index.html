@@ -8,13 +8,13 @@
   
   <meta name="theme-color" content="#0d0d0f" id="themeMetaColor">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Focus">
 
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.18">
+  <link rel="stylesheet" href="style.css?v=3.19">
 </head>
 <body>
 
@@ -175,7 +175,10 @@
                       <span class="day-nav-label" id="dayNavLabel">Aujourd'hui</span>
                       <button type="button" class="btn-day-nav" onclick="navigateDayOffset(1)" title="Préparer le lendemain (›)">›</button>
                     </div>
-                    <span class="today-time-estimate" id="todayTimeEstimate" style="display: none;"></span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span class="today-time-estimate" id="todayTimeEstimate" style="display: none;"></span>
+                      <button type="button" class="btn-backlog-focus btn-today-focus" id="btnTodayFocus" onclick="toggleFocusToday()" title="Mode Focus Journée (masque la boîte)">🎯 Focus</button>
+                    </div>
                   </div>
 
                   <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS) -->
@@ -483,11 +486,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.18"></script>
-  <script src="js/timer.js?v=3.18"></script>
-  <script src="js/tasks.js?v=3.18"></script>
-  <script src="js/track.js?v=3.18"></script>
-  <script src="js/sync.js?v=3.18"></script>
-  <script src="js/app.js?v=3.18"></script>
+  <script src="js/audio.js?v=3.19"></script>
+  <script src="js/timer.js?v=3.19"></script>
+  <script src="js/tasks.js?v=3.19"></script>
+  <script src="js/track.js?v=3.19"></script>
+  <script src="js/sync.js?v=3.19"></script>
+  <script src="js/app.js?v=3.19"></script>
 </body>
 </html>
