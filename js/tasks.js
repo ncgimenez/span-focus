@@ -963,13 +963,12 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
-           onclick="toggleTaskFocus('${task.id}')"
            ondblclick="openEditModalForTask('${task.id}')"
-           title="Cliquer pour focaliser sur le timer • Double-clic pour modifier">
+           title="Double-clic pour modifier • Glisser pour déplacer">
         
         <!-- EVENT HEADER: NO CHECKBOX! -->
         <div class="event-card-header">
-          <div class="event-header-left" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" style="cursor: pointer;">
+          <div class="event-header-left">
             ${task.scheduledTime ? `
               <div class="task-time-stacked" title="Créneau prévu : ${task.scheduledTime}${taskEndTime ? ' à ' + taskEndTime : ''}">
                 <span class="time-start">${task.scheduledTime}</span>
@@ -1004,23 +1003,25 @@ function createTaskDOMElement(task, isSubtask = false) {
         <!-- INTEGRATED SUBTASKS: Nested directly inside the event card case -->
         ${childSubtasks.length > 0 ? `
           <div class="event-integrated-subtasks">
-            ${childSubtasks.map(sub => `
-              <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''}" 
+            ${childSubtasks.map(sub => {
+              const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
+              return `
+              <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
                    id="task-node-${sub.id}"
                    draggable="true"
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')"
                    ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
-                   title="Cliquer pour focaliser • Double-clic pour modifier">
+                   title="Double-clic pour modifier • Glisser pour détacher">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
                 ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px; margin-right:2px;" title="Priorité">⭐</span>' : ''}
+                <button class="btn-subtask-focus ${isSubInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')" title="${isSubInFocus ? 'Désélectionner focus' : 'Focus cette sous-tâche'}">🎯</button>
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
-            `).join('')}
+            `;}).join('')}
           </div>
         ` : ''}
 
@@ -1032,9 +1033,8 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
-           onclick="toggleTaskFocus('${task.id}')"
            ondblclick="openEditModalForTask('${task.id}')"
-           title="Cliquer pour focaliser sur le timer • Double-clic pour modifier">
+           title="Double-clic pour modifier • Glisser pour déplacer">
         
         <div class="parent-task-card-header">
           <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS) -->
@@ -1092,23 +1092,25 @@ function createTaskDOMElement(task, isSubtask = false) {
         <!-- INTEGRATED SUBTASKS FOR REGULAR PARENT TASK -->
         ${childSubtasks.length > 0 ? `
           <div class="event-integrated-subtasks">
-            ${childSubtasks.map(sub => `
-              <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''}" 
+            ${childSubtasks.map(sub => {
+              const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
+              return `
+              <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
                    id="task-node-${sub.id}"
                    draggable="true"
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')"
                    ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
-                   title="Cliquer pour focaliser • Double-clic pour modifier">
+                   title="Double-clic pour modifier • Glisser pour détacher">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
                 ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px; margin-right:2px;" title="Priorité">⭐</span>' : ''}
+                <button class="btn-subtask-focus ${isSubInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')" title="${isSubInFocus ? 'Désélectionner focus' : 'Focus cette sous-tâche'}">🎯</button>
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
-            `).join('')}
+            `;}).join('')}
           </div>
         ` : ''}
 

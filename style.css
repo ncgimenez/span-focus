@@ -1228,6 +1228,39 @@ body {
   opacity: 0.55;
 }
 
+.btn-subtask-focus {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.integrated-subtask-row:hover .btn-subtask-focus,
+.integrated-subtask-row.in-focus-active .btn-subtask-focus {
+  opacity: 0.85;
+}
+
+.btn-subtask-focus:hover {
+  opacity: 1 !important;
+  transform: scale(1.15);
+}
+
+.btn-subtask-focus.active {
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 3px var(--streak));
+}
+
+@media (hover: none) {
+  .btn-subtask-focus {
+    opacity: 0.75;
+  }
+}
+
 .btn-subtask-detach {
   background: transparent;
   border: none;
@@ -2834,6 +2867,14 @@ input[type="range"] {
   .task-item {
     padding: 6px 10px !important;
     font-size: 13px !important;
+  }
+
+  .btn-task-quick-action.task-focus-btn {
+    opacity: 0.85 !important;
+  }
+
+  .btn-subtask-focus {
+    opacity: 0.85 !important;
   }
 
   body.timer-active-focus-mode .timer-circle-wrapper {
