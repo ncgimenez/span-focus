@@ -961,15 +961,20 @@ function createTaskDOMElement(task, isSubtask = false) {
         <!-- EVENT HEADER: NO CHECKBOX! -->
         <div class="event-card-header">
           <div class="event-header-left">
-            ${task.scheduledTime ? `<span class="focus-day-time-badge" title="Créneau prévu">🕒 ${task.scheduledTime}${taskEndTime ? ' - ' + taskEndTime : ''}</span>` : ''}
+            ${task.scheduledTime ? `
+              <div class="task-time-stacked" title="Créneau prévu : ${task.scheduledTime}${taskEndTime ? ' à ' + taskEndTime : ''}">
+                <span class="time-start">${task.scheduledTime}</span>
+                ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
+              </div>
+            ` : ''}
             <span class="event-type-badge">📅</span>
             <span class="event-title-text">${renderTitleWithTags(task.title)}</span>
           </div>
 
           <div class="event-header-right">
             ${progressBadge}
-            <button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une tâche">+ Tâche</button>
-            <span class="task-meta-time">⏱ ${durationMinutes}m</span>
+            <button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une sous-tâche">+</button>
+            ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
             ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priorité">⭐</span>` : ''}
             
             <div class="task-menu-container">
@@ -1022,7 +1027,12 @@ function createTaskDOMElement(task, isSubtask = false) {
             <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
               ${task.completed ? '✓' : ''}
             </div>
-            ${task.scheduledTime ? `<span class="focus-day-time-badge" title="Créneau prévu">🕒 ${task.scheduledTime}${taskEndTime ? ' - ' + taskEndTime : ''}</span>` : ''}
+            ${task.scheduledTime ? `
+              <div class="task-time-stacked" title="Créneau prévu : ${task.scheduledTime}${taskEndTime ? ' à ' + taskEndTime : ''}">
+                <span class="time-start">${task.scheduledTime}</span>
+                ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
+              </div>
+            ` : ''}
             ${isOverdue ? '<span class="task-overdue-badge">⚠️ Retard</span>' : ''}
             <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
           </div>
@@ -1034,9 +1044,9 @@ function createTaskDOMElement(task, isSubtask = false) {
               ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="Ajouter à la journée">${quickPlanBtnLabel}</button>`
               : ''}
             ${!task.completed && (task.scheduledDate === targetDateStr && !task.isEvent && !isSubtask)
-              ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦 Boîte</button>`
+              ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦</button>`
               : ''}
-            <span class="task-meta-time">⏱ ${durationMinutes}m</span>
+            ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
             ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
             ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
             
