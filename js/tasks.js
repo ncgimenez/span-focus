@@ -285,16 +285,16 @@ function formatMinutesDuration(totalMins) {
   return `${mins} min`;
 }
 
-function insertTaskAtTime(timeStr) {
-  const title = prompt(`Planifier une tâche pour ${timeStr} :`);
+function insertTaskAtTime(timeStr, defaultDuration = 30) {
+  const title = prompt(`Planifier une tâche (${defaultDuration} min) pour ${timeStr} :`);
   if (!title || !title.trim()) return;
   const targetDate = getSelectedDateStr();
   const newTask = {
     id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
     title: title.trim(),
     category: 'Work',
-    estimate: 1,
-    duration: 25,
+    estimate: Math.max(1, Math.round(defaultDuration / 25)),
+    duration: defaultDuration,
     completed: false,
     isFavorite: false,
     isEvent: false,
@@ -304,7 +304,7 @@ function insertTaskAtTime(timeStr) {
   };
   tasks.push(newTask);
   saveTasks();
-  if (typeof showToast === 'function') showToast(`Tâche calée à ${timeStr}`, '⏱');
+  if (typeof showToast === 'function') showToast(`Tâche calée à ${timeStr} (${defaultDuration}m)`, '⏱');
 }
 
 function attachTaskToEvent(childTaskId, parentEventId) {
@@ -320,10 +320,19 @@ function attachTaskToEvent(childTaskId, parentEventId) {
   if (typeof showToast === 'function') showToast(`Tâche glissée sous "${parent.title}" !`, '📎');
 }
 
+function detachSubtask(taskId) {
+  const t = tasks.find(x => String(x.id) === String(taskId));
+  if (!t) return;
+  t.parentEventId = null;
+  saveTasks();
+  if (typeof showToast === 'function') showToast("Tâche détachée de l'événement !", '📎');
+}
+
 function setupGapDropTarget(gapNode, gapStartTime) {
   gapNode.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
     gapNode.classList.add('drag-over');
   });
 
@@ -346,9 +355,193 @@ function setupGapDropTarget(gapNode, gapStartTime) {
     t.parentEventId = null;
     t.scheduledDate = getSelectedDateStr();
     t.scheduledTime = gapStartTime;
+    if (!t.duration || t.duration === 25) t.duration = 30; // Timing automatique 30m dans l'agenda
     saveTasks();
-    if (typeof showToast === 'function') showToast(`Tâche calée à ${gapStartTime} !`, '⏱');
+    if (typeof showToast === 'function') showToast(`Tâche calée à ${gapStartTime} (${t.duration}m) !`, '⏱');
   });
+}
+
+function getSampleTasks(dateStr) {
+  const d = dateStr || new Date().toISOString().slice(0, 10);
+  return [
+    // 1. Événements prévus dans la journée (Focus Day)
+    {
+      id: 'ev_standup',
+      title: "Réunion d'équipe & Standup #work",
+      category: "Work",
+      estimate: 2,
+      duration: 60,
+      completed: false,
+      isFavorite: false,
+      isEvent: true,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: "09:30" // 09:30 - 10:30
+    },
+    {
+      id: 'sub_standup_1',
+      title: "Préparer mes 3 points clés #work",
+      category: "Work",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: 'ev_standup',
+      scheduledDate: d,
+      scheduledTime: null
+    },
+    // GAP 1: 10:30 - 11:30 (1h00 de libre !)
+    {
+      id: 'ev_deepwork',
+      title: "Deep Work : Core Feature Engine #work",
+      category: "Work",
+      estimate: 2,
+      duration: 60,
+      completed: false,
+      isFavorite: true,
+      isEvent: true,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: "11:30" // 11:30 - 12:30
+    },
+    // GAP 2: 12:30 - 14:00 (1h30 de libre / Déjeuner !)
+    {
+      id: 'ev_review',
+      title: "Revue de Design & Architecture #work",
+      category: "Work",
+      estimate: 2,
+      duration: 45,
+      completed: false,
+      isFavorite: false,
+      isEvent: true,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: "14:00" // 14:00 - 14:45
+    },
+    // GAP 3: 14:45 - 16:30 (1h45 de libre !)
+    {
+      id: 'ev_admin',
+      title: "Factures, Taxes & Mutuelle #home",
+      category: "Home",
+      estimate: 2,
+      duration: 45,
+      completed: false,
+      isFavorite: false,
+      isEvent: true,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: "16:30" // 16:30 - 17:15
+    },
+
+    // 2. Tâches flottantes de la journée (sans heure fixe)
+    {
+      id: 't_today_1',
+      title: "Revue de code PR Github #work",
+      category: "Work",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: true,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: null
+    },
+    {
+      id: 't_today_2',
+      title: "Courses & dîner sain #home",
+      category: "Home",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: d,
+      scheduledTime: null
+    },
+
+    // 3. Boîte de tâches / Backlog (prêtes à être glissées dans un event ou un créneau !)
+    {
+      id: 't_backlog_1',
+      title: "Envoyer récapitulatif par email #work",
+      category: "Work",
+      estimate: 1,
+      duration: 30,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: null,
+      scheduledTime: null
+    },
+    {
+      id: 't_backlog_2',
+      title: "Relancer devis assurance auto #home",
+      category: "Home",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: null,
+      scheduledTime: null
+    },
+    {
+      id: 't_backlog_3',
+      title: "Scanner et trier documents mutuelle #home",
+      category: "Home",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: null,
+      scheduledTime: null
+    },
+    {
+      id: 't_backlog_4',
+      title: "Réserver resto pour ce weekend #fun",
+      category: "Fun",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: null,
+      scheduledTime: null
+    },
+    {
+      id: 't_backlog_5',
+      title: "Écouter podcast tech #fun",
+      category: "Fun",
+      estimate: 1,
+      duration: 25,
+      completed: false,
+      isFavorite: false,
+      isEvent: false,
+      parentEventId: null,
+      scheduledDate: null,
+      scheduledTime: null
+    }
+  ];
+}
+
+function loadSampleTasksIfEmpty(force = false) {
+  const currentToday = new Date().toISOString().slice(0, 10);
+  const hasEvents = tasks.some(t => t.isEvent);
+
+  if (force || tasks.length <= 2 || !hasEvents) {
+    const samples = getSampleTasks(currentToday);
+    const customUserTasks = tasks.filter(t => t.id !== 't_1' && t.id !== 't_2' && !samples.some(s => s.id === t.id));
+    tasks = [...samples, ...customUserTasks];
+    saveTasks();
+    if (typeof showToast === 'function') showToast("Journée d'exemple avec événements chargée !", "📅");
+  }
 }
 
 function syncWithSpanPlan() {
@@ -811,6 +1004,10 @@ function createTaskDOMElement(task, isSubtask = false) {
                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convertir en tâche simple</button>`
               : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToEvent('${task.id}')">📅 Convertir en Événement</button>`
             }
+            ${isSubtask 
+              ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); detachSubtask('${task.id}')">📎 Détacher de l'événement</button>` 
+              : ''
+            }
             <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">✏️ Edit task</button>
             <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
           </div>
@@ -824,6 +1021,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   wrapper.setAttribute('draggable', 'true');
   wrapper.addEventListener('dragstart', (e) => {
     e.dataTransfer.setData('text/plain', String(task.id));
+    e.dataTransfer.effectAllowed = 'copyMove';
     wrapper.classList.add('is-dragging');
   });
   wrapper.addEventListener('dragend', () => {
@@ -834,26 +1032,34 @@ function createTaskDOMElement(task, isSubtask = false) {
 
   // Allow dropping child tasks directly onto Event cards to nest them
   if (task.isEvent) {
-    wrapper.addEventListener('dragover', (e) => {
+    const handleDragOver = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
       itemNode.classList.add('event-drop-highlight');
-    });
+    };
 
-    wrapper.addEventListener('dragleave', (e) => {
+    const handleDragLeave = (e) => {
       if (!wrapper.contains(e.relatedTarget)) {
         itemNode.classList.remove('event-drop-highlight');
       }
-    });
+    };
 
-    wrapper.addEventListener('drop', (e) => {
+    const handleDrop = (e) => {
       e.preventDefault();
       e.stopPropagation();
       itemNode.classList.remove('event-drop-highlight');
       const draggedTaskId = e.dataTransfer.getData('text/plain');
       if (!draggedTaskId || String(draggedTaskId) === String(task.id)) return;
       attachTaskToEvent(draggedTaskId, task.id);
-    });
+    };
+
+    wrapper.addEventListener('dragover', handleDragOver);
+    wrapper.addEventListener('dragleave', handleDragLeave);
+    wrapper.addEventListener('drop', handleDrop);
+
+    itemNode.addEventListener('dragover', handleDragOver);
+    itemNode.addEventListener('drop', handleDrop);
   }
 
   // Swipe right gesture to trigger focus directly
@@ -1528,6 +1734,7 @@ document.addEventListener('keydown', (e) => {
 
 autoArchivePastDays();
 checkScheduledTasksForToday();
+loadSampleTasksIfEmpty(false);
 if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 
 window.addEventListener('focus', () => {

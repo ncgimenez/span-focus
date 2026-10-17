@@ -807,6 +807,9 @@ body {
   position: relative;
   overflow: visible;
   border-radius: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .task-item {
@@ -814,14 +817,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #18181b; /* OPAQUE SANS TRANSPARENCE */
   border: 1px solid var(--card-border);
   border-left: 3.5px solid var(--cat-none);
-  padding: 10px 14px;
+  padding: 10px 12px;
   min-height: 48px;
   border-radius: 14px;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.2s ease,
               box-shadow 0.2s ease,
@@ -1265,27 +1272,25 @@ body {
 .quick-category-filters {
   display: flex;
   align-items: center;
-  gap: 8px;
-  overflow-x: auto;
+  gap: 6px;
+  flex-wrap: wrap;
   padding: 4px 0 6px 0;
-  scrollbar-width: none;
-}
-.quick-category-filters::-webkit-scrollbar {
-  display: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cat-filter-btn {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 4px 9px;
   border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2143,31 +2148,20 @@ input[type="range"] {
     font-size: 58px;
   }
 
-  body.timer-active-focus-mode .views-slider {
-    grid-template-columns: 1fr 295px !important;
-    gap: 32px !important;
-  }
-
-  body.timer-active-focus-mode .timer-circle-wrapper {
-    width: 280px !important;
-    height: 280px !important;
-  }
-
-  body.timer-active-focus-mode .time-display {
-    font-size: 76px !important;
-  }
-}
-
 /* ZEN FOCUS IMMERSION MODE (DESKTOP >= 650px) */
 @media (min-width: 650px) {
   body.timer-active-focus-mode .views-slider {
-    grid-template-columns: 1fr 265px !important;
-    gap: 24px !important;
+    grid-template-columns: 1fr 340px !important;
+    gap: 20px !important;
+  }
+
+  body.timer-active-focus-mode .views-slider:has(#view-tasks:hover) {
+    grid-template-columns: 1fr 370px !important;
   }
 
   body.timer-active-focus-mode #view-focus {
     border-right: 1px solid var(--card-border);
-    padding-right: 24px !important;
+    padding-right: 20px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -2222,10 +2216,12 @@ input[type="range"] {
     box-shadow: 0 6px 24px rgba(129, 140, 248, 0.32) !important;
   }
 
-  /* Right-hand Task section shrinks into slim focus sidebar */
+  /* Right-hand Task section: comfortable focus sidebar */
   body.timer-active-focus-mode #view-tasks {
-    opacity: 0.32;
+    opacity: 0.34;
     filter: blur(0.35px);
+    overflow-x: hidden !important;
+    padding-right: 6px !important;
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
   }
 
@@ -2239,14 +2235,51 @@ input[type="range"] {
     display: flex !important;
     flex-direction: column !important;
     gap: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  body.timer-active-focus-mode .task-right-meta .btn-task-quick-action {
-    display: none;
+  body.timer-active-focus-mode .task-item {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 9px 12px !important;
   }
 
-  body.timer-active-focus-mode #view-tasks:hover .task-right-meta .btn-task-quick-action {
-    display: inline-flex;
+  body.timer-active-focus-mode .task-right-meta {
+    gap: 5px !important;
+  }
+
+  body.timer-active-focus-mode .btn-task-quick-action {
+    padding: 2.5px 7px !important;
+    font-size: 11px !important;
+  }
+}
+
+@media (min-width: 980px) {
+  body.timer-active-focus-mode .views-slider {
+    grid-template-columns: 1fr 380px !important;
+    gap: 28px !important;
+  }
+
+  body.timer-active-focus-mode .views-slider:has(#view-tasks:hover) {
+    grid-template-columns: 1fr 410px !important;
+  }
+
+  body.timer-active-focus-mode .timer-circle-wrapper {
+    width: 280px !important;
+    height: 280px !important;
+  }
+
+  body.timer-active-focus-mode .time-display {
+    font-size: 76px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  body.timer-active-focus-mode .views-slider {
+    grid-template-columns: 1fr 420px !important;
+    gap: 32px !important;
   }
 }
 
