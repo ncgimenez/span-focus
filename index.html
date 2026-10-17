@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.27">
+  <link rel="stylesheet" href="style.css?v=3.28">
 </head>
 <body>
 
@@ -118,6 +118,10 @@
 
               <div class="task-input-container">
                 <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
+                <select class="target-select" id="taskTarget" title="Save destination (Inbox or Today)" onchange="handleTaskTargetChange()">
+                  <option value="inbox" selected>📥 Inbox</option>
+                  <option value="today">⚡ Today</option>
+                </select>
                 <select class="category-select" id="taskCategory">
                   <option value="Work">Work</option>
                   <option value="Home">Home</option>
@@ -162,22 +166,26 @@
                 <button type="button" class="tag-filter-clear-btn" onclick="clearTagFilter()">✕ Clear</button>
               </div>
 
-              <!-- MAIN TASK TABS: TODAY vs INBOX -->
+              <!-- MAIN TASK TABS: TODAY vs INBOX vs SPLIT -->
               <div class="tasks-main-tabs" id="tasksMainTabs">
-                <button type="button" class="tasks-tab-btn active" id="tabBtnToday" onclick="switchTaskTab('today')">
+                <button type="button" class="tasks-tab-btn active" id="tabBtnToday" onclick="switchTaskTab('today')" title="Focus on Today">
                   <span class="tab-icon">🌅</span>
                   <span class="tab-label" id="tabLabelToday">Today</span>
                   <span class="tab-count-badge" id="tabBadgeToday">0</span>
                 </button>
-                <button type="button" class="tasks-tab-btn" id="tabBtnInbox" onclick="switchTaskTab('inbox')">
+                <button type="button" class="tasks-tab-btn" id="tabBtnInbox" onclick="switchTaskTab('inbox')" title="View unscheduled Inbox">
                   <span class="tab-icon">📥</span>
                   <span class="tab-label">Inbox</span>
                   <span class="tab-count-badge" id="tabBadgeInbox">0</span>
                 </button>
+                <button type="button" class="tasks-tab-btn tab-btn-split" id="tabBtnBoth" onclick="switchTaskTab('both')" title="Side-by-side view (Today & Inbox)">
+                  <span class="tab-icon">◫</span>
+                  <span class="tab-label">Split</span>
+                </button>
               </div>
 
-              <!-- STRUCTURED TASK SECTIONS (TABBED VIEW) -->
-              <div class="tasks-sections-wrapper">
+              <!-- STRUCTURED TASK SECTIONS (TABBED & SPLIT VIEW) -->
+              <div class="tasks-sections-wrapper" id="tasksSectionsWrapper">
                 
                 <!-- PANE A: TODAY & SCHEDULE -->
                 <div class="tasks-column tasks-column-today" id="paneToday">
@@ -518,11 +526,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.27"></script>
-  <script src="js/timer.js?v=3.27"></script>
-  <script src="js/tasks.js?v=3.27"></script>
-  <script src="js/track.js?v=3.27"></script>
-  <script src="js/sync.js?v=3.27"></script>
-  <script src="js/app.js?v=3.27"></script>
+  <script src="js/audio.js?v=3.28"></script>
+  <script src="js/timer.js?v=3.28"></script>
+  <script src="js/tasks.js?v=3.28"></script>
+  <script src="js/track.js?v=3.28"></script>
+  <script src="js/sync.js?v=3.28"></script>
+  <script src="js/app.js?v=3.28"></script>
 </body>
 </html>

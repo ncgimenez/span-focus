@@ -273,13 +273,44 @@ function switchTaskTab(tab) {
 function updateTaskTabsUI() {
   const btnToday = document.getElementById('tabBtnToday');
   const btnInbox = document.getElementById('tabBtnInbox');
+  const btnBoth = document.getElementById('tabBtnBoth');
   const paneToday = document.getElementById('paneToday');
   const paneInbox = document.getElementById('paneInbox');
+  const wrapper = document.getElementById('tasksSectionsWrapper');
+
+  const isBoth = (activeTaskTab === 'both');
+  const showToday = (activeTaskTab === 'today') || isBoth;
+  const showInbox = (activeTaskTab === 'inbox') || isBoth;
 
   if (btnToday) btnToday.classList.toggle('active', activeTaskTab === 'today');
   if (btnInbox) btnInbox.classList.toggle('active', activeTaskTab === 'inbox');
-  if (paneToday) paneToday.style.display = (activeTaskTab === 'today') ? 'flex' : 'none';
-  if (paneInbox) paneInbox.style.display = (activeTaskTab === 'inbox') ? 'flex' : 'none';
+  if (btnBoth) btnBoth.classList.toggle('active', isBoth);
+
+  if (paneToday) paneToday.style.display = showToday ? 'flex' : 'none';
+  if (paneInbox) paneInbox.style.display = showInbox ? 'flex' : 'none';
+
+  if (wrapper) {
+    wrapper.classList.toggle('is-split-view', isBoth);
+  }
+}
+
+function handleTaskTargetChange() {
+  const targetSelect = document.getElementById('taskTarget');
+  if (targetSelect) {
+    localStorage.setItem('span_task_target_default', targetSelect.value);
+  }
+}
+
+function initTaskTargetDefault() {
+  const targetSelect = document.getElementById('taskTarget');
+  if (targetSelect) {
+    const saved = localStorage.getItem('span_task_target_default');
+    if (saved) {
+      targetSelect.value = saved;
+    } else {
+      targetSelect.value = 'inbox'; // Defaults to Inbox as requested!
+    }
+  }
 }
 
 function toggleShortcutsModal() {
@@ -1457,12 +1488,15 @@ function createTaskDOMElement(task, isSubtask = false) {
 function addTask() {
   const input = document.getElementById('taskInput');
   const catSelect = document.getElementById('taskCategory');
+  const targetSelect = document.getElementById('taskTarget');
   const text = input ? input.value.trim() : '';
   const category = catSelect ? catSelect.value : 'Work';
+  const target = targetSelect ? targetSelect.value : 'inbox';
 
   if (!text) return;
 
-  const todayStr = getLocalDateString();
+  const isToday = (target === 'today');
+  const scheduledDate = isToday ? getLocalDateString() : null;
 
   const newTask = {
     id: 't_' + Date.now(),
@@ -1473,7 +1507,7 @@ function addTask() {
     isFavorite: false,
     isEvent: false,
     parentEventId: null,
-    scheduledDate: todayStr,
+    scheduledDate: scheduledDate,
     scheduledTime: null
   };
 
@@ -1482,6 +1516,14 @@ function addTask() {
   if (input) input.value = '';
 
   saveTasks();
+
+  if (typeof showToast === 'function') {
+    if (isToday) {
+      showToast("Task added to Today! ⚡", "⚡");
+    } else {
+      showToast("Task saved to Inbox! 📥", "📥");
+    }
+  }
 }
 
 function moveTaskToToday(id) {
@@ -2128,6 +2170,8 @@ document.addEventListener('keydown', (e) => {
 autoArchivePastDays();
 checkScheduledTasksForToday();
 loadSampleTasksIfEmpty(false);
+initTaskTargetDefault();
+updateTaskTabsUI();
 if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 
 window.addEventListener('focus', () => {
