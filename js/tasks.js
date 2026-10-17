@@ -797,6 +797,30 @@ function renderTasks() {
     return createTaskDOMElement(item, false);
   }
 
+  // Helper pour formater l'heure actuelle (ex: 23:22)
+  function getNowFormattedTime() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+
+  // Marqueur temporel laser "Heure actuelle / LIVE"
+  function createNowIndicatorElement() {
+    const nowLi = document.createElement('li');
+    nowLi.className = 'timeline-now-indicator';
+    nowLi.id = 'timelineNowIndicator';
+    const timeStr = getNowFormattedTime();
+    nowLi.innerHTML = `
+      <div class="now-indicator-pill" title="Heure actuelle : ${timeStr}">
+        <span class="now-indicator-pulse">●</span>
+        <span class="now-indicator-time">${timeStr}</span>
+      </div>
+      <div class="now-indicator-line"></div>
+    `;
+    return nowLi;
+  }
+
   // 1. Rendu FOCUS DAY (AVEC PROGRESSION CHRONOLOGIQUE VERS LE MOMENT PRÉSENT)
   if (groupFocusDay && focusDayList) {
     if (focusDayItems.length > 0) {
@@ -842,12 +866,27 @@ function renderTasks() {
             focusDayList.appendChild(renderItemAndSubtasks(item));
           });
         }
+
+        // Marqueur laser temporel en direct (Now indicator line)
+        if (currentDayOffset === 0) {
+          focusDayList.appendChild(createNowIndicatorElement());
+        }
       } else if (pastItems.length > 0 && activeItems.length === 0) {
         // En fin de journée (tous les créneaux sont passés) :
         // Afficher tous les créneaux directement
         pastItems.forEach(item => {
           focusDayList.appendChild(renderItemAndSubtasks(item));
         });
+
+        // Marqueur laser temporel en direct après les créneaux passés
+        if (currentDayOffset === 0) {
+          focusDayList.appendChild(createNowIndicatorElement());
+        }
+      } else if (pastItems.length === 0 && activeItems.length > 0) {
+        // En début de journée (aucun créneau passé) :
+        if (currentDayOffset === 0) {
+          focusDayList.appendChild(createNowIndicatorElement());
+        }
       }
 
       // Rendu des créneaux EN COURS / LIVE / À VENIR
@@ -2093,4 +2132,19 @@ setInterval(() => {
     renderTasks();
   }
 }, 60000);
+
+// Keep the live Now indicator line time text updated in real time
+setInterval(() => {
+  const timeEl = document.querySelector('.now-indicator-time');
+  if (timeEl) {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const formatted = `${h}:${m}`;
+    if (timeEl.textContent !== formatted) {
+      timeEl.textContent = formatted;
+    }
+  }
+}, 5000);
+
 
