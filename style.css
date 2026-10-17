@@ -984,9 +984,10 @@ body {
 }
 
 /* ============================================================== */
-/* EVENT CARDS & INTEGRATED SUBTASKS                              */
+/* EVENT & PARENT TASK CARDS WITH SEAMLESS INTEGRATED SUBTASKS    */
 /* ============================================================== */
-.task-item.is-event-card {
+.task-item.is-event-card,
+.task-item.has-subtasks {
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
@@ -998,12 +999,14 @@ body {
   overflow: hidden;
 }
 
-[data-theme="light"] .task-item.is-event-card {
+[data-theme="light"] .task-item.is-event-card,
+[data-theme="light"] .task-item.has-subtasks {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-.event-card-header {
+.event-card-header,
+.parent-task-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1080,37 +1083,46 @@ body {
   transform: scale(0.92);
 }
 
-/* INTEGRATED SUBTASKS INSIDE EVENT CARD */
+/* SEAMLESS INTEGRATED SUBTASKS: LITERALLY IN THE SAME CARD CASE */
 .event-integrated-subtasks {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.14);
+  background: transparent;
+  border: none;
   display: flex;
   flex-direction: column;
-}
-
-[data-theme="light"] .event-integrated-subtasks {
-  border-top-color: rgba(0, 0, 0, 0.06);
-  background: rgba(0, 0, 0, 0.02);
+  gap: 2px;
+  padding: 2px 12px 9px 14px;
 }
 
 .integrated-subtask-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 3.5px 6px;
+  border-radius: 6px;
+  border: none;
   transition: background-color 0.15s ease;
   user-select: none;
   cursor: pointer;
 }
 
-.integrated-subtask-row:last-child {
-  border-bottom: none;
+.integrated-subtask-row:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.integrated-subtask-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+[data-theme="light"] .integrated-subtask-row:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
+
+/* Colored category bar on the side */
+.subtask-cat-bar {
+  width: 3.5px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.subtask-cat-bar.subtask-cat-work { background: var(--cat-work); }
+.subtask-cat-bar.subtask-cat-home { background: var(--cat-home); }
+.subtask-cat-bar.subtask-cat-fun  { background: var(--cat-fun); }
 
 .subtask-checkbox {
   width: 16px;
@@ -1138,7 +1150,7 @@ body {
 }
 
 .integrated-subtask-title {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-main);
   flex: 1;
@@ -1151,30 +1163,23 @@ body {
 .integrated-subtask-row.completed .integrated-subtask-title {
   color: var(--text-muted);
   text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.integrated-subtask-time {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
-  flex-shrink: 0;
+  opacity: 0.55;
 }
 
 .btn-subtask-detach {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
-  padding: 2px 5px;
+  padding: 1px 5px;
   border-radius: 4px;
-  opacity: 0.35;
-  transition: all 0.15s ease;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .integrated-subtask-row:hover .btn-subtask-detach {
-  opacity: 0.85;
+  opacity: 0.65;
 }
 
 .btn-subtask-detach:hover {
@@ -1564,8 +1569,8 @@ body {
 @media (min-width: 860px) {
   .tasks-sections-wrapper {
     display: grid !important;
-    grid-template-columns: 1.05fr 0.95fr !important;
-    gap: 22px !important;
+    grid-template-columns: 1.4fr 0.9fr !important;
+    gap: 24px !important;
     align-items: start !important;
   }
 }
@@ -1573,8 +1578,111 @@ body {
 .tasks-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
+}
+
+/* HERO CONTAINER FOR FOCUS DAY (AGENDA TIMELINE) */
+.tasks-group-focus-day {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  padding: 12px 12px 14px 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.16);
+  transition: all 0.25s ease;
+}
+
+[data-theme="light"] .tasks-group-focus-day {
+  background: rgba(0, 0, 0, 0.015);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.focus-day-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-bottom: 8px !important;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .focus-day-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.focus-day-header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.focus-day-icon {
+  font-size: 15px;
+}
+
+.focus-day-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.focus-day-badge {
+  background: rgba(226, 179, 64, 0.18) !important;
+  color: var(--streak) !important;
+  border: 1px solid rgba(226, 179, 64, 0.3) !important;
+}
+
+.focus-day-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* CALMER / MUTED BACKLOG COLUMN: REDUCED OVERWHELM */
+.tasks-column-backlog {
+  opacity: 0.82;
+  transition: opacity 0.25s ease;
+}
+
+.tasks-column-backlog:hover,
+.tasks-column-backlog:focus-within {
+  opacity: 1;
+}
+
+.backlog-title-bar {
+  border-bottom: 1px dashed var(--card-border) !important;
+  user-select: none;
+}
+
+.btn-toggle-backlog-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-toggle-backlog-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.tasks-column-backlog .task-item {
+  padding: 8px 11px;
+  background: rgba(24, 24, 27, 0.7);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] .tasks-column-backlog .task-item {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.07);
 }
 
 .column-title-bar {

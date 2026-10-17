@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.9">
+  <link rel="stylesheet" href="style.css?v=3.10">
 </head>
 <body>
 
@@ -179,10 +179,14 @@
                   </div>
 
                   <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS) -->
-                  <div class="tasks-group" id="groupFocusDay" style="display: none;">
-                    <div class="tasks-group-header" style="display: flex; justify-content: space-between; align-items: center;">
-                      <span>🌅 Focus Day • Événements prévus</span>
-                      <span class="subview-badge" id="focusDayCountBadge">0</span>
+                  <div class="tasks-group tasks-group-focus-day" id="groupFocusDay" style="display: none;">
+                    <div class="tasks-group-header focus-day-header">
+                      <div class="focus-day-header-left">
+                        <span class="focus-day-icon">🌅</span>
+                        <span class="focus-day-title">Mon Focus Day</span>
+                        <span class="subview-badge focus-day-badge" id="focusDayCountBadge">0</span>
+                      </div>
+                      <span class="focus-day-subtitle">Agenda minuté</span>
                     </div>
                     <ul class="task-list" id="focusDayList"></ul>
                   </div>
@@ -203,13 +207,14 @@
                 </div>
 
                 <!-- COLUMN B : BOÎTE DE TÂCHES (BACKLOG À PLANIFIER) -->
-                <div class="tasks-column tasks-column-backlog">
-                  <div class="column-title-bar">
-                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-                      <span>📥 Boîte de tâches</span>
+                <div class="tasks-column tasks-column-backlog" id="colBacklog">
+                  <div class="column-title-bar backlog-title-bar" onclick="toggleBacklogAccordion()" style="cursor: pointer;" title="Cliquer pour afficher/masquer la boîte">
+                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                      <span id="backlogToggleArrow" style="font-size: 10px; color: var(--text-muted); transition: transform 0.2s ease;">▼</span>
+                      <span>📥 Boîte à idées & tâches</span>
                       <span class="subview-badge" id="backlogCountBadge">0</span>
                     </span>
-                    <span style="font-size: 11.5px; color: var(--text-muted);">À planifier</span>
+                    <button type="button" class="btn-toggle-backlog-pill" id="btnToggleBacklogPill">Masquer</button>
                   </div>
 
                   <!-- SECTION 4: UNPLANNED / SANS DATE -->
@@ -475,11 +480,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.9"></script>
-  <script src="js/timer.js?v=3.9"></script>
-  <script src="js/tasks.js?v=3.9"></script>
-  <script src="js/track.js?v=3.9"></script>
-  <script src="js/sync.js?v=3.9"></script>
-  <script src="js/app.js?v=3.9"></script>
+  <script src="js/audio.js?v=3.10"></script>
+  <script src="js/timer.js?v=3.10"></script>
+  <script src="js/tasks.js?v=3.10"></script>
+  <script src="js/track.js?v=3.10"></script>
+  <script src="js/sync.js?v=3.10"></script>
+  <script src="js/app.js?v=3.10"></script>
 </body>
 </html>
