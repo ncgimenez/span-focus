@@ -26,6 +26,7 @@ let editingCategory = 'Work';
 let editingEstimate = 1;
 let editingIsFavorite = false;
 let isPastOpen = false;
+let isPastFocusDayExpanded = false;
 let newlyAddedTaskId = null;
 let activeTagFilter = null;
 
@@ -761,18 +762,67 @@ function renderTasks() {
     return createTaskDOMElement(item, false);
   }
 
-  // 1. Rendu FOCUS DAY
+  // 1. Rendu FOCUS DAY (AVEC PROGRESSION CHRONOLOGIQUE VERS LE MOMENT PRÉSENT)
   if (groupFocusDay && focusDayList) {
     if (focusDayItems.length > 0) {
       groupFocusDay.style.display = 'block';
       if (focusDayCountBadge) focusDayCountBadge.textContent = focusDayItems.length;
-      focusDayItems.forEach((item, idx) => {
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      // Détecter les créneaux passés plus tôt aujourd'hui
+      const isItemPast = (item) => {
+        if (currentDayOffset !== 0 || !item.scheduledTime) return false;
+        const [h, m] = item.scheduledTime.split(':');
+        const startMins = parseInt(h, 10) * 60 + parseInt(m, 10);
+        const dur = item.duration || (item.estimate || 1) * 25;
+        return (startMins + dur) <= currentMinutes;
+      };
+
+      const pastItems = focusDayItems.filter(isItemPast);
+      const activeItems = focusDayItems.filter(i => !isItemPast(i));
+
+      // Nombre de sous-tâches ou tâches passées non cochées pour le Bilan
+      const uncompletedPastCount = pastItems.reduce((acc, p) => {
+        const subs = tasks.filter(t => String(t.parentEventId) === String(p.id) && !t.completed);
+        return acc + subs.length + (!p.isEvent && !p.completed ? 1 : 0);
+      }, 0);
+
+      // Si des créneaux sont déjà passés aujourd'hui et qu'il y a des créneaux en cours/à venir :
+      // On regroupe les créneaux passés dans un accordéon fluide pour que le planning descende directement sur le LIVE !
+      if (pastItems.length > 0 && activeItems.length > 0) {
+        const pastToggleLi = document.createElement('li');
+        pastToggleLi.className = 'past-focus-toggle-row';
+        pastToggleLi.innerHTML = `
+          <button type="button" class="btn-toggle-past-slots" onclick="togglePastFocusDay()" title="Afficher/masquer les créneaux passés plus tôt aujourd'hui">
+            <span class="past-toggle-label">⏱️ Plus tôt aujourd'hui (${pastItems.length} passé${pastItems.length > 1 ? 's' : ''})</span>
+            <span class="past-toggle-icon">${isPastFocusDayExpanded ? '▴ Replier' : '▾ Déplier'}</span>
+          </button>
+        `;
+        focusDayList.appendChild(pastToggleLi);
+
+        if (isPastFocusDayExpanded) {
+          pastItems.forEach(item => {
+            focusDayList.appendChild(renderItemAndSubtasks(item));
+          });
+        }
+      } else if (pastItems.length > 0 && activeItems.length === 0) {
+        // En fin de journée (tous les créneaux sont passés) :
+        // Afficher tous les créneaux directement
+        pastItems.forEach(item => {
+          focusDayList.appendChild(renderItemAndSubtasks(item));
+        });
+      }
+
+      // Rendu des créneaux EN COURS / LIVE / À VENIR
+      activeItems.forEach((item, idx) => {
         focusDayList.appendChild(renderItemAndSubtasks(item));
 
         // Interstitial free-time gap between scheduled items
-        if (idx < focusDayItems.length - 1) {
+        if (idx < activeItems.length - 1) {
           const currentEnd = calculateEndTime(item.scheduledTime, item.duration || (item.estimate || 1) * 25);
-          const nextStart = focusDayItems[idx + 1].scheduledTime;
+          const nextStart = activeItems[idx + 1].scheduledTime;
           if (currentEnd && nextStart) {
             const gapMins = calculateMinutesDiff(currentEnd, nextStart);
             if (gapMins >= 10) {
@@ -800,6 +850,27 @@ function renderTasks() {
           }
         }
       });
+
+      // RAPPEL FIN DE JOURNÉE / BILAN :
+      // Si des tâches d'événements passés n'ont pas encore été cochées :
+      if (currentDayOffset === 0 && uncompletedPastCount > 0 && (now.getHours() >= 17 || activeItems.length === 0)) {
+        const reviewLi = document.createElement('li');
+        reviewLi.className = 'daily-review-reminder-card';
+        reviewLi.innerHTML = `
+          <div class="review-reminder-body">
+            <div class="review-reminder-header">
+              <span class="review-reminder-icon">🌙</span>
+              <span class="review-reminder-title">Bilan de fin de journée</span>
+              <span class="review-reminder-badge">${uncompletedPastCount} tâche${uncompletedPastCount > 1 ? 's' : ''} à valider</span>
+            </div>
+            <div class="review-reminder-desc">Pense à cocher les tâches que tu as réalisées aujourd'hui dans tes événements passés :</div>
+            ${(!isPastFocusDayExpanded && activeItems.length > 0) ? `
+              <button type="button" class="btn-review-toggle-past" onclick="togglePastFocusDay()">🔍 Vérifier mes tâches passées ▾</button>
+            ` : ''}
+          </div>
+        `;
+        focusDayList.appendChild(reviewLi);
+      }
     } else {
       groupFocusDay.style.display = 'none';
     }
@@ -968,6 +1039,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || durationMinutes) : null;
 
   let isLiveNow = false;
+  let isPastBlock = false;
   if (task.scheduledTime && task.scheduledDate === todayRealStr && !task.completed) {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -976,11 +1048,12 @@ function createTaskDOMElement(task, isSubtask = false) {
     const dur = task.duration || durationMinutes;
     const endMins = startMins + dur;
     isLiveNow = (currentMinutes >= startMins && currentMinutes < endMins);
+    isPastBlock = (endMins <= currentMinutes);
   }
 
   if (task.isEvent) {
     wrapper.innerHTML = `
-      <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isLiveNow ? 'is-live-now' : ''}" 
+      <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isLiveNow ? 'is-live-now' : ''} ${isPastBlock ? 'is-past-slot' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
            ondblclick="openEditModalForTask('${task.id}')"
@@ -1001,8 +1074,6 @@ function createTaskDOMElement(task, isSubtask = false) {
           </div>
 
           <div class="event-header-right">
-            ${progressBadge}
-            <button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une sous-tâche">+</button>
             <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cet événement'}">🎯</button>
             ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
             ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priorité">⭐</span>` : ''}
@@ -1051,7 +1122,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   } else {
     // STANDARD TASK CARD: WITH CHECKBOX
     wrapper.innerHTML = `
-      <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''} ${isLiveNow ? 'is-live-now' : ''}" 
+      <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''} ${isLiveNow ? 'is-live-now' : ''} ${isPastBlock ? 'is-past-slot' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
            ondblclick="openEditModalForTask('${task.id}')"
@@ -1077,7 +1148,6 @@ function createTaskDOMElement(task, isSubtask = false) {
 
           <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
           <div class="task-right-meta">
-            ${progressBadge}
             <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cette tâche'}">🎯</button>
             ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
               ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
@@ -1401,6 +1471,11 @@ function toggleFocusBacklog(forceState) {
   if (typeof showToast === 'function') {
     showToast(isBacklogFocusActive ? '🎯 Mode Focus Backlog (journée masquée)' : 'Vue normale rétablie', '🎯');
   }
+}
+
+function togglePastFocusDay() {
+  isPastFocusDayExpanded = !isPastFocusDayExpanded;
+  renderTasks();
 }
 
 function toggleFocusToday(forceState) {

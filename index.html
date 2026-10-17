@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.22">
+  <link rel="stylesheet" href="style.css?v=3.23">
 </head>
 <body>
 
@@ -60,11 +60,10 @@
             <div class="spotlight-container">
               <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
                 <span class="spotlight-dot">🎯</span>
-                <span class="spotlight-title" id="spotlightText">Task name</span>
+                <span class="spotlight-title" id="spotlightText" onclick="toggleTaskPicker()" title="Changer de tâche focus">Task name</span>
                 <div class="spotlight-actions">
-                  <button class="btn-spotlight-action mini" type="button" onclick="completeSpotlightTask()" title="Complete">✓</button>
-                  <button class="btn-spotlight-action mini" type="button" onclick="toggleTaskPicker()" title="Switch task">⇄</button>
-                  <button class="btn-spotlight-action mini" type="button" onclick="dismissSpotlightTask()" title="Clear">✕</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="completeSpotlightTask()" title="Marquer terminée">✓</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="dismissSpotlightTask()" title="Retirer du focus">✕</button>
                 </div>
               </div>
 
@@ -128,40 +127,40 @@
               </div>
 
               <!-- QUICK CATEGORY FILTERS (ALL / WORK / HOME / FUN) -->
-              <div class="quick-category-filters" id="quickCategoryFilters">
-                <button type="button" class="cat-filter-btn active" data-filter="all" onclick="setCategoryFilter('all')">
-                  <span>Tout</span> <span class="cat-count-pill" id="catCountAll">0</span>
-                </button>
-                <button type="button" class="cat-filter-btn" data-filter="Work" onclick="setCategoryFilter('Work')">
-                  <span class="cat-dot-indicator dot-work"></span>
-                  <span>Work</span> <span class="cat-count-pill" id="catCountWork">0</span>
-                </button>
-                <button type="button" class="cat-filter-btn" data-filter="Home" onclick="setCategoryFilter('Home')">
-                  <span class="cat-dot-indicator dot-home"></span>
-                  <span>Home</span> <span class="cat-count-pill" id="catCountHome">0</span>
-                </button>
-                <button type="button" class="cat-filter-btn" data-filter="Fun" onclick="setCategoryFilter('Fun')">
-                  <span class="cat-dot-indicator dot-fun"></span>
-                  <span>Fun</span> <span class="cat-count-pill" id="catCountFun">0</span>
-                </button>
+              <!-- UNIFIED TOOLBAR: QUICK CATEGORY FILTERS (LEFT) + COMPACT SUBVIEW SHORTCUTS (RIGHT) -->
+              <div class="tasks-toolbar-unified">
+                <div class="quick-category-filters" id="quickCategoryFilters">
+                  <button type="button" class="cat-filter-btn active" data-filter="all" onclick="setCategoryFilter('all')">
+                    <span>Tout</span> <span class="cat-count-pill" id="catCountAll">0</span>
+                  </button>
+                  <button type="button" class="cat-filter-btn" data-filter="Work" onclick="setCategoryFilter('Work')">
+                    <span class="cat-dot-indicator dot-work"></span>
+                    <span>Work</span> <span class="cat-count-pill" id="catCountWork">0</span>
+                  </button>
+                  <button type="button" class="cat-filter-btn" data-filter="Home" onclick="setCategoryFilter('Home')">
+                    <span class="cat-dot-indicator dot-home"></span>
+                    <span>Home</span> <span class="cat-count-pill" id="catCountHome">0</span>
+                  </button>
+                  <button type="button" class="cat-filter-btn" data-filter="Fun" onclick="setCategoryFilter('Fun')">
+                    <span class="cat-dot-indicator dot-fun"></span>
+                    <span>Fun</span> <span class="cat-count-pill" id="catCountFun">0</span>
+                  </button>
+                </div>
+
+                <div class="quick-subview-shortcuts">
+                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openArchiveSubView()" title="Tâches archivées">
+                    <span>🗄️</span> <span class="cat-count-pill" id="archiveCountBadge">0</span>
+                  </button>
+                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openPlannedSubView()" title="Toutes les tâches planifiées">
+                    <span>📅</span> <span class="cat-count-pill" id="plannedCountBadge">0</span>
+                  </button>
+                </div>
               </div>
 
               <!-- ACTIVE TAG FILTER BANNER -->
               <div class="tag-filter-active-bar" id="tagFilterActiveBar">
                 <span id="tagFilterActiveLabel">Filter: #tag</span>
                 <button type="button" class="tag-filter-clear-btn" onclick="clearTagFilter()">✕ Clear</button>
-              </div>
-
-              <!-- SYMMETRIC ACTION BAR: ARCHIVE (LEFT) | PLANNED (RIGHT) -->
-              <div class="tasks-action-bar">
-                <button class="btn-subview-nav" type="button" onclick="openArchiveSubView()">
-                  <span>🗄️ Archive</span>
-                  <span class="subview-badge" id="archiveCountBadge">0</span>
-                </button>
-                <button class="btn-subview-nav" type="button" onclick="openPlannedSubView()">
-                  <span>📅 Planned</span>
-                  <span class="subview-badge" id="plannedCountBadge">0</span>
-                </button>
               </div>
 
               <!-- STRUCTURED TASK SECTIONS (SPLIT INTO 2 COLUMNS ON DESKTOP) -->
@@ -189,7 +188,6 @@
                         <span class="focus-day-title">Mon Focus Day</span>
                         <span class="subview-badge focus-day-badge" id="focusDayCountBadge">0</span>
                       </div>
-                      <span class="focus-day-subtitle">Agenda minuté</span>
                     </div>
                     <ul class="task-list" id="focusDayList"></ul>
                   </div>
@@ -489,11 +487,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.22"></script>
-  <script src="js/timer.js?v=3.22"></script>
-  <script src="js/tasks.js?v=3.22"></script>
-  <script src="js/track.js?v=3.22"></script>
-  <script src="js/sync.js?v=3.22"></script>
-  <script src="js/app.js?v=3.22"></script>
+  <script src="js/audio.js?v=3.23"></script>
+  <script src="js/timer.js?v=3.23"></script>
+  <script src="js/tasks.js?v=3.23"></script>
+  <script src="js/track.js?v=3.23"></script>
+  <script src="js/sync.js?v=3.23"></script>
+  <script src="js/app.js?v=3.23"></script>
 </body>
 </html>
