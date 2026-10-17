@@ -954,7 +954,7 @@ function createTaskDOMElement(task, isSubtask = false) {
     ? `<span class="event-progress-pill" title="Sous-tâches terminées">${doneSubCount}/${childSubtasks.length}</span>`
     : '';
 
-  const quickPlanBtnLabel = currentDayOffset === 0 ? "⚡ + Aujourd'hui" : (currentDayOffset === 1 ? "🌙 + Demain" : "📅 + Planifier");
+  const quickPlanBtnTooltip = currentDayOffset === 0 ? "Planifier pour aujourd'hui" : (currentDayOffset === 1 ? "Planifier pour demain" : "Planifier pour ce jour");
   const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || durationMinutes) : null;
 
   if (task.isEvent) {
@@ -1047,7 +1047,7 @@ function createTaskDOMElement(task, isSubtask = false) {
           <div class="task-right-meta">
             ${progressBadge}
             ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
-              ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="Ajouter à la journée">${quickPlanBtnLabel}</button>`
+              ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
               : ''}
             ${!task.completed && (task.scheduledDate === targetDateStr && !task.isEvent && !isSubtask)
               ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦</button>`
