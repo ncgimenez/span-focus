@@ -963,11 +963,13 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
-           onclick="openEditModalForTask('${task.id}')">
+           onclick="toggleTaskFocus('${task.id}')"
+           ondblclick="openEditModalForTask('${task.id}')"
+           title="Cliquer pour focaliser sur le timer • Double-clic pour modifier">
         
         <!-- EVENT HEADER: NO CHECKBOX! -->
         <div class="event-card-header">
-          <div class="event-header-left" onclick="openEditModalForTask('${task.id}')" style="cursor: pointer;">
+          <div class="event-header-left" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" style="cursor: pointer;">
             ${task.scheduledTime ? `
               <div class="task-time-stacked" title="Créneau prévu : ${task.scheduledTime}${taskEndTime ? ' à ' + taskEndTime : ''}">
                 <span class="time-start">${task.scheduledTime}</span>
@@ -981,13 +983,15 @@ function createTaskDOMElement(task, isSubtask = false) {
           <div class="event-header-right">
             ${progressBadge}
             <button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une sous-tâche">+</button>
+            <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cet événement'}">🎯</button>
             ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
-            ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priorité">⭐</span>` : ''}
+            ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priorité">⭐</span>` : ''}
             
             <div class="task-menu-container">
               <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Actions événement">⋮</button>
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ Voir les détails &amp; Modifier</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cette tâche'}</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')">➕ Ajouter tâche dans cet événement</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convertir en tâche simple</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Retirer priorité' : '⭐ Mettre en priorité'}</button>
@@ -1005,11 +1009,14 @@ function createTaskDOMElement(task, isSubtask = false) {
                    id="task-node-${sub.id}"
                    draggable="true"
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   onclick="event.stopPropagation(); openEditModalForTask('${sub.id}')">
+                   onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')"
+                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
+                   title="Cliquer pour focaliser • Double-clic pour modifier">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
+                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px;" title="Priorité">⭐</span>' : ''}
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
@@ -1025,7 +1032,9 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
-           onclick="openEditModalForTask('${task.id}')">
+           onclick="toggleTaskFocus('${task.id}')"
+           ondblclick="openEditModalForTask('${task.id}')"
+           title="Cliquer pour focaliser sur le timer • Double-clic pour modifier">
         
         <div class="parent-task-card-header">
           <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS) -->
@@ -1047,6 +1056,7 @@ function createTaskDOMElement(task, isSubtask = false) {
           <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
           <div class="task-right-meta">
             ${progressBadge}
+            <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cette tâche'}">🎯</button>
             ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
               ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
               : ''}
@@ -1055,13 +1065,13 @@ function createTaskDOMElement(task, isSubtask = false) {
               : ''}
             ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
             ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
-            ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
+            ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
             
             <div class="task-menu-container">
               <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ Voir les détails &amp; Modifier</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); setSpotlightTaskById('${task.id}')">🎯 Focus cette tâche</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Désélectionner focus' : 'Focus cette tâche'}</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Retirer priorité' : '⭐ Mettre en priorité'}</button>
                 ${(!task.scheduledDate || task.scheduledDate !== targetDateStr)
                   ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Planifier pour ${currentDayOffset === 0 ? "aujourd'hui" : "demain"}</button>`
@@ -1087,11 +1097,14 @@ function createTaskDOMElement(task, isSubtask = false) {
                    id="task-node-${sub.id}"
                    draggable="true"
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   onclick="event.stopPropagation(); openEditModalForTask('${sub.id}')">
+                   onclick="event.stopPropagation(); toggleTaskFocus('${sub.id}')"
+                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
+                   title="Cliquer pour focaliser • Double-clic pour modifier">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
+                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px;" title="Priorité">⭐</span>' : ''}
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
@@ -1240,7 +1253,6 @@ function moveTaskToBacklog(id) {
   if (!t) return;
   t.scheduledDate = null;
   t.scheduledTime = null;
-  t.isFavorite = false;
   saveTasks();
   if (typeof showToast === 'function') showToast("Déplacée dans le backlog !", '📦');
 }
@@ -1324,11 +1336,21 @@ function toggleFocusBacklog(forceState) {
   }
 }
 
+function toggleTaskFocus(id) {
+  if (activeTask && String(activeTask.id) === String(id)) {
+    dismissSpotlightTask();
+    if (typeof showToast === 'function') showToast('Focus retiré du timer', '🎯');
+  } else {
+    setSpotlightTaskById(id);
+    const t = tasks.find(x => String(x.id) === String(id));
+    if (typeof showToast === 'function') showToast(`🎯 Focus : ${t ? t.title : 'Tâche'}`, '🎯');
+  }
+}
+
 function setSpotlightTaskById(id) {
   const target = tasks.find(t => String(t.id) === String(id));
   if (!target) return;
 
-  target.isFavorite = false;
   activeTask = target;
   window.SpanState.activeTask = activeTask;
 
@@ -1337,28 +1359,13 @@ function setSpotlightTaskById(id) {
   const isBacklogTask = !target.scheduledDate || target.scheduledDate !== targetDateStr;
   toggleFocusBacklog(isBacklogTask);
 
-  const favs = tasks.filter(t => t.isFavorite && !t.completed);
-  if (favs.length > 2) {
-    favs[favs.length - 1].isFavorite = false;
-  }
-
   saveTasks();
-  if (typeof switchView === 'function') {
+  if (typeof switchView === 'function' && window.innerWidth < 650) {
     switchView('focus', document.getElementById('nav-btn-focus'));
   }
 }
 
 function dismissSpotlightTask() {
-  if (activeTask) {
-    const prev = tasks.find(t => String(t.id) === String(activeTask.id));
-    if (prev && !prev.completed) {
-      const currentFavs = tasks.filter(t => t.isFavorite && !t.completed);
-      if (currentFavs.length >= 3) {
-        currentFavs[currentFavs.length - 1].isFavorite = false;
-      }
-      prev.isFavorite = true;
-    }
-  }
   activeTask = null;
   window.SpanState.activeTask = null;
   toggleFocusBacklog(false);
@@ -1445,7 +1452,6 @@ function renderPickerRow(t) {
 function selectPickerTask(taskId) {
   const found = tasks.find(x => String(x.id) === String(taskId));
   if (found) {
-    found.isFavorite = false;
     activeTask = found;
     window.SpanState.activeTask = activeTask;
   }

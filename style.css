@@ -1568,6 +1568,36 @@ body {
   }
 }
 
+.btn-task-quick-action.task-focus-btn {
+  color: var(--streak);
+  background: rgba(226, 179, 64, 0.08);
+  border-color: rgba(226, 179, 64, 0.22);
+  opacity: 0;
+}
+.task-item:hover .btn-task-quick-action.task-focus-btn,
+.task-item:focus-within .btn-task-quick-action.task-focus-btn,
+.task-item.in-focus-active .btn-task-quick-action.task-focus-btn {
+  opacity: 0.9;
+}
+.btn-task-quick-action.task-focus-btn:hover {
+  opacity: 1;
+  background: rgba(226, 179, 64, 0.22);
+  border-color: var(--streak);
+  transform: translateY(-1px);
+}
+.btn-task-quick-action.task-focus-btn.active {
+  background: var(--streak);
+  color: #121214;
+  border-color: var(--streak);
+  opacity: 1;
+}
+@media (hover: none) {
+  .btn-task-quick-action.task-focus-btn {
+    opacity: 0.75;
+  }
+}
+
+
 /* TODAY KICKOFF CARD (WHEN TODAY IS EMPTY BUT BACKLOG HAS TASKS) */
 .today-kickoff-card {
   background: rgba(255, 255, 255, 0.03);
