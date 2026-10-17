@@ -191,7 +191,7 @@ async function requestWakeLock() {
       });
     }
   } catch (err) {
-    console.warn('Wake Lock non supporté ou bloqué:', err.message);
+    console.warn('Wake Lock not supported or blocked:', err.message);
   }
 }
 

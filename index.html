@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.25">
+  <link rel="stylesheet" href="style.css?v=3.26">
 </head>
 <body>
 
@@ -60,10 +60,10 @@
             <div class="spotlight-container">
               <div class="spotlight-card compact" id="spotlightCard" style="display: none;">
                 <span class="spotlight-dot">🎯</span>
-                <span class="spotlight-title" id="spotlightText" onclick="toggleTaskPicker()" title="Changer de tâche focus">Task name</span>
+                <span class="spotlight-title" id="spotlightText" onclick="toggleTaskPicker()" title="Change focus task">Task name</span>
                 <div class="spotlight-actions">
-                  <button class="btn-spotlight-action mini" type="button" onclick="completeSpotlightTask()" title="Marquer terminée">✓</button>
-                  <button class="btn-spotlight-action mini" type="button" onclick="dismissSpotlightTask()" title="Retirer du focus">✕</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="completeSpotlightTask()" title="Mark completed">✓</button>
+                  <button class="btn-spotlight-action mini" type="button" onclick="dismissSpotlightTask()" title="Remove from focus">✕</button>
                 </div>
               </div>
 
@@ -112,8 +112,8 @@
               
               <!-- ZEN FOCUS IMMERSION INDICATOR -->
               <div class="immersion-indicator-pill" id="immersionIndicatorPill">
-                <span>✨ Mode Immersion</span>
-                <span class="immersion-hint">• survolez pour afficher</span>
+                <span>✨ Focus Mode</span>
+                <span class="immersion-hint">• hover to reveal</span>
               </div>
 
               <div class="task-input-container">
@@ -126,12 +126,11 @@
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
-              <!-- QUICK CATEGORY FILTERS (ALL / WORK / HOME / FUN) -->
               <!-- UNIFIED TOOLBAR: QUICK CATEGORY FILTERS (LEFT) + COMPACT SUBVIEW SHORTCUTS (RIGHT) -->
               <div class="tasks-toolbar-unified">
                 <div class="quick-category-filters" id="quickCategoryFilters">
                   <button type="button" class="cat-filter-btn active" data-filter="all" onclick="setCategoryFilter('all')">
-                    <span>Tout</span> <span class="cat-count-pill" id="catCountAll">0</span>
+                    <span>All</span> <span class="cat-count-pill" id="catCountAll">0</span>
                   </button>
                   <button type="button" class="cat-filter-btn" data-filter="Work" onclick="setCategoryFilter('Work')">
                     <span class="cat-dot-indicator dot-work"></span>
@@ -148,10 +147,10 @@
                 </div>
 
                 <div class="quick-subview-shortcuts">
-                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openArchiveSubView()" title="Tâches archivées">
+                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openArchiveSubView()" title="Archived tasks">
                     <span>🗄️</span> <span class="cat-count-pill" id="archiveCountBadge">0</span>
                   </button>
-                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openPlannedSubView()" title="Toutes les tâches planifiées">
+                  <button class="cat-filter-btn btn-shortcut-subview" type="button" onclick="openPlannedSubView()" title="All scheduled tasks">
                     <span>📅</span> <span class="cat-count-pill" id="plannedCountBadge">0</span>
                   </button>
                 </div>
@@ -163,29 +162,42 @@
                 <button type="button" class="tag-filter-clear-btn" onclick="clearTagFilter()">✕ Clear</button>
               </div>
 
-              <!-- STRUCTURED TASK SECTIONS (SPLIT INTO 2 COLUMNS ON DESKTOP) -->
+              <!-- MAIN TASK TABS: TODAY vs INBOX -->
+              <div class="tasks-main-tabs" id="tasksMainTabs">
+                <button type="button" class="tasks-tab-btn active" id="tabBtnToday" onclick="switchTaskTab('today')">
+                  <span class="tab-icon">🌅</span>
+                  <span class="tab-label" id="tabLabelToday">Today</span>
+                  <span class="tab-count-badge" id="tabBadgeToday">0</span>
+                </button>
+                <button type="button" class="tasks-tab-btn" id="tabBtnInbox" onclick="switchTaskTab('inbox')">
+                  <span class="tab-icon">📥</span>
+                  <span class="tab-label">Inbox</span>
+                  <span class="tab-count-badge" id="tabBadgeInbox">0</span>
+                </button>
+              </div>
+
+              <!-- STRUCTURED TASK SECTIONS (TABBED VIEW) -->
               <div class="tasks-sections-wrapper">
                 
-                <!-- COLUMN A : MA JOURNÉE (AUJOURD'HUI / DEMAIN) -->
-                <div class="tasks-column tasks-column-today">
+                <!-- PANE A: TODAY & SCHEDULE -->
+                <div class="tasks-column tasks-column-today" id="paneToday">
                   <div class="column-title-bar">
                     <div class="day-navigator">
-                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(-1)" title="Jour précédent">‹</button>
-                      <span class="day-nav-label" id="dayNavLabel">Aujourd'hui</span>
-                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(1)" title="Préparer le lendemain (›)">›</button>
+                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(-1)" title="Previous day">‹</button>
+                      <span class="day-nav-label" id="dayNavLabel">Today</span>
+                      <button type="button" class="btn-day-nav" onclick="navigateDayOffset(1)" title="Next day (›)">›</button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px;">
                       <span class="today-time-estimate" id="todayTimeEstimate" style="display: none;"></span>
-                      <button type="button" class="btn-backlog-focus btn-today-focus" id="btnTodayFocus" onclick="toggleFocusToday()" title="Mode Focus Journée (masque la boîte)">🎯 Focus</button>
                     </div>
                   </div>
 
-                  <!-- SECTION 1: FOCUS DAY (ÉVÉNEMENTS & BLOCS MINUTÉS) -->
+                  <!-- SECTION 1: FOCUS DAY (SCHEDULE & TIMELINE) -->
                   <div class="tasks-group tasks-group-focus-day" id="groupFocusDay" style="display: none;">
                     <div class="tasks-group-header focus-day-header">
                       <div class="focus-day-header-left">
                         <span class="focus-day-icon">🌅</span>
-                        <span class="focus-day-title">Mon Focus Day</span>
+                        <span class="focus-day-title">Today's Schedule</span>
                         <span class="subview-badge focus-day-badge" id="focusDayCountBadge">0</span>
                       </div>
                     </div>
@@ -194,31 +206,29 @@
 
                   <!-- SECTION 2: PRIORITIES SECTION -->
                   <div class="tasks-group" id="groupPriorities" style="display: none;">
-                    <div class="tasks-group-header">⭐ Priorités du jour</div>
+                    <div class="tasks-group-header">⭐ Priorities</div>
                     <ul class="task-list" id="prioritiesList"></ul>
                   </div>
 
                   <!-- SECTION 3: REGULAR TODAY TASKS -->
                   <div class="tasks-group" id="groupTasks">
                     <div class="tasks-group-header" id="labelTasksHeader" style="display: flex; justify-content: space-between; align-items: center;">
-                      <span id="titleTasksHeader">⚡ Tâches du jour</span>
+                      <span id="titleTasksHeader">⚡ Today's Tasks</span>
                     </div>
                     <ul class="task-list" id="taskList"></ul>
                   </div>
                 </div>
 
-                <!-- COLUMN B : BOÎTE DE TÂCHES (BACKLOG À PLANIFIER) -->
-                <div class="tasks-column tasks-column-backlog" id="colBacklog">
-                  <div class="column-title-bar backlog-title-bar" onclick="toggleBacklogAccordion()" style="cursor: pointer;" title="Cliquer pour afficher/masquer la boîte">
-                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                      <span id="backlogToggleArrow" style="font-size: 10px; color: var(--text-muted); transition: transform 0.2s ease;">▼</span>
-                      <span>📥 Boîte à idées & tâches</span>
+                <!-- PANE B: INBOX & BACKLOG -->
+                <div class="tasks-column tasks-column-backlog" id="paneInbox" style="display: none;">
+                  <div class="column-title-bar inbox-title-bar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                        <span>📥 Inbox &amp; Backlog</span>
+                      </span>
                       <span class="subview-badge" id="backlogCountBadge">0</span>
-                    </span>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                      <button type="button" class="btn-backlog-focus" id="btnBacklogFocus" onclick="event.stopPropagation(); toggleFocusBacklog()" title="Mode Focus Backlog (estompe la journée)">🎯 Focus</button>
-                      <button type="button" class="btn-toggle-backlog-pill" id="btnToggleBacklogPill">Masquer</button>
                     </div>
+                    <span style="font-size: 11.5px; color: var(--text-muted);">Unscheduled tasks</span>
                   </div>
 
                   <!-- SECTION 4: UNPLANNED / SANS DATE -->
@@ -229,8 +239,11 @@
 
               </div>
 
-              <div class="shortcuts-legend">
-                Shortcuts: Swipe right: Focus • Enter: check • Tab: edit • Long-press: star
+              <!-- FOOTER SHORTCUTS BUTTON -->
+              <div class="shortcuts-footer-bar">
+                <button type="button" class="btn-shortcuts-hint" onclick="toggleShortcutsModal()" title="View keyboard shortcuts">
+                  <span>⌨️ Keyboard Shortcuts</span>
+                </button>
               </div>
             </div>
 
@@ -351,14 +364,14 @@
       <div class="modal-body">
         <label class="modal-label">Type</label>
         <div style="display: flex; gap: 8px; margin-bottom: 2px;">
-          <button type="button" class="cat-pill active" id="btnTypeTask" onclick="setEditItemType('task')">📝 Tâche</button>
-          <button type="button" class="cat-pill" id="btnTypeEvent" onclick="setEditItemType('event')">📅 Événement</button>
+          <button type="button" class="cat-pill active" id="btnTypeTask" onclick="setEditItemType('task')">📝 Task</button>
+          <button type="button" class="cat-pill" id="btnTypeEvent" onclick="setEditItemType('event')">📅 Event</button>
         </div>
 
         <div id="rowParentEvent" style="display: flex; flex-direction: column; gap: 4px;">
-          <label class="modal-label">Rattachée à l'Événement</label>
+          <label class="modal-label">Parent Event</label>
           <select id="editParentEvent" class="modal-input" style="cursor: pointer; padding: 10px 12px; font-size: 14px;">
-            <option value="">(Tâche indépendante)</option>
+            <option value="">(Independent Task)</option>
           </select>
         </div>
 
@@ -382,18 +395,18 @@
 
         <div style="display: flex; gap: 10px;">
           <div style="flex: 1.2;">
-            <label class="modal-label">Date prévue</label>
+            <label class="modal-label">Scheduled Date</label>
             <input type="date" class="modal-input" id="editScheduledDate">
             <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = new Date().toISOString().slice(0, 10)">⚡ Aujourd'hui</button>
-              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = ''">📦 Sans date</button>
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = new Date().toISOString().slice(0, 10)">⚡ Today</button>
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = ''">📦 No Date</button>
             </div>
           </div>
           <div style="flex: 1;">
-            <label class="modal-label">Heure / Bloc</label>
+            <label class="modal-label">Time / Block</label>
             <input type="time" class="modal-input" id="editScheduledTime">
             <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledTime').value = ''">✕ Sans heure</button>
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledTime').value = ''">✕ No Time</button>
             </div>
           </div>
         </div>
@@ -404,7 +417,7 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <button type="button" class="btn-modal-delete" id="btnModalDeleteTask" onclick="deleteCurrentEditingTask()" title="Supprimer définitivement la tâche">🗑️ Supprimer</button>
+        <button type="button" class="btn-modal-delete" id="btnModalDeleteTask" onclick="deleteCurrentEditingTask()" title="Delete task permanently">🗑️ Delete</button>
         <div style="display: flex; gap: 8px;">
           <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
           <button class="btn-save" onclick="saveTaskModal()">Save Changes</button>
@@ -455,8 +468,26 @@
           </label>
         </div>
         <button class="btn-backup" type="button" style="width: 100%; margin-top: 8px; background: rgba(129, 140, 248, 0.12); border-color: rgba(129, 140, 248, 0.3); color: var(--accent); font-weight: 600;" onclick="loadSampleTasksIfEmpty(true); closeSettingsModal();">
-          🎲 Recharger journée exemple (événements & créneaux)
+          🎲 Load sample day (schedule & events)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEYBOARD SHORTCUTS MODAL -->
+  <div class="modal-overlay" id="shortcutsModalOverlay">
+    <div class="modal-card" style="max-width: 360px;">
+      <div class="modal-header">
+        <span>Keyboard Shortcuts</span>
+        <button class="modal-close" onclick="toggleShortcutsModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px; font-size: 13.5px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">Space</kbd> <span style="color: var(--text-muted);">Start / Pause timer</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">N</kbd> <span style="color: var(--text-muted);">Quick add task</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">Enter</kbd> <span style="color: var(--text-muted);">Save task in modal</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">Esc</kbd> <span style="color: var(--text-muted);">Close any modal</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">Double click</kbd> <span style="color: var(--text-muted);">Edit task / event</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;"><kbd class="kbd-key">Swipe right</kbd> <span style="color: var(--text-muted);">Set as focus task</span></div>
       </div>
     </div>
   </div>
@@ -487,11 +518,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.25"></script>
-  <script src="js/timer.js?v=3.25"></script>
-  <script src="js/tasks.js?v=3.25"></script>
-  <script src="js/track.js?v=3.25"></script>
-  <script src="js/sync.js?v=3.25"></script>
-  <script src="js/app.js?v=3.25"></script>
+  <script src="js/audio.js?v=3.26"></script>
+  <script src="js/timer.js?v=3.26"></script>
+  <script src="js/tasks.js?v=3.26"></script>
+  <script src="js/track.js?v=3.26"></script>
+  <script src="js/sync.js?v=3.26"></script>
+  <script src="js/app.js?v=3.26"></script>
 </body>
 </html>
