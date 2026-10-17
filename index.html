@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.6">
 </head>
 <body>
 
@@ -110,6 +110,13 @@
             
             <!-- SUB-VIEW 1: MAIN TASK LIST -->
             <div id="tasks-main-subview" class="tasks-subview-container">
+              
+              <!-- ZEN FOCUS IMMERSION INDICATOR -->
+              <div class="immersion-indicator-pill" id="immersionIndicatorPill">
+                <span>✨ Mode Immersion</span>
+                <span class="immersion-hint">• survolez pour afficher</span>
+              </div>
+
               <div class="task-input-container">
                 <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
                 <select class="category-select" id="taskCategory">
@@ -465,11 +472,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.5"></script>
-  <script src="js/timer.js?v=3.5"></script>
-  <script src="js/tasks.js?v=3.5"></script>
-  <script src="js/track.js?v=3.5"></script>
-  <script src="js/sync.js?v=3.5"></script>
-  <script src="js/app.js?v=3.5"></script>
+  <script src="js/audio.js?v=3.6"></script>
+  <script src="js/timer.js?v=3.6"></script>
+  <script src="js/tasks.js?v=3.6"></script>
+  <script src="js/track.js?v=3.6"></script>
+  <script src="js/sync.js?v=3.6"></script>
+  <script src="js/app.js?v=3.6"></script>
 </body>
 </html>

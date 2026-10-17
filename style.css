@@ -1129,6 +1129,90 @@ body {
   color: #b45309;
 }
 
+/* FREE-TIME GAP DIVIDERS (THIN INTERSTITIAL SPACES) */
+.free-time-gap-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.free-time-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
+}
+
+[data-theme="light"] .free-time-line {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.05));
+}
+
+.free-time-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  padding: 2.5px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="light"] .free-time-pill {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.btn-insert-gap-task {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(129, 140, 248, 0.1);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 5px;
+  transition: all 0.15s ease;
+  margin-left: 2px;
+}
+
+.btn-insert-gap-task:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-insert-gap-task:active {
+  transform: scale(0.92);
+}
+
+/* Free time divider when dragging task over it */
+.free-time-gap-divider.drag-over {
+  background: rgba(226, 179, 64, 0.14);
+  outline: 2px dashed var(--streak);
+  border-radius: 8px;
+}
+
+.free-time-gap-divider.drag-over .free-time-pill {
+  color: var(--streak);
+  border-color: var(--streak);
+  background: rgba(226, 179, 64, 0.2);
+}
+
+/* Event Card Drop Highlight when dragging task over it */
+.task-item.is-event-card.event-drop-highlight {
+  border-color: var(--cat-work) !important;
+  background: rgba(129, 140, 248, 0.15) !important;
+  box-shadow: 0 0 16px rgba(129, 140, 248, 0.35) !important;
+  transform: scale(1.02);
+}
+
 .task-overdue-badge {
   font-size: 10.5px;
   font-weight: 700;
@@ -1958,6 +2042,7 @@ input[type="range"] {
     grid-template-columns: 275px 1fr !important;
     gap: 20px !important;
     height: 100% !important;
+    transition: grid-template-columns 0.4s cubic-bezier(0.16, 1, 0.3, 1), gap 0.4s ease;
   }
 
   .view-panel {
@@ -2057,12 +2142,168 @@ input[type="range"] {
   .time-display {
     font-size: 58px;
   }
+
+  body.timer-active-focus-mode .views-slider {
+    grid-template-columns: 1fr 295px !important;
+    gap: 32px !important;
+  }
+
+  body.timer-active-focus-mode .timer-circle-wrapper {
+    width: 280px !important;
+    height: 280px !important;
+  }
+
+  body.timer-active-focus-mode .time-display {
+    font-size: 76px !important;
+  }
+}
+
+/* ZEN FOCUS IMMERSION MODE (DESKTOP >= 650px) */
+@media (min-width: 650px) {
+  body.timer-active-focus-mode .views-slider {
+    grid-template-columns: 1fr 265px !important;
+    gap: 24px !important;
+  }
+
+  body.timer-active-focus-mode #view-focus {
+    border-right: 1px solid var(--card-border);
+    padding-right: 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  body.timer-active-focus-mode .timer-circle-wrapper {
+    width: 250px !important;
+    height: 250px !important;
+    margin-bottom: 20px !important;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  body.timer-active-focus-mode .time-display {
+    font-size: 68px !important;
+  }
+
+  body.timer-active-focus-mode .spotlight-container {
+    max-width: 440px !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+  }
+
+  body.timer-active-focus-mode .spotlight-card.compact {
+    padding: 12px 20px !important;
+    font-size: 15px !important;
+    border-color: rgba(129, 140, 248, 0.4) !important;
+    background: rgba(129, 140, 248, 0.08) !important;
+    box-shadow: 0 4px 24px rgba(129, 140, 248, 0.2) !important;
+  }
+
+  body.timer-active-focus-mode .spotlight-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+  }
+
+  body.timer-active-focus-mode .mode-switch,
+  body.timer-active-focus-mode .preset-pills {
+    opacity: 0.35;
+    pointer-events: none;
+    transform: scale(0.96);
+    transition: all 0.3s ease;
+  }
+
+  body.timer-active-focus-mode .controls {
+    margin-top: 14px;
+  }
+
+  body.timer-active-focus-mode .btn-main {
+    padding: 14px 48px !important;
+    font-size: 16px !important;
+    box-shadow: 0 6px 24px rgba(129, 140, 248, 0.32) !important;
+  }
+
+  /* Right-hand Task section shrinks into slim focus sidebar */
+  body.timer-active-focus-mode #view-tasks {
+    opacity: 0.32;
+    filter: blur(0.35px);
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+  }
+
+  body.timer-active-focus-mode #view-tasks:hover,
+  body.timer-active-focus-mode #view-tasks:focus-within {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  body.timer-active-focus-mode .tasks-sections-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  body.timer-active-focus-mode .task-right-meta .btn-task-quick-action {
+    display: none;
+  }
+
+  body.timer-active-focus-mode #view-tasks:hover .task-right-meta .btn-task-quick-action {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 649px) {
   .btn-track-desktop {
     display: none !important;
   }
+
+  body.timer-active-focus-mode .timer-circle-wrapper {
+    width: 230px !important;
+    height: 230px !important;
+  }
+
+  body.timer-active-focus-mode .time-display {
+    font-size: 60px !important;
+  }
+}
+
+/* IMMERSION INDICATOR PILL */
+.immersion-indicator-pill {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(129, 140, 248, 0.1);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  user-select: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.immersion-indicator-pill .immersion-hint {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+body.timer-active-focus-mode .immersion-indicator-pill {
+  display: flex;
+}
+
+/* HEADER & TRACKER DIMMING IN FOCUS MODE */
+body.timer-active-focus-mode .app-header,
+body.timer-active-focus-mode .goal-tracker {
+  opacity: 0.28;
+  filter: blur(0.2px);
+  transition: opacity 0.35s ease, filter 0.35s ease;
+}
+
+body.timer-active-focus-mode .app-header:hover,
+body.timer-active-focus-mode .goal-tracker:hover {
+  opacity: 1;
+  filter: none;
 }
 
 /* ============================================================== */

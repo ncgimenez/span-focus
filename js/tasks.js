@@ -154,6 +154,10 @@ function saveTasks() {
   localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
 
+  if (typeof exportAllTasksToSpanPlan === 'function') {
+    exportAllTasksToSpanPlan();
+  }
+
   renderTasks();
   renderArchivedTasks();
   renderPlannedTasks();
@@ -254,6 +258,180 @@ function moveTaskToSelectedDay(id) {
   saveTasks();
   const dayName = currentDayOffset === 0 ? "aujourd'hui" : (currentDayOffset === 1 ? "demain" : "la date sélectionnée");
   if (typeof showToast === 'function') showToast(`Planifiée pour ${dayName} !`, '⚡');
+}
+
+function calculateEndTime(startTimeStr, durationMinutes = 25) {
+  if (!startTimeStr || !startTimeStr.includes(':')) return null;
+  const [hStr, mStr] = startTimeStr.split(':');
+  const totalMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10) + durationMinutes;
+  const endH = Math.floor((totalMins / 60) % 24);
+  const endM = totalMins % 60;
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+}
+
+function calculateMinutesDiff(startStr, endStr) {
+  if (!startStr || !endStr || !startStr.includes(':') || !endStr.includes(':')) return 0;
+  const [h1, m1] = startStr.split(':').map(Number);
+  const [h2, m2] = endStr.split(':').map(Number);
+  return (h2 * 60 + m2) - (h1 * 60 + m1);
+}
+
+function formatMinutesDuration(totalMins) {
+  if (totalMins <= 0) return '';
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (hours > 0 && mins > 0) return `${hours}h${mins < 10 ? '0' + mins : mins}`;
+  if (hours > 0) return `${hours}h`;
+  return `${mins} min`;
+}
+
+function insertTaskAtTime(timeStr) {
+  const title = prompt(`Planifier une tâche pour ${timeStr} :`);
+  if (!title || !title.trim()) return;
+  const targetDate = getSelectedDateStr();
+  const newTask = {
+    id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+    title: title.trim(),
+    category: 'Work',
+    estimate: 1,
+    duration: 25,
+    completed: false,
+    isFavorite: false,
+    isEvent: false,
+    parentEventId: null,
+    scheduledDate: targetDate,
+    scheduledTime: timeStr
+  };
+  tasks.push(newTask);
+  saveTasks();
+  if (typeof showToast === 'function') showToast(`Tâche calée à ${timeStr}`, '⏱');
+}
+
+function attachTaskToEvent(childTaskId, parentEventId) {
+  const child = tasks.find(t => String(t.id) === String(childTaskId));
+  const parent = tasks.find(t => String(t.id) === String(parentEventId));
+  if (!child || !parent) return;
+
+  child.parentEventId = String(parent.id);
+  child.scheduledDate = parent.scheduledDate;
+  child.isEvent = false;
+
+  saveTasks();
+  if (typeof showToast === 'function') showToast(`Tâche glissée sous "${parent.title}" !`, '📎');
+}
+
+function setupGapDropTarget(gapNode, gapStartTime) {
+  gapNode.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    gapNode.classList.add('drag-over');
+  });
+
+  gapNode.addEventListener('dragleave', (e) => {
+    if (!gapNode.contains(e.relatedTarget)) {
+      gapNode.classList.remove('drag-over');
+    }
+  });
+
+  gapNode.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    gapNode.classList.remove('drag-over');
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    if (!draggedTaskId) return;
+
+    const t = tasks.find(x => String(x.id) === String(draggedTaskId));
+    if (!t) return;
+
+    t.parentEventId = null;
+    t.scheduledDate = getSelectedDateStr();
+    t.scheduledTime = gapStartTime;
+    saveTasks();
+    if (typeof showToast === 'function') showToast(`Tâche calée à ${gapStartTime} !`, '⏱');
+  });
+}
+
+function syncWithSpanPlan() {
+  const rawPlanTasks = localStorage.getItem('span_plan_tasks');
+  if (!rawPlanTasks) return;
+
+  try {
+    const planTasks = JSON.parse(rawPlanTasks);
+    if (!Array.isArray(planTasks)) return;
+
+    let modified = false;
+    const catMap = { work: 'Work', life: 'Home', fun: 'Fun' };
+
+    planTasks.forEach(pTask => {
+      if (!pTask || !pTask.id) return;
+      const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)));
+      
+      if (!existing) {
+        const isEv = pTask.type === 'event' || !!pTask.isEvent;
+        tasks.push({
+          id: pTask.id,
+          planId: pTask.id,
+          title: pTask.title || 'Untitled',
+          category: catMap[pTask.context] || 'Work',
+          estimate: Math.max(1, Math.round((pTask.duration || 25) / 25)),
+          duration: pTask.duration || 25,
+          completed: !!pTask.completed,
+          isFavorite: false,
+          isEvent: isEv,
+          parentEventId: null,
+          scheduledDate: pTask.date || null,
+          scheduledTime: pTask.time || null
+        });
+        modified = true;
+      } else {
+        if (pTask.date && existing.scheduledDate !== pTask.date) {
+          existing.scheduledDate = pTask.date;
+          modified = true;
+        }
+        if (pTask.time && existing.scheduledTime !== pTask.time) {
+          existing.scheduledTime = pTask.time;
+          modified = true;
+        }
+        if (typeof pTask.duration === 'number' && existing.duration !== pTask.duration) {
+          existing.duration = pTask.duration;
+          modified = true;
+        }
+      }
+    });
+
+    if (modified) {
+      window.SpanState.tasks = tasks;
+      localStorage.setItem('span_tasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+  } catch (err) {
+    console.warn("Span Plan sync error:", err);
+  }
+}
+
+function exportAllTasksToSpanPlan() {
+  const rawPlanTasks = localStorage.getItem('span_plan_tasks');
+  if (!rawPlanTasks) return;
+
+  try {
+    const planTasks = JSON.parse(rawPlanTasks);
+    if (!Array.isArray(planTasks)) return;
+
+    tasks.forEach(task => {
+      const foundIdx = planTasks.findIndex(p => String(p.id) === String(task.id) || (task.planId && String(p.id) === String(task.planId)));
+      if (foundIdx >= 0) {
+        planTasks[foundIdx].completed = !!task.completed;
+        planTasks[foundIdx].date = task.scheduledDate || null;
+        planTasks[foundIdx].time = task.scheduledTime || '';
+        if (task.duration) planTasks[foundIdx].duration = task.duration;
+        planTasks[foundIdx].title = task.title;
+      }
+    });
+
+    localStorage.setItem('span_plan_tasks', JSON.stringify(planTasks));
+  } catch (err) {
+    console.warn("Export to Span Plan warning:", err);
+  }
 }
 
 // RENDER TASK LIST: 1. FOCUS DAY • 2. PRIORITÉS • 3. TÂCHES DU JOUR • 4. BACKLOG SANS DATE
@@ -384,8 +562,39 @@ function renderTasks() {
     if (focusDayItems.length > 0) {
       groupFocusDay.style.display = 'block';
       if (focusDayCountBadge) focusDayCountBadge.textContent = focusDayItems.length;
-      focusDayItems.forEach(item => {
+      focusDayItems.forEach((item, idx) => {
         focusDayList.appendChild(renderItemAndSubtasks(item));
+
+        // Interstitial free-time gap between scheduled items
+        if (idx < focusDayItems.length - 1) {
+          const currentEnd = calculateEndTime(item.scheduledTime, item.duration || (item.estimate || 1) * 25);
+          const nextStart = focusDayItems[idx + 1].scheduledTime;
+          if (currentEnd && nextStart) {
+            const gapMins = calculateMinutesDiff(currentEnd, nextStart);
+            if (gapMins >= 10) {
+              const gapDivider = document.createElement('li');
+              gapDivider.className = 'free-time-gap-divider';
+              const formattedDuration = formatMinutesDuration(gapMins);
+              gapDivider.innerHTML = `
+                <div class="free-time-line"></div>
+                <div class="free-time-pill" title="Créneau libre entre ${currentEnd} et ${nextStart}">
+                  <span>☕ ${formattedDuration} de libre</span>
+                  <button type="button" class="btn-insert-gap-task" title="Ajouter une tâche à ${currentEnd}">+ Insérer</button>
+                </div>
+                <div class="free-time-line"></div>
+              `;
+              const insertBtn = gapDivider.querySelector('.btn-insert-gap-task');
+              if (insertBtn) {
+                insertBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  insertTaskAtTime(currentEnd);
+                });
+              }
+              setupGapDropTarget(gapDivider, currentEnd);
+              focusDayList.appendChild(gapDivider);
+            }
+          }
+        }
       });
     } else {
       groupFocusDay.style.display = 'none';
@@ -553,6 +762,7 @@ function createTaskDOMElement(task, isSubtask = false) {
     : '';
 
   const quickPlanBtnLabel = currentDayOffset === 0 ? "⚡ + Aujourd'hui" : (currentDayOffset === 1 ? "🌙 + Demain" : "📅 + Planifier");
+  const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || durationMinutes) : null;
 
   wrapper.innerHTML = `
     <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${task.isEvent ? 'is-event-card' : ''} ${isSubtask ? 'is-subtask-item' : ''}" 
@@ -566,7 +776,7 @@ function createTaskDOMElement(task, isSubtask = false) {
         <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
           ${task.completed ? '✓' : ''}
         </div>
-        ${task.scheduledTime ? `<span class="focus-day-time-badge">🕒 ${task.scheduledTime}</span>` : ''}
+        ${task.scheduledTime ? `<span class="focus-day-time-badge" title="Créneau prévu">🕒 ${task.scheduledTime}${taskEndTime ? ' - ' + taskEndTime : ''}</span>` : ''}
         ${task.isEvent ? '<span class="event-type-badge">📅</span>' : ''}
         ${isOverdue ? '<span class="task-overdue-badge">⚠️ Retard</span>' : ''}
         <span class="task-title-text">${renderTitleWithTags(task.title)}</span>
@@ -620,6 +830,30 @@ function createTaskDOMElement(task, isSubtask = false) {
   });
 
   const itemNode = wrapper.querySelector('.task-item');
+
+  // Allow dropping child tasks directly onto Event cards to nest them
+  if (task.isEvent) {
+    wrapper.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      itemNode.classList.add('event-drop-highlight');
+    });
+
+    wrapper.addEventListener('dragleave', (e) => {
+      if (!wrapper.contains(e.relatedTarget)) {
+        itemNode.classList.remove('event-drop-highlight');
+      }
+    });
+
+    wrapper.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      itemNode.classList.remove('event-drop-highlight');
+      const draggedTaskId = e.dataTransfer.getData('text/plain');
+      if (!draggedTaskId || String(draggedTaskId) === String(task.id)) return;
+      attachTaskToEvent(draggedTaskId, task.id);
+    });
+  }
 
   // Swipe right gesture to trigger focus directly
   let touchStartX = 0;
@@ -1293,3 +1527,8 @@ document.addEventListener('keydown', (e) => {
 
 autoArchivePastDays();
 checkScheduledTasksForToday();
+if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
+
+window.addEventListener('focus', () => {
+  if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
+});

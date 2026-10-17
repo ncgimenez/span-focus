@@ -68,6 +68,7 @@ function syncRemoteTimer(state) {
     releaseWakeLock();
   }
 
+  updateTimerVisualState(isRunning);
   tickTimer();
 }
 
@@ -242,6 +243,7 @@ function updateTimerVisualState(running) {
   if (toggleBtn) toggleBtn.classList.toggle('is-running', running);
   const circleWrap = document.querySelector('.timer-circle-wrapper');
   if (circleWrap) circleWrap.classList.toggle('is-running', running);
+  document.body.classList.toggle('timer-active-focus-mode', running);
 }
 
 function toggleTimer() {
