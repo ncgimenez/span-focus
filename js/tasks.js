@@ -209,14 +209,47 @@ function toggleTaskActionMenu(taskId, event) {
 }
 
 let isBacklogOpen = localStorage.getItem('span_backlog_open') !== 'false';
-let activeCategoryFilter = 'all';
+let activeCategories = new Set(); // Empty Set means 'all' (all categories shown)
 
 function setCategoryFilter(cat) {
-  activeCategoryFilter = cat;
-  document.querySelectorAll('.cat-filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === cat);
-  });
+  if (cat === 'all') {
+    activeCategories.clear();
+  } else {
+    // Si on était sur 'all' (Tout), le premier clic isole la catégorie choisie
+    if (activeCategories.size === 0) {
+      activeCategories.add(cat);
+    } else {
+      // Toggle cumulatif de la catégorie cliquée
+      if (activeCategories.has(cat)) {
+        activeCategories.delete(cat);
+        // Si plus aucune catégorie n'est sélectionnée, retour automatique à 'all'
+        if (activeCategories.size === 0) {
+          activeCategories.clear();
+        }
+      } else {
+        activeCategories.add(cat);
+        // Si les 3 catégories sont cochées, c'est identique à Tout
+        if (activeCategories.size === 3) {
+          activeCategories.clear();
+        }
+      }
+    }
+  }
+
+  updateCategoryFilterUI();
   renderTasks();
+}
+
+function updateCategoryFilterUI() {
+  const isAll = (activeCategories.size === 0);
+  document.querySelectorAll('.cat-filter-btn[data-filter]').forEach(btn => {
+    const f = btn.dataset.filter;
+    if (f === 'all') {
+      btn.classList.toggle('active', isAll);
+    } else {
+      btn.classList.toggle('active', !isAll && activeCategories.has(f));
+    }
+  });
 }
 
 function toggleBacklogAccordion() {
@@ -681,6 +714,7 @@ function renderTasks() {
   const targetDateStr = getSelectedDateStr();
 
   updateDayNavUI();
+  updateCategoryFilterUI();
 
   // Update Category Filter Badges (All, Work, Home, Fun)
   const allActiveUnfiltered = tasks.filter(t => !t.completed);
@@ -695,7 +729,8 @@ function renderTasks() {
 
   const filterByCondition = (t) => {
     const matchesTag = !activeTagFilter || (t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`));
-    const matchesCat = (activeCategoryFilter === 'all') || (t.category === activeCategoryFilter);
+    const cat = t.category || 'Work';
+    const matchesCat = (activeCategories.size === 0) || activeCategories.has(cat);
     return matchesTag && matchesCat;
   };
 
