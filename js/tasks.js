@@ -1016,8 +1016,8 @@ function createTaskDOMElement(task, isSubtask = false) {
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
-                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px;" title="Priorité">⭐</span>' : ''}
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
+                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px; margin-right:2px;" title="Priorité">⭐</span>' : ''}
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
             `).join('')}
@@ -1104,8 +1104,8 @@ function createTaskDOMElement(task, isSubtask = false) {
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Marquer non terminée' : 'Marquer terminée'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
-                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px;" title="Priorité">⭐</span>' : ''}
                 <span class="integrated-subtask-title">${renderTitleWithTags(sub.title)}</span>
+                ${sub.isFavorite ? '<span class="task-meta-star" style="font-size:11px; margin-right:2px;" title="Priorité">⭐</span>' : ''}
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Détacher">✕</button>
               </div>
             `).join('')}
