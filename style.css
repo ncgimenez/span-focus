@@ -889,6 +889,59 @@ body {
   box-shadow: 0 0 16px rgba(226, 179, 64, 0.28);
 }
 
+/* BLOC DU FOCUS DAY EN COURS DE DÉROULEMENT (LIVE RIGHT NOW) */
+.task-item.is-live-now {
+  border-color: rgba(239, 68, 68, 0.65) !important;
+  animation: liveBlockBreathing 2.4s infinite ease-in-out;
+  position: relative;
+  z-index: 2;
+}
+
+.task-item.is-live-now.in-focus-active {
+  border-color: var(--streak) !important;
+  animation: liveBlockBreathingInFocus 2.4s infinite ease-in-out;
+}
+
+@keyframes liveBlockBreathing {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 2.5px rgba(239, 68, 68, 0.7), 0 8px 24px rgba(239, 68, 68, 0.25);
+  }
+}
+
+@keyframes liveBlockBreathingInFocus {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(226, 179, 64, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(226, 179, 64, 0.8), 0 8px 24px rgba(226, 179, 64, 0.3);
+  }
+}
+
+.live-pulse-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  padding: 1.5px 5.5px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  animation: livePulseTag 1.8s infinite ease-in-out;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@keyframes livePulseTag {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+
 .task-item.just-added {
   animation: taskSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1), taskFlash 1.2s ease-out;
 }
@@ -2947,6 +3000,12 @@ input[type="range"] {
   .btn-subtask-focus {
     opacity: 0.85 !important;
   }
+
+  .live-pulse-badge {
+    font-size: 7.5px !important;
+    padding: 1px 4.5px !important;
+  }
+
 
   body.timer-active-focus-mode .timer-circle-wrapper {
     width: 210px !important;

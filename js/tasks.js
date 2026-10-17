@@ -967,9 +967,20 @@ function createTaskDOMElement(task, isSubtask = false) {
   const quickPlanBtnTooltip = currentDayOffset === 0 ? "Planifier pour aujourd'hui" : (currentDayOffset === 1 ? "Planifier pour demain" : "Planifier pour ce jour");
   const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || durationMinutes) : null;
 
+  let isLiveNow = false;
+  if (task.scheduledTime && task.scheduledDate === todayRealStr && !task.completed) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [hStr, mStr] = task.scheduledTime.split(':');
+    const startMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+    const dur = task.duration || durationMinutes;
+    const endMins = startMins + dur;
+    isLiveNow = (currentMinutes >= startMins && currentMinutes < endMins);
+  }
+
   if (task.isEvent) {
     wrapper.innerHTML = `
-      <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''}" 
+      <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isLiveNow ? 'is-live-now' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
            ondblclick="openEditModalForTask('${task.id}')"
@@ -985,6 +996,7 @@ function createTaskDOMElement(task, isSubtask = false) {
               </div>
             ` : ''}
             <span class="event-type-badge">📅</span>
+            ${isLiveNow ? '<span class="live-pulse-badge" title="Créneau actuellement en cours">● LIVE</span>' : ''}
             <span class="event-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
@@ -1039,7 +1051,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   } else {
     // STANDARD TASK CARD: WITH CHECKBOX
     wrapper.innerHTML = `
-      <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''}" 
+      <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''} ${isLiveNow ? 'is-live-now' : ''}" 
            id="task-node-${task.id}" 
            data-cat="${task.category || 'Work'}"
            ondblclick="openEditModalForTask('${task.id}')"
@@ -1058,6 +1070,7 @@ function createTaskDOMElement(task, isSubtask = false) {
                 ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
               </div>
             ` : ''}
+            ${isLiveNow ? '<span class="live-pulse-badge" title="Créneau actuellement en cours">● LIVE</span>' : ''}
             ${isOverdue ? '<span class="task-overdue-badge">⚠️ Retard</span>' : ''}
             <span class="task-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
@@ -1960,3 +1973,14 @@ if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 window.addEventListener('focus', () => {
   if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 });
+
+// Auto-refresh tasks every 60s so that "● LIVE" badge and current-time indicators update smoothly
+setInterval(() => {
+  const modal = document.getElementById('taskDetailModal');
+  const isModalOpen = modal && modal.classList.contains('active');
+  const isDragging = document.querySelector('.dragging') !== null;
+  if (!isModalOpen && !isDragging && typeof renderTasks === 'function') {
+    renderTasks();
+  }
+}, 60000);
+

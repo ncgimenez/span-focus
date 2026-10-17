@@ -17,6 +17,9 @@ function getOrCreateSyncId() {
 
 let SYNC_USER_ID = getOrCreateSyncId();
 let isCloudSyncInProgress = false;
+let lastFocusCloudWriteTime = 0;
+let realtimeSubscription = null;
+
 
 function copyCurrentSyncKey() {
   navigator.clipboard.writeText(SYNC_USER_ID).then(() => {
@@ -48,6 +51,8 @@ async function handleLinkClick() {
   // Align secret password field for iOS Keychain prompt
   syncKeychainInputs(key);
   updateSyncKeyDisplay();
+
+  setupRealtimeSubscription();
 
   await loadStateFromCloud();
   if (typeof showToast === 'function') showToast("Span Focus linked successfully!", "🔗");
@@ -102,6 +107,7 @@ async function saveStateToCloud() {
       },
       updated_at: new Date().toISOString()
     };
+    lastFocusCloudWriteTime = Date.now();
     await supabaseClient.from('user_state').upsert(payload);
   } catch (err) {
     console.warn('Cloud sync write warning:', err.message);
@@ -202,6 +208,41 @@ async function loadStateFromCloud() {
   }
 }
 
+// ABONNEMENT EN TEMPS RÉEL (WEBSOCKET SUPABASE)
+function setupRealtimeSubscription() {
+  if (!supabaseClient) return;
+
+  if (realtimeSubscription) {
+    try {
+      supabaseClient.removeChannel(realtimeSubscription);
+    } catch (e) {}
+  }
+
+  realtimeSubscription = supabaseClient
+    .channel('realtime_span_focus_' + SYNC_USER_ID)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'user_state',
+        filter: `id=eq.${SYNC_USER_ID}`
+      },
+      (payload) => {
+        // Ignorer l'écho immédiat de notre propre écriture (moins de 1.5s)
+        if (Date.now() - lastFocusCloudWriteTime < 1500) {
+          return;
+        }
+        if (payload.new && payload.new.tasks) {
+          if (!isCloudSyncInProgress) {
+            loadStateFromCloud();
+          }
+        }
+      }
+    )
+    .subscribe();
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   updateSyncKeyDisplay();
 
@@ -218,6 +259,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Load cloud data asynchronously without locking the UI
   setTimeout(() => {
     loadStateFromCloud();
+    setupRealtimeSubscription();
   }, 100);
 });
 
@@ -225,6 +267,8 @@ window.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     loadStateFromCloud();
+    setupRealtimeSubscription();
   }
 });
+
  
