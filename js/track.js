@@ -62,7 +62,7 @@ function toggleTrackModal() {
 function calculateTodayFocusMinutes() {
   const tasks = window.SpanState.tasks || [];
   const archived = window.SpanState.archivedTasks || [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = (typeof getLocalDateString === 'function') ? getLocalDateString() : new Date().toLocaleDateString('en-CA');
 
   const doneToday = [
     ...tasks.filter(t => t.completed && (!t.completedDate || t.completedDate === todayStr)),
@@ -78,7 +78,7 @@ function calculateTodayFocusMinutes() {
 function calculateCategoryBreakdown() {
   const tasks = window.SpanState.tasks || [];
   const archived = window.SpanState.archivedTasks || [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = (typeof getLocalDateString === 'function') ? getLocalDateString() : new Date().toLocaleDateString('en-CA');
 
   const doneToday = [
     ...tasks.filter(t => t.completed && (!t.completedDate || t.completedDate === todayStr)),

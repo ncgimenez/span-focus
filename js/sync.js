@@ -140,6 +140,9 @@ async function loadStateFromCloud() {
       } else if (data.tasks && typeof data.tasks === 'object') {
         remoteItems = data.tasks.items || [];
         remoteArchives = data.tasks.archives || [];
+        if (Array.isArray(data.tasks.plan_items)) {
+          localStorage.setItem('span_plan_tasks', JSON.stringify(data.tasks.plan_items));
+        }
       }
 
       let remoteActive = null;
@@ -187,6 +190,11 @@ async function loadStateFromCloud() {
 
       if (typeof window.applyLoadedTasksFromState === 'function') {
         window.applyLoadedTasksFromState();
+      }
+
+      // Synchroniser directement avec le planning Span Plan reçu du cloud
+      if (typeof syncWithSpanPlan === 'function') {
+        syncWithSpanPlan();
       }
 
       if (typeof renderTasks === 'function') renderTasks();

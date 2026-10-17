@@ -30,8 +30,18 @@ let isPastFocusDayExpanded = false;
 let newlyAddedTaskId = null;
 let activeTagFilter = null;
 
+// Robust Local Date (YYYY-MM-DD) avoiding UTC day-lag across timezones
+function getLocalDateString(dateObj = new Date()) {
+  const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+window.getLocalDateString = getLocalDateString;
+
 const nowInit = new Date();
-const todayStrInit = nowInit.toISOString().slice(0, 10);
+const todayStrInit = getLocalDateString(nowInit);
 
 // Migration of legacy categories into inline #tags and the unified tri-category system
 function normalizeTaskAndMigrateTags(t) {
@@ -124,7 +134,7 @@ function checkScheduledTasksForToday() {
 }
 
 function autoArchivePastDays() {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateString();
   let changed = false;
   const stillActive = [];
 
@@ -290,7 +300,7 @@ function navigateDayOffset(delta) {
 function getSelectedDateStr() {
   const d = new Date();
   d.setDate(d.getDate() + currentDayOffset);
-  return d.toISOString().slice(0, 10);
+  return getLocalDateString(d);
 }
 
 function updateDayNavUI() {
@@ -429,7 +439,7 @@ function setupGapDropTarget(gapNode, gapStartTime) {
 }
 
 function getSampleTasks(dateStr) {
-  const d = dateStr || new Date().toISOString().slice(0, 10);
+  const d = dateStr || getLocalDateString();
   return [
     // 1. Scheduled events today (Focus Day / Schedule)
     {
@@ -599,7 +609,7 @@ function getSampleTasks(dateStr) {
 }
 
 function loadSampleTasksIfEmpty(force = false) {
-  const currentToday = new Date().toISOString().slice(0, 10);
+  const currentToday = getLocalDateString();
   const hasEvents = tasks.some(t => t.isEvent);
 
   if (force || tasks.length <= 2 || !hasEvents) {
@@ -627,9 +637,9 @@ function syncWithSpanPlan() {
       if (!pTask || !pTask.id) return;
       if (deletedSet.has(String(pTask.id))) return;
       const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)));
+      const isEv = pTask.type === 'event' || !!pTask.isEvent;
       
       if (!existing) {
-        const isEv = pTask.type === 'event' || !!pTask.isEvent;
         tasks.push({
           id: pTask.id,
           planId: pTask.id,
@@ -640,24 +650,72 @@ function syncWithSpanPlan() {
           completed: !isEv && !!pTask.completed,
           isFavorite: false,
           isEvent: isEv,
-          parentEventId: null,
+          parentEventId: pTask.parentEventId || null,
           scheduledDate: pTask.date || null,
           scheduledTime: pTask.time || null
         });
         modified = true;
       } else {
-        if (pTask.date && existing.scheduledDate !== pTask.date) {
-          existing.scheduledDate = pTask.date;
+        const targetDate = pTask.date || null;
+        if (existing.scheduledDate !== targetDate) {
+          existing.scheduledDate = targetDate;
           modified = true;
         }
-        if (pTask.time && existing.scheduledTime !== pTask.time) {
-          existing.scheduledTime = pTask.time;
+        const targetTime = pTask.time || null;
+        if (existing.scheduledTime !== targetTime) {
+          existing.scheduledTime = targetTime;
+          modified = true;
+        }
+        if (pTask.title && existing.title !== pTask.title) {
+          existing.title = pTask.title;
           modified = true;
         }
         if (typeof pTask.duration === 'number' && existing.duration !== pTask.duration) {
           existing.duration = pTask.duration;
+          existing.estimate = Math.max(1, Math.round(pTask.duration / 25));
           modified = true;
         }
+        if (existing.isEvent !== isEv) {
+          existing.isEvent = isEv;
+          modified = true;
+        }
+        if (!existing.isEvent && typeof pTask.completed === 'boolean' && existing.completed !== pTask.completed) {
+          existing.completed = pTask.completed;
+          modified = true;
+        }
+      }
+
+      // Sync nested subtasks from Plan event if present
+      if (Array.isArray(pTask.subtasks) && pTask.subtasks.length > 0) {
+        pTask.subtasks.forEach(sub => {
+          if (!sub || !sub.id || deletedSet.has(String(sub.id))) return;
+          const existingSub = tasks.find(t => String(t.id) === String(sub.id));
+          if (!existingSub) {
+            tasks.push({
+              id: sub.id,
+              title: sub.title || 'Subtask',
+              category: catMap[pTask.context] || 'Work',
+              estimate: 1,
+              duration: 25,
+              completed: !!sub.completed,
+              isFavorite: false,
+              isEvent: false,
+              parentEventId: String(pTask.id),
+              scheduledDate: pTask.date || null,
+              scheduledTime: null
+            });
+            modified = true;
+          } else {
+            if (existingSub.completed !== !!sub.completed) {
+              existingSub.completed = !!sub.completed;
+              modified = true;
+            }
+            if (sub.title && existingSub.title !== sub.title) {
+              existingSub.title = sub.title;
+              modified = true;
+            }
+          }
+        });
       }
     });
 
@@ -719,7 +777,7 @@ function renderTasks() {
   regularList.innerHTML = '';
   if (backlogList) backlogList.innerHTML = '';
 
-  const todayRealStr = new Date().toISOString().slice(0, 10);
+  const todayRealStr = getLocalDateString();
   const targetDateStr = getSelectedDateStr();
 
   updateDayNavUI();
@@ -1118,7 +1176,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   const isJustAdded = task.id === newlyAddedTaskId;
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
   const durationMinutes = (task.estimate || 1) * 25;
-  const todayRealStr = new Date().toISOString().slice(0, 10);
+  const todayRealStr = getLocalDateString();
   const todayStr = todayRealStr;
   const targetDateStr = getSelectedDateStr();
   const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayRealStr;
@@ -1404,7 +1462,7 @@ function addTask() {
 
   if (!text) return;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateString();
 
   const newTask = {
     id: 't_' + Date.now(),
@@ -1429,7 +1487,7 @@ function addTask() {
 function moveTaskToToday(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateString();
   t.scheduledDate = todayStr;
   saveTasks();
   if (typeof showToast === 'function') showToast("Scheduled for today!", '⚡');
@@ -1453,7 +1511,7 @@ function toggleTaskById(id) {
     triggerHapticFeedback();
     const now = new Date();
     t.completedAt = now.toISOString();
-    t.completedDate = now.toISOString().slice(0, 10);
+    t.completedDate = getLocalDateString(now);
     t.isFavorite = false;
 
     if (typeof triggerCelebration === 'function') triggerCelebration();
@@ -1576,7 +1634,7 @@ function completeSpotlightTask() {
   if (found) {
     found.completed = true;
     found.completedAt = new Date().toISOString();
-    found.completedDate = new Date().toISOString().slice(0, 10);
+    found.completedDate = getLocalDateString();
     found.isFavorite = false;
     if (typeof triggerCelebration === 'function') triggerCelebration();
     if (typeof showToast === 'function') showToast('Focus task completed!', '🎯');
@@ -1615,7 +1673,7 @@ function toggleTaskPicker() {
     return;
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateString();
   const pending = tasks.filter(t => !t.completed && (!t.scheduledDate || t.scheduledDate <= todayStr));
 
   if (pending.length === 0) {
@@ -1736,7 +1794,7 @@ function renderPlannedTasks() {
   const list = document.getElementById('plannedTasksList');
   if (!list) return;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateString();
   
   // Includes all tasks that have a scheduled date, sorted chronologically
   const planned = tasks
@@ -1779,7 +1837,7 @@ function renderPlannedTasks() {
 function moveTaskToToday(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (t) {
-    t.scheduledDate = new Date().toISOString().slice(0, 10);
+    t.scheduledDate = getLocalDateString();
     saveTasks();
     closeSubViews();
   }
@@ -1808,7 +1866,7 @@ function archiveDayNow() {
     archivedTasks.unshift({
       ...t,
       archivedAt: t.completedAt || now.toISOString(),
-      archivedDate: t.completedDate || now.toISOString().slice(0, 10)
+      archivedDate: t.completedDate || getLocalDateString(now)
     });
   });
   tasks = tasks.filter(t => !t.completed);
