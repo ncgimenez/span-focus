@@ -52,13 +52,14 @@ function normalizeTaskAndMigrateTags(t) {
     cat = 'Work';
   }
 
-  const isDone = !!t.completed;
+  const isEvent = !!t.isEvent;
+  const isDone = !isEvent && !!t.completed;
   return {
     ...t,
     title: title.trim(),
     category: cat,
     isFavorite: !!t.isFavorite,
-    isEvent: !!t.isEvent,
+    isEvent: isEvent,
     parentEventId: t.parentEventId || null,
     scheduledDate: t.scheduledDate !== undefined ? t.scheduledDate : todayStrInit,
     scheduledTime: t.scheduledTime || null,
@@ -584,7 +585,7 @@ function syncWithSpanPlan() {
           category: catMap[pTask.context] || 'Work',
           estimate: Math.max(1, Math.round((pTask.duration || 25) / 25)),
           duration: pTask.duration || 25,
-          completed: !!pTask.completed,
+          completed: !isEv && !!pTask.completed,
           isFavorite: false,
           isEvent: isEv,
           parentEventId: null,
@@ -692,8 +693,8 @@ function renderTasks() {
     return !t.isEvent && t.parentEventId && tasks.some(parent => String(parent.id) === String(t.parentEventId));
   };
 
-  // Completed items (exclude nested subtasks so they stay integrated in their event)
-  const doneToday = tasks.filter(t => t.completed && filterByCondition(t) && !isNestedSubtask(t));
+  // Completed items (exclude nested subtasks and scheduled/event timeline items so timeline stays intact)
+  const doneToday = tasks.filter(t => t.completed && filterByCondition(t) && !isNestedSubtask(t) && !t.isEvent && !t.scheduledTime);
 
   // Active items
   const activeTasks = tasks.filter(t => !t.completed && filterByCondition(t));
@@ -710,8 +711,8 @@ function renderTasks() {
   };
 
   // 1. FOCUS DAY: Événements ou Blocs minutés prévus pour le jour sélectionné
-  const focusDayItems = activeTasks.filter(t => {
-    return matchesSelectedDay(t) && (t.isEvent || t.scheduledTime) && !isNestedSubtask(t);
+  const focusDayItems = tasks.filter(t => {
+    return matchesSelectedDay(t) && (t.isEvent || t.scheduledTime) && !isNestedSubtask(t) && filterByCondition(t);
   });
 
   // Tri chronologique des blocs du Focus Day (10h, 14h...)
@@ -1302,6 +1303,27 @@ function toggleFavorite(id) {
   saveTasks();
 }
 
+let isBacklogFocusActive = false;
+
+function toggleFocusBacklog(forceState) {
+  if (typeof forceState === 'boolean') {
+    isBacklogFocusActive = forceState;
+  } else {
+    isBacklogFocusActive = !isBacklogFocusActive;
+  }
+
+  document.body.classList.toggle('focus-backlog-active', isBacklogFocusActive);
+  const btn = document.getElementById('btnBacklogFocus');
+  if (btn) {
+    btn.classList.toggle('active', isBacklogFocusActive);
+    btn.textContent = isBacklogFocusActive ? '🎯 Focus actif' : '🎯 Focus';
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(isBacklogFocusActive ? 'Focus Backlog activé (journée estompée)' : 'Vue normale rétablie', '🎯');
+  }
+}
+
 function setSpotlightTaskById(id) {
   const target = tasks.find(t => String(t.id) === String(id));
   if (!target) return;
@@ -1309,6 +1331,11 @@ function setSpotlightTaskById(id) {
   target.isFavorite = false;
   activeTask = target;
   window.SpanState.activeTask = activeTask;
+
+  // Si la tâche vient du backlog (non datée ou différente d'aujourd'hui), activer le focus backlog
+  const targetDateStr = getSelectedDateStr();
+  const isBacklogTask = !target.scheduledDate || target.scheduledDate !== targetDateStr;
+  toggleFocusBacklog(isBacklogTask);
 
   const favs = tasks.filter(t => t.isFavorite && !t.completed);
   if (favs.length > 2) {
@@ -1334,6 +1361,7 @@ function dismissSpotlightTask() {
   }
   activeTask = null;
   window.SpanState.activeTask = null;
+  toggleFocusBacklog(false);
   saveTasks();
 }
 
@@ -1648,7 +1676,10 @@ function convertToEvent(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
   t.isEvent = true;
+  t.completed = false;
   t.parentEventId = null;
+  delete t.completedAt;
+  delete t.completedDate;
   saveTasks();
   if (typeof showToast === 'function') showToast('Converti en Événement !', '📅');
 }

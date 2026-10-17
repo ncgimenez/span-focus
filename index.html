@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.13">
+  <link rel="stylesheet" href="style.css?v=3.14">
 </head>
 <body>
 
@@ -214,7 +214,10 @@
                       <span>📥 Boîte à idées & tâches</span>
                       <span class="subview-badge" id="backlogCountBadge">0</span>
                     </span>
-                    <button type="button" class="btn-toggle-backlog-pill" id="btnToggleBacklogPill">Masquer</button>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <button type="button" class="btn-backlog-focus" id="btnBacklogFocus" onclick="event.stopPropagation(); toggleFocusBacklog()" title="Mode Focus Backlog (estompe la journée)">🎯 Focus</button>
+                      <button type="button" class="btn-toggle-backlog-pill" id="btnToggleBacklogPill">Masquer</button>
+                    </div>
                   </div>
 
                   <!-- SECTION 4: UNPLANNED / SANS DATE -->
@@ -480,11 +483,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.13"></script>
-  <script src="js/timer.js?v=3.13"></script>
-  <script src="js/tasks.js?v=3.13"></script>
-  <script src="js/track.js?v=3.13"></script>
-  <script src="js/sync.js?v=3.13"></script>
-  <script src="js/app.js?v=3.13"></script>
+  <script src="js/audio.js?v=3.14"></script>
+  <script src="js/timer.js?v=3.14"></script>
+  <script src="js/tasks.js?v=3.14"></script>
+  <script src="js/track.js?v=3.14"></script>
+  <script src="js/sync.js?v=3.14"></script>
+  <script src="js/app.js?v=3.14"></script>
 </body>
 </html>
