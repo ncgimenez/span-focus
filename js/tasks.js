@@ -167,6 +167,13 @@ function saveTasks() {
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
 
+function applyLoadedTasksFromState() {
+  tasks = window.SpanState.tasks || [];
+  archivedTasks = window.SpanState.archivedTasks || [];
+  activeTask = window.SpanState.activeTask || null;
+}
+window.applyLoadedTasksFromState = applyLoadedTasksFromState;
+
 function handleInputFocus(isFocused) {
   document.body.classList.toggle('is-typing-mode', isFocused);
 }
