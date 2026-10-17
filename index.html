@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.3">
+  <link rel="stylesheet" href="style.css?v=3.4">
 </head>
 <body>
 
@@ -120,6 +120,25 @@
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
+              <!-- QUICK CATEGORY FILTERS (ALL / WORK / HOME / FUN) -->
+              <div class="quick-category-filters" id="quickCategoryFilters">
+                <button type="button" class="cat-filter-btn active" data-filter="all" onclick="setCategoryFilter('all')">
+                  <span>Tout</span> <span class="cat-count-pill" id="catCountAll">0</span>
+                </button>
+                <button type="button" class="cat-filter-btn" data-filter="Work" onclick="setCategoryFilter('Work')">
+                  <span class="cat-dot-indicator dot-work"></span>
+                  <span>Work</span> <span class="cat-count-pill" id="catCountWork">0</span>
+                </button>
+                <button type="button" class="cat-filter-btn" data-filter="Home" onclick="setCategoryFilter('Home')">
+                  <span class="cat-dot-indicator dot-home"></span>
+                  <span>Home</span> <span class="cat-count-pill" id="catCountHome">0</span>
+                </button>
+                <button type="button" class="cat-filter-btn" data-filter="Fun" onclick="setCategoryFilter('Fun')">
+                  <span class="cat-dot-indicator dot-fun"></span>
+                  <span>Fun</span> <span class="cat-count-pill" id="catCountFun">0</span>
+                </button>
+              </div>
+
               <!-- ACTIVE TAG FILTER BANNER -->
               <div class="tag-filter-active-bar" id="tagFilterActiveBar">
                 <span id="tagFilterActiveLabel">Filter: #tag</span>
@@ -157,20 +176,23 @@
 
                 <!-- SECTION 3: REGULAR TODAY TASKS -->
                 <div class="tasks-group" id="groupTasks">
-                  <div class="tasks-group-header" id="labelTasksHeader">⚡ Tâches du jour</div>
+                  <div class="tasks-group-header" id="labelTasksHeader" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>⚡ Tâches du jour</span>
+                    <span class="today-time-estimate" id="todayTimeEstimate" style="display: none;"></span>
+                  </div>
                   <ul class="task-list" id="taskList"></ul>
                 </div>
 
-                <!-- SECTION 4: UNPLANNED / SANS DATE (ACCORDÉON REPLIABLE) -->
+                <!-- SECTION 4: UNPLANNED / SANS DATE (OUVERT PAR DÉFAUT) -->
                 <div class="tasks-group" id="groupBacklog" style="display: none;">
                   <button type="button" class="backlog-toggle-header" onclick="toggleBacklogAccordion()">
-                    <span style="display: flex; align-items: center; gap: 6px;">
-                      <span id="backlogToggleArrow">▶</span>
-                      <span>📦 À planifier • Sans date</span>
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                      <span id="backlogToggleArrow">▼</span>
+                      <span>📥 Boîte de tâches • À planifier</span>
                     </span>
                     <span class="subview-badge" id="backlogCountBadge">0</span>
                   </button>
-                  <ul class="task-list" id="backlogList" style="display: none; margin-top: 8px;"></ul>
+                  <ul class="task-list" id="backlogList" style="display: flex; margin-top: 8px;"></ul>
                 </div>
               </div>
 
@@ -426,11 +448,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.3"></script>
-  <script src="js/timer.js?v=3.3"></script>
-  <script src="js/tasks.js?v=3.3"></script>
-  <script src="js/track.js?v=3.3"></script>
-  <script src="js/sync.js?v=3.3"></script>
-  <script src="js/app.js?v=3.3"></script>
+  <script src="js/audio.js?v=3.4"></script>
+  <script src="js/timer.js?v=3.4"></script>
+  <script src="js/tasks.js?v=3.4"></script>
+  <script src="js/track.js?v=3.4"></script>
+  <script src="js/sync.js?v=3.4"></script>
+  <script src="js/app.js?v=3.4"></script>
 </body>
 </html>

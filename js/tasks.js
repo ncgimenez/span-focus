@@ -189,7 +189,16 @@ function toggleTaskActionMenu(taskId, event) {
   }
 }
 
-let isBacklogOpen = false;
+let isBacklogOpen = true;
+let activeCategoryFilter = 'all';
+
+function setCategoryFilter(cat) {
+  activeCategoryFilter = cat;
+  document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === cat);
+  });
+  renderTasks();
+}
 
 function toggleBacklogAccordion() {
   isBacklogOpen = !isBacklogOpen;
@@ -224,16 +233,28 @@ function renderTasks() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const filterByTagCondition = (t) => {
-    if (!activeTagFilter) return true;
-    return t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`);
+  // Update Category Filter Badges (All, Work, Home, Fun)
+  const allActiveUnfiltered = tasks.filter(t => !t.completed);
+  const catCountAll = document.getElementById('catCountAll');
+  const catCountWork = document.getElementById('catCountWork');
+  const catCountHome = document.getElementById('catCountHome');
+  const catCountFun = document.getElementById('catCountFun');
+  if (catCountAll) catCountAll.textContent = allActiveUnfiltered.length;
+  if (catCountWork) catCountWork.textContent = allActiveUnfiltered.filter(t => (t.category || 'Work') === 'Work').length;
+  if (catCountHome) catCountHome.textContent = allActiveUnfiltered.filter(t => t.category === 'Home').length;
+  if (catCountFun) catCountFun.textContent = allActiveUnfiltered.filter(t => t.category === 'Fun').length;
+
+  const filterByCondition = (t) => {
+    const matchesTag = !activeTagFilter || (t.title && t.title.toLowerCase().includes(`#${activeTagFilter.toLowerCase()}`));
+    const matchesCat = (activeCategoryFilter === 'all') || (t.category === activeCategoryFilter);
+    return matchesTag && matchesCat;
   };
 
   // Completed items
-  const doneToday = tasks.filter(t => t.completed && filterByTagCondition(t));
+  const doneToday = tasks.filter(t => t.completed && filterByCondition(t));
 
   // Active items
-  const activeTasks = tasks.filter(t => !t.completed && filterByTagCondition(t));
+  const activeTasks = tasks.filter(t => !t.completed && filterByCondition(t));
   const allActiveEvents = activeTasks.filter(t => t.isEvent);
 
   const isNestedSubtask = (t) => {
@@ -327,30 +348,61 @@ function renderTasks() {
 
   // 3. Rendu TÂCHES DU JOUR
   const totalTodayActive = focusDayItems.length + priorityItems.length + regularTodayItems.length;
+
+  // Calcul du temps estimé pour Aujourd'hui
+  const todayTimeEl = document.getElementById('todayTimeEstimate');
+  if (todayTimeEl) {
+    const totalEstMins = (focusDayItems.length + priorityItems.length + regularTodayItems.length) * 25;
+    if (totalEstMins > 0) {
+      const hours = Math.floor(totalEstMins / 60);
+      const mins = totalEstMins % 60;
+      const formattedTime = hours > 0 ? `${hours}h${mins > 0 ? (mins < 10 ? '0' + mins : mins) : ''}` : `${mins}m`;
+      todayTimeEl.textContent = `⏱ ~${formattedTime} (${totalTodayActive})`;
+      todayTimeEl.style.display = 'inline-block';
+    } else {
+      todayTimeEl.style.display = 'none';
+    }
+  }
+
   if (totalTodayActive === 0) {
-    // Otter Empty State
-    regularList.innerHTML = `
-      <div class="empty-state-card">
-        <svg class="otter-svg" viewBox="0 0 120 120" width="100" height="100">
-          <path d="M 15 90 Q 30 85, 45 90 T 75 90 T 105 90" fill="none" stroke="rgba(129, 140, 248, 0.45)" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M 25 100 Q 40 96, 55 100 T 85 100 T 100 100" fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="2" stroke-linecap="round"/>
-          <ellipse cx="60" cy="65" rx="32" ry="18" fill="#a78b71" transform="rotate(-5 60 65)"/>
-          <ellipse cx="60" cy="65" rx="20" ry="11" fill="#d4c3b3" transform="rotate(-5 60 65)"/>
-          <ellipse cx="28" cy="68" rx="8" ry="6" fill="#8c7058"/>
-          <circle cx="54" cy="62" r="4.5" fill="#8c7058"/>
-          <circle cx="66" cy="61" r="4.5" fill="#8c7058"/>
-          <circle cx="85" cy="55" r="14" fill="#a78b71"/>
-          <ellipse cx="89" cy="57" rx="8" ry="6" fill="#d4c3b3"/>
-          <ellipse cx="92" cy="54" rx="2.5" ry="2" fill="#3d2c1f"/>
-          <path d="M 81 50 Q 84 47, 87 50" fill="none" stroke="#3d2c1f" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="78" cy="45" r="3.5" fill="#755c47"/>
-          <text x="96" y="40" font-size="11" font-weight="bold" fill="#e2b340" opacity="0.9">z</text>
-          <text x="105" y="32" font-size="9" font-weight="bold" fill="#e2b340" opacity="0.7">z</text>
-        </svg>
-        <div class="empty-state-title">Tout est calme et pépère... 🦦</div>
-        <div class="empty-state-sub">Toutes les tâches du jour sont terminées. Profitez de votre session !</div>
-      </div>
-    `;
+    if (backlogItems.length > 0) {
+      // Warm Kickoff Invitation Card when tasks exist in backlog
+      regularList.innerHTML = `
+        <div class="today-kickoff-card">
+          <div class="kickoff-header">
+            <span class="kickoff-sun">☀️</span>
+            <div class="kickoff-text">
+              <div class="kickoff-title">Composez votre journée</div>
+              <div class="kickoff-sub">Vous avez <strong>${backlogItems.length} tâche(s)</strong> dans votre boîte ci-dessous. Cliquez sur <strong>⚡ + Aujourd'hui</strong> pour choisir vos priorités !</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // Peaceful Sleeping Otter when all active tasks are truly zero
+      regularList.innerHTML = `
+        <div class="empty-state-card">
+          <svg class="otter-svg" viewBox="0 0 120 120" width="100" height="100">
+            <path d="M 15 90 Q 30 85, 45 90 T 75 90 T 105 90" fill="none" stroke="rgba(129, 140, 248, 0.45)" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 25 100 Q 40 96, 55 100 T 85 100 T 100 100" fill="none" stroke="rgba(16, 185, 129, 0.35)" stroke-width="2" stroke-linecap="round"/>
+            <ellipse cx="60" cy="65" rx="32" ry="18" fill="#a78b71" transform="rotate(-5 60 65)"/>
+            <ellipse cx="60" cy="65" rx="20" ry="11" fill="#d4c3b3" transform="rotate(-5 60 65)"/>
+            <ellipse cx="28" cy="68" rx="8" ry="6" fill="#8c7058"/>
+            <circle cx="54" cy="62" r="4.5" fill="#8c7058"/>
+            <circle cx="66" cy="61" r="4.5" fill="#8c7058"/>
+            <circle cx="85" cy="55" r="14" fill="#a78b71"/>
+            <ellipse cx="89" cy="57" rx="8" ry="6" fill="#d4c3b3"/>
+            <ellipse cx="92" cy="54" rx="2.5" ry="2" fill="#3d2c1f"/>
+            <path d="M 81 50 Q 84 47, 87 50" fill="none" stroke="#3d2c1f" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="78" cy="45" r="3.5" fill="#755c47"/>
+            <text x="96" y="40" font-size="11" font-weight="bold" fill="#e2b340" opacity="0.9">z</text>
+            <text x="105" y="32" font-size="9" font-weight="bold" fill="#e2b340" opacity="0.7">z</text>
+          </svg>
+          <div class="empty-state-title">Tout est calme et pépère... 🦦</div>
+          <div class="empty-state-sub">Toutes vos tâches du jour sont terminées. Profitez de votre session !</div>
+        </div>
+      `;
+    }
   } else {
     regularTodayItems.forEach(item => {
       regularList.appendChild(renderItemAndSubtasks(item));
@@ -365,6 +417,9 @@ function renderTasks() {
       backlogItems.forEach(item => {
         backlogList.appendChild(createTaskDOMElement(item, false));
       });
+      backlogList.style.display = isBacklogOpen ? 'flex' : 'none';
+      const arrow = document.getElementById('backlogToggleArrow');
+      if (arrow) arrow.textContent = isBacklogOpen ? '▼' : '▶';
     } else {
       groupBacklog.style.display = 'none';
     }
@@ -373,6 +428,8 @@ function renderTasks() {
   doneToday.forEach(task => {
     regularList.appendChild(createTaskDOMElement(task, false));
   });
+
+  setupDragAndDropZones();
 
   if (newlyAddedTaskId) {
     setTimeout(() => {
@@ -383,6 +440,40 @@ function renderTasks() {
       newlyAddedTaskId = null;
     }, 50);
   }
+}
+
+function setupDragAndDropZones() {
+  const taskList = document.getElementById('taskList');
+  const backlogList = document.getElementById('backlogList');
+
+  [taskList, backlogList].forEach(list => {
+    if (!list || list._hasDnD) return;
+    list._hasDnD = true;
+
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      list.classList.add('drag-over');
+    });
+
+    list.addEventListener('dragleave', (e) => {
+      if (!list.contains(e.relatedTarget)) {
+        list.classList.remove('drag-over');
+      }
+    });
+
+    list.addEventListener('drop', (e) => {
+      e.preventDefault();
+      list.classList.remove('drag-over');
+      const taskId = e.dataTransfer.getData('text/plain');
+      if (!taskId) return;
+
+      if (list.id === 'taskList') {
+        moveTaskToToday(taskId);
+      } else if (list.id === 'backlogList') {
+        moveTaskToBacklog(taskId);
+      }
+    });
+  });
 }
 
 // 1-ROW SINGLE HORIZONTAL COMPACT TASK/EVENT CARD
@@ -424,6 +515,12 @@ function createTaskDOMElement(task, isSubtask = false) {
       <div class="task-right-meta">
         ${progressBadge}
         ${task.isEvent ? `<button class="btn-subtask-quick-add" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')" title="Ajouter une tâche">+ Tâche</button>` : ''}
+        ${!task.completed && (!task.scheduledDate || task.scheduledDate !== todayStr)
+          ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToToday('${task.id}')" title="Ajouter à ma journée">⚡ + Aujourd'hui</button>`
+          : ''}
+        ${!task.completed && (task.scheduledDate === todayStr && !task.isEvent && !isSubtask)
+          ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Renvoyer dans la boîte">📦 Boîte</button>`
+          : ''}
         <span class="task-meta-time">⏱ ${durationMinutes}m</span>
         ${isCurrentlyInFocus ? `<span class="task-meta-focus">🎯 Focus</span>` : ''}
         ${(!task.completed && task.isFavorite && !isCurrentlyInFocus) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
@@ -450,6 +547,16 @@ function createTaskDOMElement(task, isSubtask = false) {
 
     </div>
   `;
+
+  // Drag and drop for tactile task organizing
+  wrapper.setAttribute('draggable', 'true');
+  wrapper.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', String(task.id));
+    wrapper.classList.add('is-dragging');
+  });
+  wrapper.addEventListener('dragend', () => {
+    wrapper.classList.remove('is-dragging');
+  });
 
   const itemNode = wrapper.querySelector('.task-item');
 

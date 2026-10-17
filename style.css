@@ -1177,6 +1177,182 @@ body {
   transform: scale(0.98);
 }
 
+/* QUICK CATEGORY FILTER PILLS */
+.quick-category-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 6px 0;
+  scrollbar-width: none;
+}
+.quick-category-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-filter-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cat-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.cat-filter-btn:active {
+  transform: scale(0.95);
+}
+
+.cat-filter-btn.active {
+  background: var(--text-main);
+  color: var(--bg);
+  border-color: var(--text-main);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.cat-dot-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cat-dot-indicator.dot-work { background: var(--cat-work); }
+.cat-dot-indicator.dot-home { background: var(--cat-home); }
+.cat-dot-indicator.dot-fun  { background: var(--cat-fun); }
+
+.cat-count-pill {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.cat-filter-btn.active .cat-count-pill {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* QUICK ACTION BUTTONS ON TASK CARDS */
+.btn-task-quick-action {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-task-quick-action.move-today {
+  color: var(--streak);
+  background: rgba(226, 179, 64, 0.12);
+  border-color: rgba(226, 179, 64, 0.28);
+}
+.btn-task-quick-action.move-today:hover {
+  background: rgba(226, 179, 64, 0.24);
+  border-color: var(--streak);
+  transform: translateY(-1px);
+}
+.btn-task-quick-action.move-today:active {
+  transform: scale(0.92);
+}
+
+.btn-task-quick-action.move-backlog {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.btn-task-quick-action.move-backlog:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* TODAY KICKOFF CARD (WHEN TODAY IS EMPTY BUT BACKLOG HAS TASKS) */
+.today-kickoff-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 4px 0 10px 0;
+  animation: taskSlideIn 0.3s ease-out;
+}
+
+[data-theme="light"] .today-kickoff-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.kickoff-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kickoff-sun {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 8px rgba(226, 179, 64, 0.4));
+  animation: floatOtter 3s ease-in-out infinite alternate;
+}
+
+.kickoff-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.kickoff-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.today-time-estimate {
+  font-size: 11.5px;
+  color: var(--streak);
+  font-weight: 600;
+  background: rgba(226, 179, 64, 0.12);
+  border: 1px solid rgba(226, 179, 64, 0.22);
+  padding: 1.5px 7px;
+  border-radius: 5px;
+}
+
+/* DRAG & DROP FEEDBACK */
+.task-item-wrapper[draggable="true"] {
+  cursor: grab;
+}
+.task-item-wrapper[draggable="true"]:active {
+  cursor: grabbing;
+}
+.task-item-wrapper.is-dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+.task-list.drag-over {
+  background: rgba(129, 140, 248, 0.08);
+  border-radius: 12px;
+  outline: 2px dashed var(--accent);
+}
+
 /* MENU COMPACT ⋮ */
 .task-menu-container {
   position: relative;
