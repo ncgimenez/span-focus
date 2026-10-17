@@ -2359,6 +2359,31 @@ input[type="range"] {
   margin-top: 6px;
 }
 
+.btn-modal-delete {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-delete:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: var(--danger);
+  transform: translateY(-1px);
+}
+
+.btn-modal-delete:active {
+  transform: scale(0.96);
+}
+
 .btn-cancel {
   background: transparent;
   border: none;

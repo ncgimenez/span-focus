@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.20">
+  <link rel="stylesheet" href="style.css?v=3.21">
 </head>
 <body>
 
@@ -405,9 +405,12 @@
           <button type="button" id="modalFavToggleBtn" class="btn-theme-toggle" onclick="toggleModalFavorite()">⭐ Normal</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-        <button class="btn-save" onclick="saveTaskModal()">Save Changes</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button type="button" class="btn-modal-delete" id="btnModalDeleteTask" onclick="deleteCurrentEditingTask()" title="Supprimer définitivement la tâche">🗑️ Supprimer</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+          <button class="btn-save" onclick="saveTaskModal()">Save Changes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -486,11 +489,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.20"></script>
-  <script src="js/timer.js?v=3.20"></script>
-  <script src="js/tasks.js?v=3.20"></script>
-  <script src="js/track.js?v=3.20"></script>
-  <script src="js/sync.js?v=3.20"></script>
-  <script src="js/app.js?v=3.20"></script>
+  <script src="js/audio.js?v=3.21"></script>
+  <script src="js/timer.js?v=3.21"></script>
+  <script src="js/tasks.js?v=3.21"></script>
+  <script src="js/track.js?v=3.21"></script>
+  <script src="js/sync.js?v=3.21"></script>
+  <script src="js/app.js?v=3.21"></script>
 </body>
 </html>

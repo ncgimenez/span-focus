@@ -578,9 +578,11 @@ function syncWithSpanPlan() {
 
     let modified = false;
     const catMap = { work: 'Work', life: 'Home', fun: 'Fun' };
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
 
     planTasks.forEach(pTask => {
       if (!pTask || !pTask.id) return;
+      if (deletedSet.has(String(pTask.id))) return;
       const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)));
       
       if (!existing) {
@@ -1292,15 +1294,48 @@ function toggleTaskById(id) {
 }
 
 function deleteTaskById(id) {
-  if (activeTask && String(activeTask.id) === String(id)) dismissSpotlightTask();
+  const targetId = String(id);
+  if (activeTask && String(activeTask.id) === targetId) dismissSpotlightTask();
+
+  // Détacher les sous-tâches si l'élément supprimé est un événement parent
   tasks.forEach(t => {
-    if (String(t.parentEventId) === String(id)) {
+    if (String(t.parentEventId) === targetId) {
       t.parentEventId = null;
     }
   });
-  tasks = tasks.filter(t => String(t.id) !== String(id));
+
+  // Retirer de la liste en mémoire
+  tasks = tasks.filter(t => String(t.id) !== targetId && String(t.planId) !== targetId);
+
+  // Supprimer de span_plan_tasks en localStorage pour éviter que syncWithSpanPlan ne la recrée
+  try {
+    const rawPlan = localStorage.getItem('span_plan_tasks');
+    if (rawPlan) {
+      const planList = JSON.parse(rawPlan);
+      if (Array.isArray(planList)) {
+        const updatedPlan = planList.filter(p => String(p.id) !== targetId && String(p.planId) !== targetId);
+        localStorage.setItem('span_plan_tasks', JSON.stringify(updatedPlan));
+      }
+    }
+  } catch (e) {
+    console.warn('Pruning plan tasks error:', e);
+  }
+
+  // Enregistrer le tombstone pour empêcher la résurrection lors du merge cloud
+  try {
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+    deletedSet.add(targetId);
+    localStorage.setItem('span_deleted_task_ids', JSON.stringify(Array.from(deletedSet)));
+
+    let dismissed = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids')) || [];
+    if (!dismissed.includes(targetId)) {
+      dismissed.push(targetId);
+      localStorage.setItem('span_plan_dismissed_focus_ids', JSON.stringify(dismissed));
+    }
+  } catch (e) {}
+
   saveTasks();
-  if (typeof showToast === 'function') showToast('Task deleted', '🗑️');
+  if (typeof showToast === 'function') showToast('Tâche supprimée', '🗑️');
 }
 
 function toggleFavorite(id) {
@@ -1833,6 +1868,13 @@ function closeEditModal() {
   const modal = document.getElementById('editModalOverlay');
   if (modal) modal.style.display = 'none';
   editingTaskId = null;
+}
+
+function deleteCurrentEditingTask() {
+  if (!editingTaskId) return;
+  const idToDelete = editingTaskId;
+  closeEditModal();
+  deleteTaskById(idToDelete);
 }
 
 function saveTaskModal() {

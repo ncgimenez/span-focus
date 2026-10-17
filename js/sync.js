@@ -64,6 +64,8 @@ function updateSyncKeyDisplay() {
 async function saveStateToCloud() {
   if (isCloudSyncInProgress || !supabaseClient) return;
   try {
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+
     // Read existing user_state row to preserve other shared keys (like plan_items or categories)
     const { data: existingData } = await supabaseClient
       .from('user_state')
@@ -75,9 +77,18 @@ async function saveStateToCloud() {
       ? existingData.tasks
       : {};
 
+    // Filter out deleted tasks from plan_items if present
+    let cleanPlanItems = existingTasksObj.plan_items || [];
+    if (Array.isArray(cleanPlanItems) && deletedSet.size > 0) {
+      cleanPlanItems = cleanPlanItems.filter(p => !deletedSet.has(String(p.id)));
+    }
+
+    const cleanTasks = (window.SpanState.tasks || []).filter(t => !deletedSet.has(String(t.id)));
+
     const updatedTasksObj = {
       ...existingTasksObj,
-      items: window.SpanState.tasks || [],
+      items: cleanTasks,
+      plan_items: cleanPlanItems,
       archives: window.SpanState.archivedTasks || [],
       categories: window.SpanState.categoryLabels || existingTasksObj.categories || {}
     };
@@ -130,6 +141,11 @@ async function loadStateFromCloud() {
         remoteActive = data.timer_state.activeTask;
       }
 
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+
+      // Filtre préventif : éliminer les tâches définitivement supprimées
+      remoteItems = remoteItems.filter(t => t && t.id && !deletedSet.has(String(t.id)));
+
       // Merge intelligent pour ne jamais écraser ni perdre de tâches locales
       const localTasks = window.SpanState.tasks || [];
       const isDefaultMocks = (
@@ -140,12 +156,12 @@ async function loadStateFromCloud() {
 
       const taskMap = new Map();
       remoteItems.forEach(t => {
-        if (t && t.id) taskMap.set(String(t.id), t);
+        if (t && t.id && !deletedSet.has(String(t.id))) taskMap.set(String(t.id), t);
       });
 
       if (!isDefaultMocks) {
         localTasks.forEach(t => {
-          if (t && t.id) taskMap.set(String(t.id), t);
+          if (t && t.id && !deletedSet.has(String(t.id))) taskMap.set(String(t.id), t);
         });
       }
 
