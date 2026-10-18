@@ -491,12 +491,13 @@ function attachTaskToEvent(childTaskId, parentEventId) {
   const parent = tasks.find(t => String(t.id) === String(parentEventId));
   if (!child || !parent) return;
 
+  pushUndoState('Attach to Item');
   child.parentEventId = String(parent.id);
   child.scheduledDate = parent.scheduledDate;
   child.isEvent = false;
 
   saveTasks();
-  if (typeof showToast === 'function') showToast(`Attached to "${parent.title}"!`, '📎');
+  if (typeof showToast === 'function') showToast(`Attached under "${parent.title}"!`, '📎');
 }
 
 function detachSubtask(taskId) {
@@ -1360,6 +1361,7 @@ function createTaskDOMElement(task, isSubtask = false) {
 
           <div class="event-header-right">
             <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}">🎯</button>
+            <button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>
             ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
             ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
             
@@ -1368,7 +1370,7 @@ function createTaskDOMElement(task, isSubtask = false) {
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add task to this event</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convert to simple task</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
                 <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
@@ -1406,7 +1408,8 @@ function createTaskDOMElement(task, isSubtask = false) {
               <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
                    id="task-node-${sub.id}" 
                    draggable="true" 
-                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();" 
+                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation(); document.body.classList.add('is-dragging-task');" 
+                   ondragend="document.body.classList.remove('is-dragging-task');"
                    ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')" 
                    title="Double-click to edit • Drag to detach">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
@@ -1419,15 +1422,11 @@ function createTaskDOMElement(task, isSubtask = false) {
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Detach">✕</button>
               </div>
             `;}).join('')}
+            <button type="button" class="btn-subtask-add-compact" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">
+              <span>+ Add subtask</span>
+            </button>
           </div>
         ` : ''}
-
-        <!-- DIRECT + ADD TASK TO THIS EVENT BUTTON -->
-        <div class="event-add-subtask-action-row">
-          <button type="button" class="btn-event-quick-add-subtask" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">
-            <span>+ Add task to this event</span>
-          </button>
-        </div>
 
       </div>
     `;
@@ -1461,6 +1460,7 @@ function createTaskDOMElement(task, isSubtask = false) {
           <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
           <div class="task-right-meta">
             <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}">🎯</button>
+            ${!isSubtask ? `<button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>` : ''}
             ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
               ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
               : ''}
@@ -1519,10 +1519,11 @@ function createTaskDOMElement(task, isSubtask = false) {
               const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
               return `
               <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
-                   id="task-node-${sub.id}"
-                   draggable="true"
-                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
+                   id="task-node-${sub.id}" 
+                   draggable="true" 
+                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation(); document.body.classList.add('is-dragging-task');" 
+                   ondragend="document.body.classList.remove('is-dragging-task');"
+                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')" 
                    title="Double-click to edit • Drag to detach">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Mark uncompleted' : 'Mark completed'}">
@@ -1534,6 +1535,9 @@ function createTaskDOMElement(task, isSubtask = false) {
                 <button class="btn-subtask-detach" type="button" onclick="event.stopPropagation(); detachSubtask('${sub.id}')" title="Detach">✕</button>
               </div>
             `;}).join('')}
+            <button type="button" class="btn-subtask-add-compact" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">
+              <span>+ Add subtask</span>
+            </button>
           </div>
         ` : ''}
 
@@ -1547,9 +1551,13 @@ function createTaskDOMElement(task, isSubtask = false) {
     e.dataTransfer.setData('text/plain', String(task.id));
     e.dataTransfer.effectAllowed = 'copyMove';
     wrapper.classList.add('is-dragging');
+    document.body.classList.add('is-dragging-task');
   });
   wrapper.addEventListener('dragend', () => {
     wrapper.classList.remove('is-dragging');
+    document.body.classList.remove('is-dragging-task');
+    const rightZone = document.getElementById('rightBacklogDropZone');
+    if (rightZone) rightZone.classList.remove('drag-over');
   });
 
   const itemNode = wrapper.querySelector('.task-item');
@@ -1617,11 +1625,18 @@ function createTaskDOMElement(task, isSubtask = false) {
   itemNode.addEventListener('touchend', () => {
     if (isHorizontalGesture === true) {
       itemNode.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
-      if (touchDiffX > 65) {
+      if (touchDiffX > 85 && task.scheduledDate && !task.isEvent) {
         triggerHapticFeedback();
-        itemNode.style.transform = `translateX(120px)`;
+        itemNode.style.transform = `translateX(140px)`;
+        setTimeout(() => {
+          moveTaskToBacklog(task.id);
+        }, 160);
+      } else if (touchDiffX > 55) {
+        triggerHapticFeedback();
+        itemNode.style.transform = `translateX(90px)`;
         setTimeout(() => {
           setSpotlightTaskById(task.id);
+          itemNode.style.transform = `translateX(0px)`;
         }, 150);
       } else {
         itemNode.style.transform = `translateX(0px)`;
@@ -1691,6 +1706,7 @@ function moveTaskToBacklog(id) {
   pushUndoState('Move to Inbox');
   t.scheduledDate = null;
   t.scheduledTime = null;
+  t.parentEventId = null;
   saveTasks();
   if (typeof showToast === 'function') showToast("Moved to Inbox!", '📦');
 }
@@ -2106,7 +2122,7 @@ let quickSubtaskTargetEventId = null;
 function openQuickSubtaskModal(eventId) {
   quickSubtaskTargetEventId = String(eventId);
   const parent = tasks.find(t => String(t.id) === quickSubtaskTargetEventId);
-  const eventName = parent ? parent.title : 'Event';
+  const eventName = parent ? parent.title : 'Item';
 
   const modal = document.getElementById('quickSubtaskModalOverlay');
   const label = document.getElementById('quickSubtaskParentLabel');
@@ -2114,13 +2130,14 @@ function openQuickSubtaskModal(eventId) {
   const title = document.getElementById('quickSubtaskModalTitle');
 
   if (title) {
-    title.textContent = parent && parent.isEvent ? '➕ Add Task to Event' : '➕ Add Subtask';
+    title.textContent = parent && parent.isEvent ? '➕ Add Task under Event' : '➕ Add Subtask';
   }
   if (label) {
-    label.textContent = `${parent && parent.isEvent ? 'Event' : 'Parent'}: "${eventName}"`;
+    label.textContent = `${parent && parent.isEvent ? 'Event' : 'Parent Task'}: "${eventName}"`;
   }
   if (input) {
     input.value = '';
+    input.placeholder = parent && parent.isEvent ? 'Task title... (Press Enter)' : 'Subtask title... (Press Enter)';
   }
   if (modal) {
     modal.style.display = 'flex';
@@ -2172,7 +2189,7 @@ function submitQuickSubtaskModal() {
   closeQuickSubtaskModal();
   saveTasks();
   if (typeof showToast === 'function') {
-    showToast(`Task added under "${parent ? parent.title : 'event'}"`, '📎');
+    showToast(`Subtask added under "${parent ? parent.title : 'item'}"`, '📎');
   }
 }
 window.submitQuickSubtaskModal = submitQuickSubtaskModal;
@@ -2213,15 +2230,15 @@ function openEditModalForTask(id) {
   editingEstimate = task.estimate || 1;
   editingIsFavorite = !!task.isFavorite;
 
-  // Populate parent event options
+  // Populate parent item options (Events or Big Tasks that are not nested)
   const parentSelect = document.getElementById('editParentEvent');
   if (parentSelect) {
-    parentSelect.innerHTML = '<option value="">(Independent Task)</option>';
-    const availableEvents = tasks.filter(t => t.isEvent && !t.completed && String(t.id) !== String(id));
-    availableEvents.forEach(ev => {
+    parentSelect.innerHTML = '<option value="">(Independent Task - No Parent)</option>';
+    const availableParents = tasks.filter(t => !t.completed && !t.parentEventId && String(t.id) !== String(id));
+    availableParents.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = ev.id;
-      opt.textContent = `📅 ${ev.title}`;
+      opt.value = p.id;
+      opt.textContent = `${p.isEvent ? '📅' : '📋'} ${p.title}`;
       parentSelect.appendChild(opt);
     });
     parentSelect.value = task.parentEventId || '';
@@ -2389,10 +2406,45 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+function initRightBacklogDropZone() {
+  const zone = document.getElementById('rightBacklogDropZone');
+  if (!zone) return;
+
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    zone.classList.add('drag-over');
+  });
+
+  zone.addEventListener('dragleave', (e) => {
+    if (!zone.contains(e.relatedTarget)) {
+      zone.classList.remove('drag-over');
+    }
+  });
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    document.body.classList.remove('is-dragging-task');
+
+    const id = e.dataTransfer.getData('text/plain');
+    if (!id) return;
+
+    triggerHapticFeedback();
+    moveTaskToBacklog(id);
+  });
+
+  window.addEventListener('dragend', () => {
+    document.body.classList.remove('is-dragging-task');
+    zone.classList.remove('drag-over');
+  });
+}
+
 autoArchivePastDays();
 checkScheduledTasksForToday();
 loadSampleTasksIfEmpty(false);
 initTaskTargetDefault();
+initRightBacklogDropZone();
 updateTaskTabsUI();
 if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 

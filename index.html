@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.30">
+  <link rel="stylesheet" href="style.css?v=3.31">
 </head>
 <body>
 
@@ -377,9 +377,9 @@
         </div>
 
         <div id="rowParentEvent" style="display: flex; flex-direction: column; gap: 4px;">
-          <label class="modal-label">Parent Event</label>
+          <label class="modal-label">Parent Item (Event or Big Task)</label>
           <select id="editParentEvent" class="modal-input" style="cursor: pointer; padding: 10px 12px; font-size: 14px;">
-            <option value="">(Independent Task)</option>
+            <option value="">(Independent Task - No Parent)</option>
           </select>
         </div>
 
@@ -535,6 +535,15 @@
     </div>
   </nav>
 
+  <!-- FULL-HEIGHT RIGHT-EDGE DROP ZONE FOR BACKLOG / INBOX -->
+  <div id="rightBacklogDropZone" class="right-backlog-dropzone" aria-label="Drop to move to Backlog">
+    <div class="right-dropzone-content">
+      <span class="right-dropzone-icon">📦</span>
+      <span class="right-dropzone-text">Drop to Backlog</span>
+      <span class="right-dropzone-sub">Move to Inbox (no date)</span>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
@@ -543,11 +552,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.30"></script>
-  <script src="js/timer.js?v=3.30"></script>
-  <script src="js/tasks.js?v=3.30"></script>
-  <script src="js/track.js?v=3.30"></script>
-  <script src="js/sync.js?v=3.30"></script>
-  <script src="js/app.js?v=3.30"></script>
+  <script src="js/audio.js?v=3.31"></script>
+  <script src="js/timer.js?v=3.31"></script>
+  <script src="js/tasks.js?v=3.31"></script>
+  <script src="js/track.js?v=3.31"></script>
+  <script src="js/sync.js?v=3.31"></script>
+  <script src="js/app.js?v=3.31"></script>
 </body>
 </html>
