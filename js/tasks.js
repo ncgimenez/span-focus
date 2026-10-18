@@ -1213,18 +1213,24 @@ function renderTasks() {
     }
   }
 
-  // 4. Render BACKLOG / INBOX (Unscheduled tasks)
+  // 4. Render BACKLOG / INBOX (Unscheduled tasks in rectangular drop container)
   if (groupBacklog && backlogList) {
     if (backlogItems.length > 0) {
-      groupBacklog.style.display = 'block';
+      groupBacklog.style.display = 'flex';
       if (backlogCountBadge) backlogCountBadge.textContent = backlogItems.length;
       backlogItems.forEach(item => {
         backlogList.appendChild(createTaskDOMElement(item, false));
       });
     } else {
-      groupBacklog.style.display = 'block';
+      groupBacklog.style.display = 'flex';
       if (backlogCountBadge) backlogCountBadge.textContent = '0';
-      backlogList.innerHTML = `<li style="font-size: 13.5px; color: var(--text-muted); padding: 24px 8px; text-align: center;">Your inbox is empty! 🎉 Use the input above to add tasks.</li>`;
+      backlogList.innerHTML = `
+        <li class="backlog-empty-state">
+          <span class="backlog-empty-icon">📦</span>
+          <span class="backlog-empty-text">Inbox is empty</span>
+          <span class="backlog-empty-sub">Drop tasks here or use input above to add</span>
+        </li>
+      `;
     }
   }
 
@@ -1256,6 +1262,7 @@ function renderTasks() {
 function setupDragAndDropZones() {
   const taskList = document.getElementById('taskList');
   const backlogList = document.getElementById('backlogList');
+  const groupBacklog = document.getElementById('groupBacklog');
   const tabInbox = document.getElementById('tabBtnInbox');
   const tabToday = document.getElementById('tabBtnToday');
 
@@ -1287,6 +1294,34 @@ function setupDragAndDropZones() {
       }
     });
   });
+
+  // Make the entire rectangular Backlog container beneath the title an active elongated drop zone
+  if (groupBacklog && !groupBacklog._hasDnD) {
+    groupBacklog._hasDnD = true;
+
+    groupBacklog.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      groupBacklog.classList.add('drag-over');
+    });
+
+    groupBacklog.addEventListener('dragleave', (e) => {
+      if (!groupBacklog.contains(e.relatedTarget)) {
+        groupBacklog.classList.remove('drag-over');
+      }
+    });
+
+    groupBacklog.addEventListener('drop', (e) => {
+      e.preventDefault();
+      groupBacklog.classList.remove('drag-over');
+      document.body.classList.remove('is-dragging-task');
+      const taskId = e.dataTransfer.getData('text/plain');
+      if (!taskId) return;
+
+      triggerHapticFeedback();
+      moveTaskToBacklog(taskId);
+    });
+  }
 
   // Also allow dropping directly on the header Tab Buttons!
   [tabToday, tabInbox].forEach(btn => {
@@ -1589,8 +1624,8 @@ function createTaskDOMElement(task, isSubtask = false) {
   wrapper.addEventListener('dragend', () => {
     wrapper.classList.remove('is-dragging');
     document.body.classList.remove('is-dragging-task');
-    const rightZone = document.getElementById('rightBacklogDropZone');
-    if (rightZone) rightZone.classList.remove('drag-over');
+    const groupBacklog = document.getElementById('groupBacklog');
+    if (groupBacklog) groupBacklog.classList.remove('drag-over');
   });
 
   const itemNode = wrapper.querySelector('.task-item');
@@ -2442,45 +2477,16 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-function initRightBacklogDropZone() {
-  const zone = document.getElementById('rightBacklogDropZone');
-  if (!zone) return;
-
-  zone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    zone.classList.add('drag-over');
-  });
-
-  zone.addEventListener('dragleave', (e) => {
-    if (!zone.contains(e.relatedTarget)) {
-      zone.classList.remove('drag-over');
-    }
-  });
-
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    document.body.classList.remove('is-dragging-task');
-
-    const id = e.dataTransfer.getData('text/plain');
-    if (!id) return;
-
-    triggerHapticFeedback();
-    moveTaskToBacklog(id);
-  });
-
-  window.addEventListener('dragend', () => {
-    document.body.classList.remove('is-dragging-task');
-    zone.classList.remove('drag-over');
-  });
-}
+window.addEventListener('dragend', () => {
+  document.body.classList.remove('is-dragging-task');
+  const groupBacklog = document.getElementById('groupBacklog');
+  if (groupBacklog) groupBacklog.classList.remove('drag-over');
+});
 
 autoArchivePastDays();
 checkScheduledTasksForToday();
 loadSampleTasksIfEmpty(false);
 initTaskTargetDefault();
-initRightBacklogDropZone();
 updateTaskTabsUI();
 if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 

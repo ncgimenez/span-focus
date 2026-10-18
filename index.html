@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.32">
+  <link rel="stylesheet" href="style.css?v=3.33">
 </head>
 <body>
 
@@ -239,9 +239,12 @@
                     <span style="font-size: 11.5px; color: var(--text-muted);">Unscheduled tasks</span>
                   </div>
 
-                  <!-- SECTION 4: UNPLANNED / SANS DATE -->
-                  <div class="tasks-group" id="groupBacklog">
+                  <!-- SECTION 4: UNPLANNED / SANS DATE (RECTANGULAR DROP ZONE) -->
+                  <div class="tasks-group backlog-dropzone-group" id="groupBacklog">
                     <ul class="task-list" id="backlogList" style="display: flex;"></ul>
+                    <div class="backlog-drop-hint" id="backlogDropHint">
+                      <span>📥 Drop to move to Backlog</span>
+                    </div>
                   </div>
                 </div>
 
@@ -535,18 +538,6 @@
     </div>
   </nav>
 
-  <!-- FLOATING RIGHT DROP DOCK FOR BACKLOG / INBOX -->
-  <div id="rightBacklogDropZone" class="right-backlog-dropzone" aria-label="Drop to move to Backlog">
-    <div class="right-dropzone-card">
-      <div class="right-dropzone-icon-wrap">
-        <span class="right-dropzone-icon">📦</span>
-      </div>
-      <div class="right-dropzone-text-group">
-        <span class="right-dropzone-title">Backlog</span>
-        <span class="right-dropzone-sub">Drop to unschedule</span>
-      </div>
-    </div>
-  </div>
 
   <!-- TOAST NOTIFICATIONS CONTAINER -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
@@ -556,11 +547,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.32"></script>
-  <script src="js/timer.js?v=3.32"></script>
-  <script src="js/tasks.js?v=3.32"></script>
-  <script src="js/track.js?v=3.32"></script>
-  <script src="js/sync.js?v=3.32"></script>
-  <script src="js/app.js?v=3.32"></script>
+  <script src="js/audio.js?v=3.33"></script>
+  <script src="js/timer.js?v=3.33"></script>
+  <script src="js/tasks.js?v=3.33"></script>
+  <script src="js/track.js?v=3.33"></script>
+  <script src="js/sync.js?v=3.33"></script>
+  <script src="js/app.js?v=3.33"></script>
 </body>
 </html>
