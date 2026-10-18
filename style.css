@@ -114,6 +114,8 @@ body {
 .brand-logo {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
+  display: block;
   object-fit: contain;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
