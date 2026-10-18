@@ -43,6 +43,76 @@ window.getLocalDateString = getLocalDateString;
 const nowInit = new Date();
 const todayStrInit = getLocalDateString(nowInit);
 
+// ==============================================================
+// UNDO HISTORY STACK (CMD+Z / CTRL+Z SUPPORT)
+// ==============================================================
+const undoStack = [];
+const MAX_UNDO_HISTORY = 25;
+
+function pushUndoState(actionName = 'Action') {
+  try {
+    const snapshot = {
+      tasks: JSON.parse(JSON.stringify(tasks)),
+      archivedTasks: JSON.parse(JSON.stringify(archivedTasks)),
+      activeTask: activeTask ? JSON.parse(JSON.stringify(activeTask)) : null,
+      deletedIds: JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'),
+      dismissedIds: JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids') || '[]'),
+      actionName
+    };
+    undoStack.push(snapshot);
+    if (undoStack.length > MAX_UNDO_HISTORY) {
+      undoStack.shift();
+    }
+  } catch (err) {
+    console.warn("Could not record undo state:", err);
+  }
+}
+
+function undoLastAction() {
+  if (undoStack.length === 0) {
+    if (typeof showToast === 'function') showToast("Nothing to undo", "ℹ️");
+    return;
+  }
+
+  const previousState = undoStack.pop();
+  if (!previousState) return;
+
+  tasks = previousState.tasks || [];
+  archivedTasks = previousState.archivedTasks || [];
+  activeTask = previousState.activeTask || null;
+
+  window.SpanState.tasks = tasks;
+  window.SpanState.archivedTasks = archivedTasks;
+  window.SpanState.activeTask = activeTask;
+
+  localStorage.setItem('span_tasks', JSON.stringify(tasks));
+  localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
+  localStorage.setItem('span_active_task', JSON.stringify(activeTask));
+
+  if (previousState.deletedIds) {
+    localStorage.setItem('span_deleted_task_ids', JSON.stringify(previousState.deletedIds));
+  }
+  if (previousState.dismissedIds) {
+    localStorage.setItem('span_plan_dismissed_focus_ids', JSON.stringify(previousState.dismissedIds));
+  }
+
+  if (typeof exportAllTasksToSpanPlan === 'function') {
+    exportAllTasksToSpanPlan();
+  }
+
+  renderTasks();
+  renderArchivedTasks();
+  renderPlannedTasks();
+  updateSpotlightUI();
+  if (typeof updateStats === 'function') updateStats();
+  if (typeof saveStateToCloud === 'function') saveStateToCloud();
+
+  if (typeof showToast === 'function') {
+    showToast(`Undone: ${previousState.actionName || 'Action'} ↩️`, '↩️');
+  }
+}
+window.undoLastAction = undoLastAction;
+
 // Migration of legacy categories into inline #tags and the unified tri-category system
 function normalizeTaskAndMigrateTags(t) {
   let title = t.title || t.text || 'Untitled Task';
@@ -361,6 +431,7 @@ function updateDayNavUI() {
 function moveTaskToSelectedDay(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
+  pushUndoState('Schedule Task');
   const targetDate = getSelectedDateStr();
   t.scheduledDate = targetDate;
   saveTasks();
@@ -431,6 +502,7 @@ function attachTaskToEvent(childTaskId, parentEventId) {
 function detachSubtask(taskId) {
   const t = tasks.find(x => String(x.id) === String(taskId));
   if (!t) return;
+  pushUndoState('Detach Subtask');
   t.parentEventId = null;
   saveTasks();
   if (typeof showToast === 'function') showToast("Task detached from event!", '📎');
@@ -1266,7 +1338,7 @@ function createTaskDOMElement(task, isSubtask = false) {
               <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')">➕ Add task to this event</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add task to this event</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convert to simple task</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
                 <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
@@ -1282,10 +1354,10 @@ function createTaskDOMElement(task, isSubtask = false) {
               const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
               return `
               <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
-                   id="task-node-${sub.id}"
-                   draggable="true"
-                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();"
-                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')"
+                   id="task-node-${sub.id}" 
+                   draggable="true" 
+                   ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation();" 
+                   ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')" 
                    title="Double-click to edit • Drag to detach">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Mark uncompleted' : 'Mark completed'}">
@@ -1299,6 +1371,13 @@ function createTaskDOMElement(task, isSubtask = false) {
             `;}).join('')}
           </div>
         ` : ''}
+
+        <!-- DIRECT + ADD TASK TO THIS EVENT BUTTON -->
+        <div class="event-add-subtask-action-row">
+          <button type="button" class="btn-event-quick-add-subtask" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">
+            <span>+ Add task to this event</span>
+          </button>
+        </div>
 
       </div>
     `;
@@ -1351,7 +1430,7 @@ function createTaskDOMElement(task, isSubtask = false) {
                   ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Schedule for ${currentDayOffset === 0 ? "today" : "tomorrow"}</button>`
                   : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Move to Inbox (no date)</button>`
                 }
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); quickAddSubtaskPrompt('${task.id}')">➕ Add subtask</button>
+                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
                 <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToEvent('${task.id}')">📅 Convert to Event</button>
                 ${isSubtask 
                   ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); detachSubtask('${task.id}')">📎 Detach from parent item</button>` 
@@ -1529,6 +1608,7 @@ function addTask() {
 function moveTaskToToday(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
+  pushUndoState('Move to Today');
   const todayStr = getLocalDateString();
   t.scheduledDate = todayStr;
   saveTasks();
@@ -1538,6 +1618,7 @@ function moveTaskToToday(id) {
 function moveTaskToBacklog(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
+  pushUndoState('Move to Inbox');
   t.scheduledDate = null;
   t.scheduledTime = null;
   saveTasks();
@@ -1548,6 +1629,7 @@ function toggleTaskById(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
 
+  pushUndoState(t.completed ? 'Uncheck Task' : 'Complete Task');
   t.completed = !t.completed;
   if (t.completed) {
     triggerHapticFeedback();
@@ -1572,6 +1654,7 @@ function toggleTaskById(id) {
 
 function deleteTaskById(id) {
   const targetId = String(id);
+  pushUndoState('Delete Task');
   if (activeTask && String(activeTask.id) === targetId) dismissSpotlightTask();
 
   tasks.forEach(t => {
@@ -1627,6 +1710,7 @@ function toggleFavorite(id) {
     return;
   }
 
+  pushUndoState('Toggle Priority');
   t.isFavorite = !t.isFavorite;
   saveTasks();
 }
@@ -1876,13 +1960,9 @@ function renderPlannedTasks() {
   });
 }
 
-function moveTaskToToday(id) {
-  const t = tasks.find(x => String(x.id) === String(id));
-  if (t) {
-    t.scheduledDate = getLocalDateString();
-    saveTasks();
-    closeSubViews();
-  }
+function moveTaskToTodayFromView(id) {
+  moveTaskToToday(id);
+  closeSubViews();
 }
 
 function togglePastArchives() {
@@ -1951,34 +2031,91 @@ function setEditItemType(type) {
   if (rowParent) rowParent.style.display = (type === 'task') ? 'flex' : 'none';
 }
 
-function quickAddSubtaskPrompt(eventId) {
-  const parentEvent = tasks.find(t => String(t.id) === String(eventId));
-  const eventName = parentEvent ? parentEvent.title : 'Event';
-  const title = prompt(`Add task under "${eventName}":`);
-  if (!title || !title.trim()) return;
+let quickSubtaskTargetEventId = null;
 
+function openQuickSubtaskModal(eventId) {
+  quickSubtaskTargetEventId = String(eventId);
+  const parent = tasks.find(t => String(t.id) === quickSubtaskTargetEventId);
+  const eventName = parent ? parent.title : 'Event';
+
+  const modal = document.getElementById('quickSubtaskModalOverlay');
+  const label = document.getElementById('quickSubtaskParentLabel');
+  const input = document.getElementById('quickSubtaskInput');
+  const title = document.getElementById('quickSubtaskModalTitle');
+
+  if (title) {
+    title.textContent = parent && parent.isEvent ? '➕ Add Task to Event' : '➕ Add Subtask';
+  }
+  if (label) {
+    label.textContent = `${parent && parent.isEvent ? 'Event' : 'Parent'}: "${eventName}"`;
+  }
+  if (input) {
+    input.value = '';
+  }
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      if (input) input.focus();
+    }, 50);
+  }
+}
+window.openQuickSubtaskModal = openQuickSubtaskModal;
+
+function closeQuickSubtaskModal() {
+  const modal = document.getElementById('quickSubtaskModalOverlay');
+  if (modal) modal.style.display = 'none';
+  quickSubtaskTargetEventId = null;
+}
+window.closeQuickSubtaskModal = closeQuickSubtaskModal;
+
+function submitQuickSubtaskModal() {
+  const input = document.getElementById('quickSubtaskInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) {
+    input.focus();
+    return;
+  }
+
+  if (!quickSubtaskTargetEventId) {
+    closeQuickSubtaskModal();
+    return;
+  }
+
+  pushUndoState('Add Subtask');
+  const parent = tasks.find(t => String(t.id) === quickSubtaskTargetEventId);
   const newTask = {
     id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
-    title: title.trim(),
-    category: parentEvent ? parentEvent.category : 'Work',
+    title: val,
+    category: parent ? parent.category : 'Work',
     estimate: 1,
     completed: false,
     isFavorite: false,
     isEvent: false,
-    parentEventId: String(eventId),
-    scheduledDate: parentEvent ? parentEvent.scheduledDate : null,
+    parentEventId: quickSubtaskTargetEventId,
+    scheduledDate: parent ? parent.scheduledDate : getLocalDateString(),
     scheduledTime: null
   };
 
   newlyAddedTaskId = newTask.id;
   tasks.push(newTask);
+  closeQuickSubtaskModal();
   saveTasks();
-  if (typeof showToast === 'function') showToast(`Task added under ${eventName}`, '📎');
+  if (typeof showToast === 'function') {
+    showToast(`Task added under "${parent ? parent.title : 'event'}"`, '📎');
+  }
 }
+window.submitQuickSubtaskModal = submitQuickSubtaskModal;
+
+function quickAddSubtaskPrompt(eventId) {
+  openQuickSubtaskModal(eventId);
+}
+window.quickAddSubtaskPrompt = quickAddSubtaskPrompt;
 
 function convertToEvent(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
+  pushUndoState('Convert to Event');
   t.isEvent = true;
   t.completed = false;
   t.parentEventId = null;
@@ -1991,6 +2128,7 @@ function convertToEvent(id) {
 function convertToTask(id) {
   const t = tasks.find(x => String(x.id) === String(id));
   if (!t) return;
+  pushUndoState('Convert to Task');
   t.isEvent = false;
   saveTasks();
   if (typeof showToast === 'function') showToast('Converted to Task!', '📝');
@@ -2121,18 +2259,32 @@ function saveTaskModal() {
   if (typeof showToast === 'function') showToast('Changes saved!', '💾');
 }
 
-// Global Keyboard Shortcuts (Space: Timer, N: New task, Enter/Esc: Modals)
+// Global Keyboard Shortcuts (Cmd+Z: Undo, Space: Timer, N: New task, Enter/Esc: Modals)
 document.addEventListener('keydown', (e) => {
   const editModal = document.getElementById('editModalOverlay');
   const settingsModal = document.getElementById('settingsModalOverlay');
   const trackModal = document.getElementById('trackModalOverlay');
+  const quickSubModal = document.getElementById('quickSubtaskModalOverlay');
 
   const isEditOpen = editModal && editModal.style.display === 'flex';
   const isSettingsOpen = settingsModal && settingsModal.style.display === 'flex';
   const isTrackOpen = trackModal && trackModal.style.display === 'flex';
+  const isQuickSubOpen = quickSubModal && quickSubModal.style.display === 'flex';
+
+  // CMD+Z (Mac) or CTRL+Z (Windows) -> Undo last action (delete, move, complete, priority)
+  const isUndo = (e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey;
+  if (isUndo) {
+    const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+    if (activeTag !== 'input' && activeTag !== 'textarea') {
+      e.preventDefault();
+      undoLastAction();
+      return;
+    }
+  }
 
   // ESCAPE -> Close any open modal
   if (e.key === 'Escape') {
+    if (isQuickSubOpen) { closeQuickSubtaskModal(); e.preventDefault(); return; }
     if (isEditOpen) { closeEditModal(); e.preventDefault(); return; }
     if (isSettingsOpen) { closeSettingsModal(); e.preventDefault(); return; }
     if (isTrackOpen) { toggleTrackModal(); e.preventDefault(); return; }

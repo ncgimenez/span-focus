@@ -7,12 +7,64 @@ let isOvertime = false;
 let isBreakSession = false;
 let timerInterval = null;
 
-// Variables pour le suivi du temps réel et l'écran actif
+// Realtime tracking timestamps and screen wake lock
 let targetEndTime = null;
 let stopwatchStartTime = null;
 let wakeLock = null;
 
-// Canal Supabase Realtime pour synchroniser l'état du minuteur
+// ==============================================================
+// WEB WORKER TICKER (IMMUNE TO BROWSER BACKGROUND TAB THROTTLING)
+// Modern browsers throttle setInterval to 1 execution/min in background tabs.
+// A dedicated Web Worker guarantees 1-second ticks so document.title stays live!
+// ==============================================================
+let timerWorker = null;
+try {
+  const workerBlob = new Blob([`
+    let interval = null;
+    self.onmessage = function(e) {
+      if (e.data === 'start') {
+        if (!interval) {
+          interval = setInterval(function() {
+            self.postMessage('tick');
+          }, 1000);
+        }
+      } else if (e.data === 'stop') {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }
+    };
+  `], { type: 'application/javascript' });
+  timerWorker = new Worker(URL.createObjectURL(workerBlob));
+  timerWorker.onmessage = function(e) {
+    if (e.data === 'tick' && isRunning) {
+      tickTimer();
+    }
+  };
+} catch (e) {
+  console.warn('Web Worker ticker initialization failed, fallback to setInterval:', e);
+}
+
+function startTimerTicker() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(tickTimer, 1000);
+  if (timerWorker) {
+    try { timerWorker.postMessage('start'); } catch (e) {}
+  }
+}
+
+function stopTimerTicker() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  if (timerWorker) {
+    try { timerWorker.postMessage('stop'); } catch (e) {}
+  }
+}
+
+// Supabase Realtime channel for cross-device sync
 const timerChannel = window.supabaseClient ? window.supabaseClient.channel('timer_sync') : null;
 
 if (timerChannel) {
@@ -23,7 +75,6 @@ if (timerChannel) {
     .subscribe();
 }
 
-// Fonction pour envoyer l'état actuel aux autres appareils
 function broadcastTimerState() {
   if (!timerChannel) return;
   timerChannel.send({
@@ -44,7 +95,6 @@ function broadcastTimerState() {
   });
 }
 
-// Réception et alignement de l'état envoyé par un autre écran
 function syncRemoteTimer(state) {
   isRunning = state.isRunning;
   timerMode = state.timerMode;
@@ -56,15 +106,14 @@ function syncRemoteTimer(state) {
     targetEndTime = state.targetEndTime;
     stopwatchStartTime = state.stopwatchStartTime;
 
-    clearInterval(timerInterval);
-    timerInterval = setInterval(tickTimer, 1000);
-    toggleBtn.textContent = 'Pause';
+    startTimerTicker();
+    if (toggleBtn) toggleBtn.textContent = isBreakSession ? 'Pause Break' : 'Pause';
     requestWakeLock();
   } else {
-    clearInterval(timerInterval);
+    stopTimerTicker();
     secondsLeft = state.secondsLeft;
     elapsedSeconds = state.elapsedSeconds;
-    toggleBtn.textContent = 'Resume';
+    if (toggleBtn) toggleBtn.textContent = isBreakSession ? 'Resume Break' : 'Resume';
     releaseWakeLock();
   }
 
@@ -72,27 +121,33 @@ function syncRemoteTimer(state) {
   tickTimer();
 }
 
-
 const display = document.getElementById('timeDisplay');
 const toggleBtn = document.getElementById('btnToggle');
 const ringCircle = document.getElementById('ringProgress');
 const circumference = 2 * Math.PI * 118; // ~741.4
 
 function updateDisplay() {
-  let secToFormat = timerMode === 'stopwatch' ? elapsedSeconds : Math.abs(secondsLeft);
+  let secToFormat = timerMode === 'stopwatch' ? elapsedSeconds : Math.max(0, Math.abs(secondsLeft));
   const mins = Math.floor(secToFormat / 60);
   const secs = secToFormat % 60;
   const formatted = `${isOvertime ? '+' : ''}${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   
-  display.textContent = formatted;
-  document.title = `${isRunning ? '▶ ' : '⏸ '}${formatted} — Span Focus`;
+  if (display) display.textContent = formatted;
 
-  // Mise à jour de l'anneau circulaire
+  // Real-time dynamic document.title (running, paused, break, or focused task name)
+  const activeTask = (window.SpanState && window.SpanState.activeTask) ? window.SpanState.activeTask : null;
+  const taskSnippet = (activeTask && activeTask.title) ? ` • ${activeTask.title.replace(/#[\w\-]+/g, '').trim().substring(0, 24)}` : '';
+  const statusPrefix = isRunning ? (isBreakSession ? '☕ ' : '▶ ') : (secondsLeft === durationMinutes * 60 ? '⏱ ' : '⏸ ');
+  const modeLabel = isBreakSession ? ' [Break]' : '';
+  document.title = `${statusPrefix}${formatted}${modeLabel}${taskSnippet} — Span Focus`;
+
+  // Ring progress update
   let progress = 0;
   if (timerMode === 'stopwatch') {
     progress = (elapsedSeconds % 3600) / 3600;
   } else {
-    progress = 1 - (secondsLeft / (durationMinutes * 60));
+    const totalSecs = (durationMinutes * 60) || 1;
+    progress = 1 - (secondsLeft / totalSecs);
   }
   progress = Math.max(0, Math.min(1, progress));
   
@@ -105,58 +160,61 @@ function setTimerMode(mode) {
   timerMode = mode;
   isOvertime = false;
   isBreakSession = false;
-  display.classList.remove('overtime');
+  if (display) display.classList.remove('overtime');
 
   document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`).classList.add('active');
+  const btnEl = document.getElementById(`mode${mode.charAt(0).toUpperCase() + mode.slice(1)}`);
+  if (btnEl) btnEl.classList.add('active');
 
   const presetContainer = document.getElementById('presetPills');
-  display.classList.toggle('editable', mode === 'custom');
+  if (display) display.classList.toggle('editable', mode === 'custom');
 
   if (mode === 'pomodoro') {
-    presetContainer.style.display = 'flex';
-    presetContainer.innerHTML = `
-      <button class="preset-pill active" onclick="setDuration(25)">25m</button>
-      <button class="preset-pill" onclick="setDuration(50)">50m</button>
-      <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
-    `;
+    if (presetContainer) {
+      presetContainer.style.display = 'flex';
+      presetContainer.innerHTML = `
+        <button class="preset-pill active" onclick="setDuration(25)">25m Focus (+5m break)</button>
+        <button class="preset-pill" onclick="setDuration(50)">50m</button>
+        <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+      `;
+    }
     setDuration(25);
   } else if (mode === 'custom') {
-    presetContainer.style.display = 'flex';
-    presetContainer.innerHTML = `
-      <button class="preset-pill active" onclick="setDuration(45)">45m</button>
-      <button class="preset-pill" onclick="setDuration(60)">60m</button>
-      <button class="preset-pill" onclick="setDuration(90)">90m</button>
-    `;
+    if (presetContainer) {
+      presetContainer.style.display = 'flex';
+      presetContainer.innerHTML = `
+        <button class="preset-pill active" onclick="setDuration(45)">45m</button>
+        <button class="preset-pill" onclick="setDuration(60)">60m</button>
+        <button class="preset-pill" onclick="setDuration(90)">90m</button>
+      `;
+    }
     setDuration(45);
   } else if (mode === 'stopwatch') {
-    presetContainer.style.display = 'none';
+    if (presetContainer) presetContainer.style.display = 'none';
     elapsedSeconds = 0;
     updateDisplay();
   }
 }
 
-// Déclenche l'édition directe du chiffre en mode Custom
 function startEditingCustomTime() {
   if (timerMode !== 'custom' || isRunning) return;
   const input = document.getElementById('customTimeInput');
   if (!input) return;
 
-  display.style.display = 'none';
+  if (display) display.style.display = 'none';
   input.style.display = 'block';
   input.value = durationMinutes;
   input.focus();
   input.select();
 }
 
-// Valide la nouvelle durée saisie
 function finishEditingCustomTime() {
   const input = document.getElementById('customTimeInput');
   if (!input || input.style.display === 'none') return;
 
   const val = parseInt(input.value, 10);
   input.style.display = 'none';
-  display.style.display = 'block';
+  if (display) display.style.display = 'block';
 
   if (!isNaN(val) && val > 0 && val <= 180) {
     setDuration(val);
@@ -165,15 +223,13 @@ function finishEditingCustomTime() {
   }
 }
 
-
-
 function setDuration(mins, isBreak = false) {
   if (isRunning) toggleTimer();
   durationMinutes = mins;
   secondsLeft = mins * 60;
   isOvertime = false;
   isBreakSession = isBreak;
-  display.classList.remove('overtime');
+  if (display) display.classList.remove('overtime');
   updateDisplay();
 
   document.querySelectorAll('.preset-pill').forEach(b => {
@@ -181,7 +237,6 @@ function setDuration(mins, isBreak = false) {
   });
 }
 
-// Empêche la mise en veille de l'écran pendant le minuteur
 async function requestWakeLock() {
   try {
     if ('wakeLock' in navigator && !wakeLock) {
@@ -202,7 +257,7 @@ function releaseWakeLock() {
   }
 }
 
-// Calcule le temps réel à chaque seconde ou au réveil du téléphone
+// 1-second ticker logic with automated 30m Pomodoro cycle (25m Focus -> 5m Break)
 function tickTimer() {
   const now = Date.now();
 
@@ -212,15 +267,55 @@ function tickTimer() {
   } else {
     const remaining = Math.round((targetEndTime - now) / 1000);
     
-    if (remaining >= 0) {
+    if (remaining > 0) {
       secondsLeft = remaining;
     } else {
-      secondsLeft = remaining;
-      if (!isOvertime) {
-        isOvertime = true;
-        display.classList.add('overtime');
-        playBell();
-        toggleBtn.textContent = 'Confirm Session';
+      // Reached 0: handle cycle transitions
+      if (timerMode === 'pomodoro') {
+        if (!isBreakSession) {
+          // 25m Focus cycle finished: automatically trigger 5m break!
+          if (typeof playBell === 'function') playBell();
+          if (typeof triggerCelebration === 'function') triggerCelebration();
+          if (typeof showToast === 'function') {
+            showToast('25m Focus finished! 5m break starts now ☕', '🎉');
+          }
+
+          isBreakSession = true;
+          durationMinutes = 5;
+          secondsLeft = 5 * 60;
+          targetEndTime = Date.now() + (5 * 60 * 1000);
+          handleTimerAudioSync(true, true);
+          if (toggleBtn) toggleBtn.textContent = 'Pause Break';
+          updateTimerVisualState(true);
+        } else {
+          // 5m Break finished: notify and prepare next 25m focus cycle!
+          if (typeof playBell === 'function') playBell();
+          if (typeof showToast === 'function') {
+            showToast('☕ Break completed! Ready for next 25m focus 🚀', '☕');
+          }
+
+          stopTimerTicker();
+          isRunning = false;
+          isBreakSession = false;
+          isOvertime = false;
+          durationMinutes = 25;
+          secondsLeft = 25 * 60;
+          elapsedSeconds = 0;
+          updateTimerVisualState(false);
+          if (display) display.classList.remove('overtime');
+          if (toggleBtn) toggleBtn.textContent = 'Start Focus (25m)';
+          releaseWakeLock();
+          handleTimerAudioSync(false, false);
+        }
+      } else {
+        // Custom timer overtime handling
+        secondsLeft = remaining;
+        if (!isOvertime) {
+          isOvertime = true;
+          if (display) display.classList.add('overtime');
+          if (typeof playBell === 'function') playBell();
+          if (toggleBtn) toggleBtn.textContent = 'Confirm Session';
+        }
       }
     }
   }
@@ -228,16 +323,23 @@ function tickTimer() {
 }
 
 function updateTimerVisualState(running) {
-  if (toggleBtn) toggleBtn.classList.toggle('is-running', running);
+  if (toggleBtn) {
+    toggleBtn.classList.toggle('is-running', running);
+    toggleBtn.classList.toggle('is-break', isBreakSession);
+  }
   const circleWrap = document.querySelector('.timer-circle-wrapper');
-  if (circleWrap) circleWrap.classList.toggle('is-running', running);
-  document.body.classList.toggle('timer-active-focus-mode', running);
+  if (circleWrap) {
+    circleWrap.classList.toggle('is-running', running);
+    circleWrap.classList.toggle('is-break', isBreakSession);
+  }
+  document.body.classList.toggle('timer-active-focus-mode', running && !isBreakSession);
+  document.body.classList.toggle('timer-active-break-mode', running && isBreakSession);
 }
 
 function toggleTimer() {
   if (isRunning) {
-    clearInterval(timerInterval);
-    toggleBtn.textContent = 'Resume';
+    stopTimerTicker();
+    if (toggleBtn) toggleBtn.textContent = isBreakSession ? 'Resume Break' : 'Resume';
     isRunning = false;
     updateTimerVisualState(false);
     releaseWakeLock();
@@ -248,56 +350,57 @@ function toggleTimer() {
       return;
     }
     isRunning = true;
-    toggleBtn.textContent = 'Pause';
+    if (toggleBtn) toggleBtn.textContent = isBreakSession ? 'Pause Break' : 'Pause';
     updateTimerVisualState(true);
     requestWakeLock();
     handleTimerAudioSync(true, isBreakSession);
 
-    // Initialisation des repères d'heure exacte
     const now = Date.now();
     targetEndTime = now + (secondsLeft * 1000);
     stopwatchStartTime = now - (elapsedSeconds * 1000);
 
-    timerInterval = setInterval(tickTimer, 1000);
+    startTimerTicker();
   }
 }
 
 function confirmCompletedSession() {
-  clearInterval(timerInterval);
+  stopTimerTicker();
   isRunning = false;
   isOvertime = false;
   updateTimerVisualState(false);
-  display.classList.remove('overtime');
+  if (display) display.classList.remove('overtime');
   releaseWakeLock();
   handleTimerAudioSync(false, isBreakSession);
   
   if (typeof triggerCelebration === 'function') triggerCelebration();
   if (typeof showToast === 'function') {
     showToast('Focus session recorded!', '🎉');
-  } else {
-    alert('Focus session recorded!');
   }
   resetTimer();
 }
 
 function resetTimer() {
-  clearInterval(timerInterval);
+  stopTimerTicker();
   isRunning = false;
   isOvertime = false;
+  isBreakSession = false;
   updateTimerVisualState(false);
-  display.classList.remove('overtime');
+  if (display) display.classList.remove('overtime');
   secondsLeft = durationMinutes * 60;
   elapsedSeconds = 0;
-  toggleBtn.textContent = 'Start';
+  if (toggleBtn) toggleBtn.textContent = 'Start';
   releaseWakeLock();
-  handleTimerAudioSync(false, isBreakSession);
+  handleTimerAudioSync(false, false);
   updateDisplay();
 }
 
-// Resynchronisation immédiate au déverrouillage de l'écran ou retour sur l'onglet
+// Immediate resync upon returning to tab or waking screen
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && isRunning) {
     tickTimer();
     requestWakeLock();
   }
 });
+
+// Initialize display and tab title immediately on startup
+updateDisplay();

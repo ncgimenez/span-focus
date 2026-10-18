@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" href="span-logo.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-  <link rel="stylesheet" href="style.css?v=3.28">
+  <link rel="stylesheet" href="style.css?v=3.29">
 </head>
 <body>
 
@@ -406,7 +406,7 @@
             <label class="modal-label">Scheduled Date</label>
             <input type="date" class="modal-input" id="editScheduledDate">
             <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = new Date().toISOString().slice(0, 10)">⚡ Today</button>
+              <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = getLocalDateString()">⚡ Today</button>
               <button type="button" class="btn-theme-toggle" style="font-size: 11px; padding: 3px 7px;" onclick="document.getElementById('editScheduledDate').value = ''">📦 No Date</button>
             </div>
           </div>
@@ -430,6 +430,23 @@
           <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
           <button class="btn-save" onclick="saveTaskModal()">Save Changes</button>
         </div>
+      </div>
+    </div>
+  </div>
+  <!-- QUICK SUBTASK MODAL (REPLACES BROWSER PROMPT) -->
+  <div class="modal-overlay" id="quickSubtaskModalOverlay" onclick="handleBackdropClick(event, 'quickSubtaskModalOverlay')">
+    <div class="modal-card" style="max-width: 440px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span id="quickSubtaskModalTitle">➕ Add Task to Event</span>
+        <button type="button" class="modal-close" onclick="closeQuickSubtaskModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding-top: 10px;">
+        <label class="modal-label" id="quickSubtaskParentLabel" style="color: var(--cat-home); font-weight: 600;">Event: </label>
+        <input type="text" class="modal-input" id="quickSubtaskInput" placeholder="Task title... (Press Enter)" onkeydown="if(event.key==='Enter') submitQuickSubtaskModal()">
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-cancel" onclick="closeQuickSubtaskModal()">Cancel</button>
+        <button type="button" class="btn-save" onclick="submitQuickSubtaskModal()">Add Task</button>
       </div>
     </div>
   </div>
@@ -526,11 +543,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.28"></script>
-  <script src="js/timer.js?v=3.28"></script>
-  <script src="js/tasks.js?v=3.28"></script>
-  <script src="js/track.js?v=3.28"></script>
-  <script src="js/sync.js?v=3.28"></script>
-  <script src="js/app.js?v=3.28"></script>
+  <script src="js/audio.js?v=3.29"></script>
+  <script src="js/timer.js?v=3.29"></script>
+  <script src="js/tasks.js?v=3.29"></script>
+  <script src="js/track.js?v=3.29"></script>
+  <script src="js/sync.js?v=3.29"></script>
+  <script src="js/app.js?v=3.29"></script>
 </body>
 </html>
