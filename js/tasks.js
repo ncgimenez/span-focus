@@ -736,11 +736,30 @@ function syncWithSpanPlan() {
     let modified = false;
     const catMap = { work: 'Work', life: 'Home', fun: 'Fun' };
     const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+    let dismissedIds = [];
+    try {
+      dismissedIds = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids')) || [];
+    } catch (e) {}
+    dismissedIds.forEach(id => deletedSet.add(String(id)));
+
+    // Purger les tâches existantes supprimées
+    const prevCount = tasks.length;
+    tasks = tasks.filter(t => {
+      if (!t || !t.id) return false;
+      const tid = String(t.id);
+      if (deletedSet.has(tid)) return false;
+      if (t.planId && deletedSet.has(String(t.planId))) return false;
+      if (t.parentEventId && deletedSet.has(String(t.parentEventId))) return false;
+      if (t.title && deletedSet.has('title:' + t.title.trim().toLowerCase())) return false;
+      return true;
+    });
+    if (tasks.length !== prevCount) modified = true;
 
     planTasks.forEach(pTask => {
       if (!pTask || !pTask.id) return;
       if (deletedSet.has(String(pTask.id))) return;
-      const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)));
+      if (pTask.title && deletedSet.has('title:' + pTask.title.trim().toLowerCase())) return;
+      const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)) || (pTask.focusId && String(t.id) === String(pTask.focusId)));
       const isEv = pTask.type === 'event' || !!pTask.isEvent;
       
       if (!existing) {
@@ -793,12 +812,22 @@ function syncWithSpanPlan() {
       if (Array.isArray(pTask.subtasks) && pTask.subtasks.length > 0) {
         pTask.subtasks.forEach(sub => {
           if (!sub || !sub.id || deletedSet.has(String(sub.id))) return;
+          if (sub.title && deletedSet.has('title:' + sub.title.trim().toLowerCase())) return;
+
+          let subCat = 'Work';
+          if (sub.context && catMap[sub.context]) subCat = catMap[sub.context];
+          else if (sub.category && catMap[String(sub.category).toLowerCase()]) subCat = catMap[String(sub.category).toLowerCase()];
+          else if (sub.category) subCat = sub.category;
+          else if (/#(life|perso|home)\b/i.test(sub.title || '')) subCat = 'Home';
+          else if (/#(fun|sport)\b/i.test(sub.title || '')) subCat = 'Fun';
+          else if (pTask.context && catMap[pTask.context]) subCat = catMap[pTask.context];
+
           const existingSub = tasks.find(t => String(t.id) === String(sub.id));
           if (!existingSub) {
             tasks.push({
               id: sub.id,
               title: sub.title || 'Subtask',
-              category: catMap[pTask.context] || 'Work',
+              category: subCat,
               estimate: 1,
               duration: 25,
               completed: !!sub.completed,
@@ -818,6 +847,10 @@ function syncWithSpanPlan() {
               existingSub.title = sub.title;
               modified = true;
             }
+            if (subCat && existingSub.category !== subCat) {
+              existingSub.category = subCat;
+              modified = true;
+            }
           }
         });
       }
@@ -834,21 +867,102 @@ function syncWithSpanPlan() {
 }
 
 function exportAllTasksToSpanPlan() {
-  const rawPlanTasks = localStorage.getItem('span_plan_tasks');
-  if (!rawPlanTasks) return;
+  let planTasks = [];
+  try {
+    const rawPlanTasks = localStorage.getItem('span_plan_tasks');
+    if (rawPlanTasks) planTasks = JSON.parse(rawPlanTasks);
+  } catch (e) {
+    planTasks = [];
+  }
+  if (!Array.isArray(planTasks)) planTasks = [];
 
   try {
-    const planTasks = JSON.parse(rawPlanTasks);
-    if (!Array.isArray(planTasks)) return;
+    const catReverseMap = { 'Work': 'work', 'Home': 'life', 'Fun': 'fun' };
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+    let dismissedIds = [];
+    try {
+      dismissedIds = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids')) || [];
+    } catch (e) {}
+    dismissedIds.forEach(id => deletedSet.add(String(id)));
 
-    tasks.forEach(task => {
-      const foundIdx = planTasks.findIndex(p => String(p.id) === String(task.id) || (task.planId && String(p.id) === String(task.planId)));
+    const isDeleted = (t) => {
+      if (!t || !t.id) return true;
+      const idStr = String(t.id);
+      if (deletedSet.has(idStr)) return true;
+      if (t.planId && deletedSet.has(String(t.planId))) return true;
+      if (t.focusId && deletedSet.has(String(t.focusId))) return true;
+      if (t.parentEventId && deletedSet.has(String(t.parentEventId))) return true;
+      if (t.title && deletedSet.has('title:' + t.title.trim().toLowerCase())) return true;
+      return false;
+    };
+
+    // Filter planTasks against deleted
+    planTasks = planTasks.filter(p => !isDeleted(p));
+
+    const childSubtasks = tasks.filter(t => t && !!t.parentEventId && !isDeleted(t));
+    const rootTasks = tasks.filter(t => t && !t.parentEventId && !isDeleted(t));
+
+    rootTasks.forEach(task => {
+      const mySubtasks = childSubtasks.filter(c => String(c.parentEventId) === String(task.id));
+      const formattedSubtasks = mySubtasks.map(c => {
+        let subCtx = catReverseMap[c.category] || 'work';
+        if (/#(life|perso|home)\b/i.test(c.title)) subCtx = 'life';
+        else if (/#(fun|sport)\b/i.test(c.title)) subCtx = 'fun';
+        else if (/#(work|code|pro)\b/i.test(c.title)) subCtx = 'work';
+        return {
+          id: c.id,
+          title: c.title,
+          context: subCtx,
+          completed: !!c.completed,
+          parentEventId: task.id
+        };
+      });
+
+      const foundIdx = planTasks.findIndex(p => 
+        String(p.id) === String(task.id) || 
+        (task.planId && String(p.id) === String(task.planId)) ||
+        (p.focusId && String(p.focusId) === String(task.id))
+      );
+
       if (foundIdx >= 0) {
-        planTasks[foundIdx].completed = !!task.completed;
+        planTasks[foundIdx].completed = !task.isEvent && !!task.completed;
         planTasks[foundIdx].date = task.scheduledDate || null;
         planTasks[foundIdx].time = task.scheduledTime || '';
         if (task.duration) planTasks[foundIdx].duration = task.duration;
         planTasks[foundIdx].title = task.title;
+        planTasks[foundIdx].focusId = task.id;
+        if (task.isEvent) planTasks[foundIdx].type = 'event';
+
+        // Merge subtasks
+        const existingSubs = Array.isArray(planTasks[foundIdx].subtasks) ? planTasks[foundIdx].subtasks : [];
+        const mergedSubs = [...formattedSubtasks];
+        existingSubs.forEach(es => {
+          if (!deletedSet.has(String(es.id)) && !mergedSubs.some(m => String(m.id) === String(es.id) || (m.title && es.title && m.title.trim().toLowerCase() === es.title.trim().toLowerCase()))) {
+            mergedSubs.push(es);
+          }
+        });
+        planTasks[foundIdx].subtasks = mergedSubs;
+      } else if (task.isEvent || task.scheduledDate || task.scheduledTime || formattedSubtasks.length > 0) {
+        // Nouvel événement ou tâche planifiée créée dans Span Focus -> Intégrer au planning
+        let subCtx = catReverseMap[task.category] || 'work';
+        if (/#(life|perso|home)\b/i.test(task.title)) subCtx = 'life';
+        else if (/#(fun|sport)\b/i.test(task.title)) subCtx = 'fun';
+        else if (/#(work|code|pro)\b/i.test(task.title)) subCtx = 'work';
+
+        planTasks.push({
+          id: task.id,
+          focusId: task.id,
+          title: task.title,
+          type: task.isEvent ? 'event' : 'task',
+          date: task.scheduledDate || null,
+          time: task.scheduledTime || '',
+          duration: task.duration || (task.estimate ? task.estimate * 25 : 45),
+          context: subCtx,
+          completed: !task.isEvent && !!task.completed,
+          isRollover: false,
+          fromFocus: true,
+          subtasks: formattedSubtasks
+        });
       }
     });
 
@@ -1811,20 +1925,24 @@ function deleteTaskById(id) {
   pushUndoState('Delete Task');
   if (activeTask && String(activeTask.id) === targetId) dismissSpotlightTask();
 
+  // Identifier tous les enfants (sous-tâches) de cette tâche/événement à supprimer aussi
+  const childIds = [];
   tasks.forEach(t => {
     if (String(t.parentEventId) === targetId) {
-      t.parentEventId = null;
+      childIds.push(String(t.id));
     }
   });
 
-  tasks = tasks.filter(t => String(t.id) !== targetId && String(t.planId) !== targetId);
+  const allIdsToRemove = new Set([targetId, ...childIds]);
+
+  tasks = tasks.filter(t => !allIdsToRemove.has(String(t.id)) && !(t.planId && allIdsToRemove.has(String(t.planId))));
 
   try {
     const rawPlan = localStorage.getItem('span_plan_tasks');
     if (rawPlan) {
       const planList = JSON.parse(rawPlan);
       if (Array.isArray(planList)) {
-        const updatedPlan = planList.filter(p => String(p.id) !== targetId && String(p.planId) !== targetId);
+        const updatedPlan = planList.filter(p => !allIdsToRemove.has(String(p.id)) && !(p.planId && allIdsToRemove.has(String(p.planId))) && !(p.focusId && allIdsToRemove.has(String(p.focusId))));
         localStorage.setItem('span_plan_tasks', JSON.stringify(updatedPlan));
       }
     }
@@ -1834,14 +1952,14 @@ function deleteTaskById(id) {
 
   try {
     const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
-    deletedSet.add(targetId);
+    allIdsToRemove.forEach(k => deletedSet.add(String(k)));
     localStorage.setItem('span_deleted_task_ids', JSON.stringify(Array.from(deletedSet)));
 
     let dismissed = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids')) || [];
-    if (!dismissed.includes(targetId)) {
-      dismissed.push(targetId);
-      localStorage.setItem('span_plan_dismissed_focus_ids', JSON.stringify(dismissed));
-    }
+    allIdsToRemove.forEach(k => {
+      if (!dismissed.includes(k)) dismissed.push(k);
+    });
+    localStorage.setItem('span_plan_dismissed_focus_ids', JSON.stringify(dismissed));
   } catch (e) {}
 
   saveTasks();
@@ -2242,10 +2360,15 @@ function submitQuickSubtaskModal() {
 
   pushUndoState('Add Subtask');
   const parent = tasks.find(t => String(t.id) === quickSubtaskTargetEventId);
+  let subCat = parent ? parent.category : 'Work';
+  if (/#(life|perso|home)\b/i.test(val)) subCat = 'Home';
+  else if (/#(fun|sport)\b/i.test(val)) subCat = 'Fun';
+  else if (/#(work|code|pro)\b/i.test(val)) subCat = 'Work';
+
   const newTask = {
     id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
     title: val,
-    category: parent ? parent.category : 'Work',
+    category: subCat,
     estimate: 1,
     completed: false,
     isFavorite: false,

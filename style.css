@@ -1518,7 +1518,7 @@ body {
   flex-shrink: 0;
 }
 .subtask-cat-bar.subtask-cat-work { background: var(--cat-work); }
-.subtask-cat-bar.subtask-cat-home { background: var(--cat-home); }
+.subtask-cat-bar.subtask-cat-home, .subtask-cat-bar.subtask-cat-life { background: var(--cat-home); }
 .subtask-cat-bar.subtask-cat-fun  { background: var(--cat-fun); }
 
 .subtask-checkbox {

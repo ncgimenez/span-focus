@@ -69,7 +69,9 @@ function updateSyncKeyDisplay() {
 async function saveStateToCloud() {
   if (isCloudSyncInProgress || !supabaseClient) return;
   try {
-    const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+    const localDeleted = JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]');
+    const localDismissed = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids') || '[]');
+    const deletedSet = new Set([...localDeleted.map(String), ...localDismissed.map(String)]);
 
     // Read existing user_state row to preserve other shared keys (like plan_items or categories)
     const { data: existingData } = await supabaseClient
@@ -82,18 +84,45 @@ async function saveStateToCloud() {
       ? existingData.tasks
       : {};
 
-    // Filter out deleted tasks from plan_items if present
-    let cleanPlanItems = existingTasksObj.plan_items || [];
-    if (Array.isArray(cleanPlanItems) && deletedSet.size > 0) {
-      cleanPlanItems = cleanPlanItems.filter(p => !deletedSet.has(String(p.id)));
+    const remoteDismissed = Array.isArray(existingTasksObj.dismissed_ids) ? existingTasksObj.dismissed_ids : [];
+    remoteDismissed.forEach(d => deletedSet.add(String(d)));
+    localStorage.setItem('span_deleted_task_ids', JSON.stringify(Array.from(deletedSet)));
+
+    const isDeletedItem = (item) => {
+      if (!item || !item.id) return true;
+      const idStr = String(item.id);
+      if (deletedSet.has(idStr)) return true;
+      if (item.focusId && deletedSet.has(String(item.focusId))) return true;
+      if (item.planId && deletedSet.has(String(item.planId))) return true;
+      if (item.parentEventId && deletedSet.has(String(item.parentEventId))) return true;
+      if (item.title && deletedSet.has('title:' + item.title.trim().toLowerCase())) return true;
+      return false;
+    };
+
+    let localPlanTasks = [];
+    try {
+      localPlanTasks = JSON.parse(localStorage.getItem('span_plan_tasks') || '[]');
+    } catch (e) {}
+
+    // Merge plan items without deleted ones
+    const planItemsMap = new Map();
+    (existingTasksObj.plan_items || []).forEach(p => {
+      if (!isDeletedItem(p)) planItemsMap.set(String(p.id), p);
+    });
+    if (Array.isArray(localPlanTasks)) {
+      localPlanTasks.forEach(p => {
+        if (!isDeletedItem(p)) planItemsMap.set(String(p.id), p);
+      });
     }
 
-    const cleanTasks = (window.SpanState.tasks || []).filter(t => !deletedSet.has(String(t.id)));
+    const cleanPlanItems = Array.from(planItemsMap.values());
+    const cleanTasks = (window.SpanState.tasks || []).filter(t => !isDeletedItem(t));
 
     const updatedTasksObj = {
       ...existingTasksObj,
       items: cleanTasks,
       plan_items: cleanPlanItems,
+      dismissed_ids: Array.from(deletedSet),
       archives: window.SpanState.archivedTasks || [],
       categories: window.SpanState.categoryLabels || existingTasksObj.categories || {}
     };
@@ -140,9 +169,6 @@ async function loadStateFromCloud() {
       } else if (data.tasks && typeof data.tasks === 'object') {
         remoteItems = data.tasks.items || [];
         remoteArchives = data.tasks.archives || [];
-        if (Array.isArray(data.tasks.plan_items)) {
-          localStorage.setItem('span_plan_tasks', JSON.stringify(data.tasks.plan_items));
-        }
       }
 
       let remoteActive = null;
@@ -150,10 +176,36 @@ async function loadStateFromCloud() {
         remoteActive = data.timer_state.activeTask;
       }
 
-      const deletedSet = new Set(JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]'));
+      const localDeleted = JSON.parse(localStorage.getItem('span_deleted_task_ids') || '[]');
+      const localDismissed = JSON.parse(localStorage.getItem('span_plan_dismissed_focus_ids') || '[]');
+      const remoteDismissed = (data.tasks && Array.isArray(data.tasks.dismissed_ids)) ? data.tasks.dismissed_ids : [];
+
+      const deletedSet = new Set([
+        ...localDeleted.map(String),
+        ...localDismissed.map(String),
+        ...remoteDismissed.map(String)
+      ]);
+
+      localStorage.setItem('span_deleted_task_ids', JSON.stringify(Array.from(deletedSet)));
+
+      const isDeletedItem = (item) => {
+        if (!item || !item.id) return true;
+        const idStr = String(item.id);
+        if (deletedSet.has(idStr)) return true;
+        if (item.focusId && deletedSet.has(String(item.focusId))) return true;
+        if (item.planId && deletedSet.has(String(item.planId))) return true;
+        if (item.parentEventId && deletedSet.has(String(item.parentEventId))) return true;
+        if (item.title && deletedSet.has('title:' + item.title.trim().toLowerCase())) return true;
+        return false;
+      };
+
+      if (data.tasks && typeof data.tasks === 'object' && Array.isArray(data.tasks.plan_items)) {
+        const cleanPlanItems = data.tasks.plan_items.filter(p => !isDeletedItem(p));
+        localStorage.setItem('span_plan_tasks', JSON.stringify(cleanPlanItems));
+      }
 
       // Filtre préventif : éliminer les tâches définitivement supprimées
-      remoteItems = remoteItems.filter(t => t && t.id && !deletedSet.has(String(t.id)));
+      remoteItems = remoteItems.filter(t => !isDeletedItem(t));
 
       // Merge intelligent pour ne jamais écraser ni perdre de tâches locales
       const localTasks = window.SpanState.tasks || [];
@@ -165,12 +217,12 @@ async function loadStateFromCloud() {
 
       const taskMap = new Map();
       remoteItems.forEach(t => {
-        if (t && t.id && !deletedSet.has(String(t.id))) taskMap.set(String(t.id), t);
+        if (!isDeletedItem(t)) taskMap.set(String(t.id), t);
       });
 
       if (!isDefaultMocks) {
         localTasks.forEach(t => {
-          if (t && t.id && !deletedSet.has(String(t.id))) taskMap.set(String(t.id), t);
+          if (!isDeletedItem(t)) taskMap.set(String(t.id), t);
         });
       }
 
