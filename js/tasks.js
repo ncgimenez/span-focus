@@ -20,6 +20,26 @@ var tasks = window.SpanState.tasks;
 var archivedTasks = window.SpanState.archivedTasks;
 var activeTask = window.SpanState.activeTask;
 
+// Auto-migrate legacy 25m blocks to 30m standard (25m focus + 5m break)
+if (Array.isArray(tasks)) {
+  let hasMigrated = false;
+  tasks.forEach(t => {
+    if (t.duration === 25) {
+      t.duration = 30;
+      hasMigrated = true;
+    }
+    if (!t.duration && t.estimate) {
+      t.duration = t.estimate * 30;
+      hasMigrated = true;
+    }
+  });
+  if (hasMigrated) {
+    try {
+      localStorage.setItem('span_tasks', JSON.stringify(tasks));
+    } catch (e) {}
+  }
+}
+
 let selectedTaskIndex = 0;
 let editingTaskId = null;
 let editingCategory = 'Work';
@@ -439,7 +459,7 @@ function moveTaskToSelectedDay(id) {
   if (typeof showToast === 'function') showToast(`Scheduled for ${dayName}!`, '⚡');
 }
 
-function calculateEndTime(startTimeStr, durationMinutes = 25) {
+function calculateEndTime(startTimeStr, durationMinutes = 30) {
   if (!startTimeStr || !startTimeStr.includes(':')) return null;
   const [hStr, mStr] = startTimeStr.split(':');
   const totalMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10) + durationMinutes;
@@ -472,7 +492,7 @@ function insertTaskAtTime(timeStr, defaultDuration = 30) {
     id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
     title: title.trim(),
     category: 'Work',
-    estimate: Math.max(1, Math.round(defaultDuration / 25)),
+    estimate: Math.max(1, Math.round(defaultDuration / 30)),
     duration: defaultDuration,
     completed: false,
     isFavorite: false,
@@ -564,7 +584,7 @@ function getSampleTasks(dateStr) {
       title: "Prepare 3 key discussion points #work",
       category: "Work",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -592,27 +612,27 @@ function getSampleTasks(dateStr) {
       title: "Architecture & Design Review #work",
       category: "Work",
       estimate: 2,
-      duration: 45,
+      duration: 60,
       completed: false,
       isFavorite: false,
       isEvent: true,
       parentEventId: null,
       scheduledDate: d,
-      scheduledTime: "14:00" // 14:00 - 14:45
+      scheduledTime: "14:00" // 14:00 - 15:00
     },
-    // GAP 3: 14:45 - 16:30 (1h45 free!)
+    // GAP 3: 15:00 - 16:30 (1h30 free!)
     {
       id: 'ev_admin',
       title: "Invoices, Taxes & Insurance #home",
       category: "Home",
       estimate: 2,
-      duration: 45,
+      duration: 60,
       completed: false,
       isFavorite: false,
       isEvent: true,
       parentEventId: null,
       scheduledDate: d,
-      scheduledTime: "16:30" // 16:30 - 17:15
+      scheduledTime: "16:30" // 16:30 - 17:30
     },
 
     // 2. Floating tasks today (no fixed hour)
@@ -621,7 +641,7 @@ function getSampleTasks(dateStr) {
       title: "Review PR on GitHub #work",
       category: "Work",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: true,
       isEvent: false,
@@ -634,7 +654,7 @@ function getSampleTasks(dateStr) {
       title: "Groceries & Healthy Dinner #home",
       category: "Home",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -662,7 +682,7 @@ function getSampleTasks(dateStr) {
       title: "Check car insurance quote #home",
       category: "Home",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -675,7 +695,7 @@ function getSampleTasks(dateStr) {
       title: "Scan and file healthcare receipts #home",
       category: "Home",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -688,7 +708,7 @@ function getSampleTasks(dateStr) {
       title: "Book restaurant for the weekend #fun",
       category: "Fun",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -701,7 +721,7 @@ function getSampleTasks(dateStr) {
       title: "Listen to tech podcast #fun",
       category: "Fun",
       estimate: 1,
-      duration: 25,
+      duration: 30,
       completed: false,
       isFavorite: false,
       isEvent: false,
@@ -768,8 +788,8 @@ function syncWithSpanPlan() {
           planId: pTask.id,
           title: pTask.title || 'Untitled',
           category: catMap[pTask.context] || 'Work',
-          estimate: Math.max(1, Math.round((pTask.duration || 25) / 25)),
-          duration: pTask.duration || 25,
+          estimate: Math.max(1, Math.round((pTask.duration || 30) / 30)),
+          duration: pTask.duration || 30,
           completed: !isEv && !!pTask.completed,
           isFavorite: false,
           isEvent: isEv,
@@ -795,7 +815,7 @@ function syncWithSpanPlan() {
         }
         if (typeof pTask.duration === 'number' && existing.duration !== pTask.duration) {
           existing.duration = pTask.duration;
-          existing.estimate = Math.max(1, Math.round(pTask.duration / 25));
+          existing.estimate = Math.max(1, Math.round(pTask.duration / 30));
           modified = true;
         }
         if (existing.isEvent !== isEv) {
@@ -829,7 +849,7 @@ function syncWithSpanPlan() {
               title: sub.title || 'Subtask',
               category: subCat,
               estimate: 1,
-              duration: 25,
+              duration: 30,
               completed: !!sub.completed,
               isFavorite: false,
               isEvent: false,
@@ -956,7 +976,7 @@ function exportAllTasksToSpanPlan() {
           type: task.isEvent ? 'event' : 'task',
           date: task.scheduledDate || null,
           time: task.scheduledTime || '',
-          duration: task.duration || (task.estimate ? task.estimate * 25 : 45),
+          duration: task.duration || (task.estimate ? task.estimate * 30 : 30),
           context: subCtx,
           completed: !task.isEvent && !!task.completed,
           isRollover: false,
@@ -1122,7 +1142,7 @@ function renderTasks() {
         if (currentDayOffset !== 0 || !item.scheduledTime) return false;
         const [h, m] = item.scheduledTime.split(':');
         const startMins = parseInt(h, 10) * 60 + parseInt(m, 10);
-        const dur = item.duration || (item.estimate || 1) * 25;
+        const dur = item.duration || (item.estimate || 1) * 30;
         return (startMins + dur) <= currentMinutes;
       };
 
@@ -1131,7 +1151,7 @@ function renderTasks() {
         if (currentDayOffset !== 0 || !item.scheduledTime || item.completed) return false;
         const [h, m] = item.scheduledTime.split(':');
         const startMins = parseInt(h, 10) * 60 + parseInt(m, 10);
-        const dur = item.duration || (item.estimate || 1) * 25;
+        const dur = item.duration || (item.estimate || 1) * 30;
         const endMins = startMins + dur;
         return (currentMinutes >= startMins && currentMinutes < endMins);
       };
@@ -1190,7 +1210,7 @@ function renderTasks() {
 
         // Interstitial free-time gap between scheduled items
         if (idx < activeItems.length - 1) {
-          const currentEnd = calculateEndTime(item.scheduledTime, item.duration || (item.estimate || 1) * 25);
+          const currentEnd = calculateEndTime(item.scheduledTime, item.duration || (item.estimate || 1) * 30);
           const nextStart = activeItems[idx + 1].scheduledTime;
           if (currentEnd && nextStart) {
             const gapMins = calculateMinutesDiff(currentEnd, nextStart);
@@ -1262,7 +1282,7 @@ function renderTasks() {
   // Estimated time for Today
   const todayTimeEl = document.getElementById('todayTimeEstimate');
   if (todayTimeEl) {
-    const totalEstMins = (focusDayItems.length + priorityItems.length + regularTodayItems.length) * 25;
+    const totalEstMins = (focusDayItems.length + priorityItems.length + regularTodayItems.length) * 30;
     if (totalEstMins > 0) {
       const hours = Math.floor(totalEstMins / 60);
       const mins = totalEstMins % 60;
@@ -1476,7 +1496,7 @@ function createTaskDOMElement(task, isSubtask = false) {
 
   const isJustAdded = task.id === newlyAddedTaskId;
   const isCurrentlyInFocus = activeTask && String(activeTask.id) === String(task.id);
-  const durationMinutes = (task.estimate || 1) * 25;
+  const durationMinutes = task.duration || (task.estimate || 1) * 30;
   const todayRealStr = getLocalDateString();
   const todayStr = todayRealStr;
   const targetDateStr = getSelectedDateStr();
@@ -1489,7 +1509,7 @@ function createTaskDOMElement(task, isSubtask = false) {
     : '';
 
   const quickPlanBtnTooltip = currentDayOffset === 0 ? "Schedule for today" : (currentDayOffset === 1 ? "Schedule for tomorrow" : "Schedule for this date");
-  const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || (task.estimate || 1) * 25) : null;
+  const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || (task.estimate || 1) * 30) : null;
 
   let isLiveNow = false;
   let isPastBlock = false;
@@ -1507,7 +1527,7 @@ function createTaskDOMElement(task, isSubtask = false) {
 
     const [hStr, mStr] = task.scheduledTime.split(':');
     const startMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
-    const dur = task.duration || (task.estimate || 1) * 25;
+    const dur = task.duration || (task.estimate || 1) * 30;
     const endMins = startMins + dur;
     isLiveNow = (currentMinutes >= startMins && currentMinutes < endMins);
     isPastBlock = (endMins <= currentMinutes);
@@ -1858,6 +1878,7 @@ function addTask() {
     title: text,
     category: category,
     estimate: 1,
+    duration: 30,
     completed: false,
     isFavorite: false,
     isEvent: false,
@@ -2379,6 +2400,7 @@ function submitQuickSubtaskModal() {
     title: val,
     category: subCat,
     estimate: 1,
+    duration: 30,
     completed: false,
     isFavorite: false,
     isEvent: false,
@@ -2464,7 +2486,7 @@ function openEditModalForTask(id) {
   if (estEl) estEl.textContent = editingEstimate;
 
   const minEl = document.getElementById('editEstMinutes');
-  if (minEl) minEl.textContent = editingEstimate * 25;
+  if (minEl) minEl.textContent = editingEstimate * 30;
 
   const dateInput = document.getElementById('editScheduledDate');
   if (dateInput) dateInput.value = task.scheduledDate || '';
@@ -2504,7 +2526,7 @@ function stepEstimate(delta) {
   const estEl = document.getElementById('editPomodoroEstimate');
   if (estEl) estEl.textContent = editingEstimate;
   const minEl = document.getElementById('editEstMinutes');
-  if (minEl) minEl.textContent = editingEstimate * 25;
+  if (minEl) minEl.textContent = editingEstimate * 30;
 }
 
 function closeEditModal() {
@@ -2533,6 +2555,9 @@ function saveTaskModal() {
     task.title = title;
     task.category = editingCategory || 'Work';
     task.estimate = editingEstimate;
+    if (!task.isEvent || !task.duration) {
+      task.duration = editingEstimate * 30;
+    }
     task.isFavorite = editingIsFavorite;
     task.scheduledDate = dateInput ? (dateInput.value || null) : null;
     task.scheduledTime = timeInput ? (timeInput.value.trim() || null) : null;

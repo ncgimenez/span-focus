@@ -43,7 +43,7 @@ function toggleTrackModal() {
     const modalRangeInput = document.getElementById('modalGoalRangeInput');
     const modalSummaryEl = document.getElementById('modalTargetSummary');
     if (modalRangeInput) modalRangeInput.value = targetMin;
-    if (modalSummaryEl) modalSummaryEl.textContent = `${targetMin} min (~${Math.round(targetMin / 25)} blocks)`;
+    if (modalSummaryEl) modalSummaryEl.textContent = `${targetMin} min (~${Math.round(targetMin / 30)} blocks)`;
 
     modal.style.display = 'flex';
     if (typeof renderChart === 'function') renderChart();
@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded', () => {
     goalInput.value = targetMin;
     const targetSummary = document.getElementById('targetDisplaySummary');
     if (targetSummary) {
-      targetSummary.textContent = `${targetMin} min (~${Math.round(targetMin / 25)} blocks)`;
+      targetSummary.textContent = `${targetMin} min (~${Math.round(targetMin / 30)} blocks)`;
     }
   }
 
