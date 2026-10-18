@@ -942,39 +942,29 @@ body {
   box-shadow: 0 0 16px rgba(226, 179, 64, 0.28);
 }
 
-/* CURRENT SCHEDULED EVENT (LIVE RIGHT NOW) - CALM & STEADY, NO PULSING */
+/* CURRENT SCHEDULED EVENT (IN PROGRESS RIGHT NOW) - WARM AMBER, CALM & ELEGANT */
 .task-item.is-live-now {
-  border-left: 3.5px solid #ef4444 !important;
-  background: rgba(239, 68, 68, 0.04);
+  border-left: 3.5px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.04);
   position: relative;
   z-index: 2;
 }
 
 .task-item.is-live-now.in-focus-active {
-  border-left-color: var(--streak) !important;
-  background: rgba(226, 179, 64, 0.05);
+  border-left-color: var(--streak, #e2b340) !important;
+  background: rgba(245, 158, 11, 0.07);
 }
 
 .live-pulse-badge {
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 1.5px 6px;
-  border-radius: 4px;
-  background: #ef4444;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  white-space: nowrap;
+  display: none !important;
 }
 
 /* ADAPTED LIVE PROGRESS BAR ON IN-PROGRESS EVENT / TASK CARD */
 .live-event-progress-container {
   margin: 6px 14px 10px 14px;
   padding: 8px 12px;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.18);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -992,9 +982,9 @@ body {
 
 .live-event-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ef4444, #f87171);
+  background: linear-gradient(90deg, #f97316, #f59e0b);
   border-radius: 999px;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
   transition: width 0.3s ease;
 }
 
@@ -1005,15 +995,15 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #ef4444;
-  color: #ffffff;
+  background: #f59e0b;
+  color: #141418;
   padding: 2px 7px;
   border-radius: 6px;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   white-space: nowrap;
   pointer-events: none;
   z-index: 3;
@@ -1022,6 +1012,7 @@ body {
 .live-marker-dot {
   font-size: 6px;
   line-height: 1;
+  color: #141418;
 }
 
 .live-event-progress-footer {
@@ -1037,12 +1028,18 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #f87171;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 500;
+}
+
+.live-progress-stats strong {
+  color: #f59e0b;
   font-weight: 600;
 }
 
 .live-stats-pct {
-  color: var(--text-muted, #94a3b8);
+  display: none;
+}
   font-weight: 400;
 }
 

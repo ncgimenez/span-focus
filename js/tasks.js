@@ -1519,6 +1519,19 @@ function createTaskDOMElement(task, isSubtask = false) {
     }
   }
 
+  let humanRemainingText = '';
+  if (liveRemainingMinutes > 0) {
+    if (liveRemainingMinutes >= 60) {
+      const rh = Math.floor(liveRemainingMinutes / 60);
+      const rm = liveRemainingMinutes % 60;
+      humanRemainingText = rm > 0 ? `${rh}h${String(rm).padStart(2, '0')} restant` : `${rh}h restant`;
+    } else {
+      humanRemainingText = `${liveRemainingMinutes}m restant`;
+    }
+  } else {
+    humanRemainingText = 'Fin imminente';
+  }
+
   if (task.isEvent) {
     wrapper.innerHTML = `
       <div class="task-item is-event-card ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isLiveNow ? 'is-live-now' : ''} ${isPastBlock ? 'is-past-slot' : ''}" 
@@ -1537,7 +1550,6 @@ function createTaskDOMElement(task, isSubtask = false) {
               </div>
             ` : ''}
             <span class="event-type-badge">📅</span>
-            ${isLiveNow ? '<span class="live-pulse-badge" title="Currently in progress">● LIVE</span>' : ''}
             <span class="event-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
@@ -1562,7 +1574,7 @@ function createTaskDOMElement(task, isSubtask = false) {
         </div>
 
         ${isLiveNow ? `
-          <div class="live-event-progress-container" title="Live progress: ${currentFormattedTime} • ${liveElapsedMinutes}m elapsed, ${liveRemainingMinutes}m left (${liveProgressPct}%)">
+          <div class="live-event-progress-container" title="En cours: ${currentFormattedTime} • ${liveElapsedMinutes}m écoulées, ${humanRemainingText}">
             <div class="live-event-progress-track">
               <div class="live-event-progress-fill" style="width: ${liveProgressPct}%;"></div>
               <div class="live-event-progress-marker" style="left: ${Math.min(92, Math.max(8, liveProgressPct))}%;">
@@ -1573,8 +1585,7 @@ function createTaskDOMElement(task, isSubtask = false) {
             <div class="live-event-progress-footer">
               <span class="live-progress-edge-start">${task.scheduledTime}</span>
               <span class="live-progress-stats">
-                <strong>${liveRemainingMinutes > 0 ? liveRemainingMinutes + 'm left' : 'Ending now'}</strong>
-                <span class="live-stats-pct">(${liveProgressPct}%)</span>
+                <strong>${humanRemainingText}</strong>
               </span>
               <span class="live-progress-edge-end">${taskEndTime || ''}</span>
             </div>
@@ -1634,7 +1645,6 @@ function createTaskDOMElement(task, isSubtask = false) {
                 ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
               </div>
             ` : ''}
-            ${isLiveNow ? '<span class="live-pulse-badge" title="Currently in progress">● LIVE</span>' : ''}
             ${isOverdue ? '<span class="task-overdue-badge">⚠️ Overdue</span>' : ''}
             <span class="task-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
@@ -1675,7 +1685,7 @@ function createTaskDOMElement(task, isSubtask = false) {
         </div>
 
         ${isLiveNow ? `
-          <div class="live-event-progress-container" title="Live progress: ${currentFormattedTime} • ${liveElapsedMinutes}m elapsed, ${liveRemainingMinutes}m left (${liveProgressPct}%)">
+          <div class="live-event-progress-container" title="En cours: ${currentFormattedTime} • ${liveElapsedMinutes}m écoulées, ${humanRemainingText}">
             <div class="live-event-progress-track">
               <div class="live-event-progress-fill" style="width: ${liveProgressPct}%;"></div>
               <div class="live-event-progress-marker" style="left: ${Math.min(92, Math.max(8, liveProgressPct))}%;">
@@ -1686,8 +1696,7 @@ function createTaskDOMElement(task, isSubtask = false) {
             <div class="live-event-progress-footer">
               <span class="live-progress-edge-start">${task.scheduledTime}</span>
               <span class="live-progress-stats">
-                <strong>${liveRemainingMinutes > 0 ? liveRemainingMinutes + 'm left' : 'Ending now'}</strong>
-                <span class="live-stats-pct">(${liveProgressPct}%)</span>
+                <strong>${humanRemainingText}</strong>
               </span>
               <span class="live-progress-edge-end">${taskEndTime || ''}</span>
             </div>
