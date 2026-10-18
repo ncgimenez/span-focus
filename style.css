@@ -467,7 +467,37 @@ body {
 .preset-pills {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.timer-cycle-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: -10px;
+  margin-bottom: 20px;
+  padding: 3.5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+}
+
+.timer-cycle-indicator .step-focus.active {
+  color: #f59e0b;
+}
+
+.timer-cycle-indicator .step-break.active {
+  color: #10b981;
+}
+
+.timer-cycle-indicator .step-arrow {
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
 .preset-pill {
@@ -890,16 +920,15 @@ body {
 .task-item {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   background: #18181b; /* OPAQUE SANS TRANSPARENCE */
   border: 1px solid var(--card-border);
   border-left: 3.5px solid var(--cat-none);
-  padding: 6px 12px;
+  padding: 0;
   min-height: 40px;
   border-radius: 12px;
   cursor: pointer;
@@ -1302,7 +1331,7 @@ body {
 .task-right-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
@@ -1675,10 +1704,10 @@ body {
   flex-direction: column !important;
   flex: 1 !important;
   min-height: 160px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.12);
+  border: 1.5px dashed rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 10px 10px 14px 10px;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 4px;
+  background: transparent;
   transition: min-height 0.25s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
@@ -2353,8 +2382,8 @@ body.is-dragging-task .backlog-drop-hint {
 
 .tasks-sections-wrapper.is-split-view {
   display: grid !important;
-  grid-template-columns: 1.15fr 0.85fr !important;
-  gap: 20px !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
   align-items: stretch !important;
 }
 

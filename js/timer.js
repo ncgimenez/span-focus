@@ -204,13 +204,17 @@ function setTimerMode(mode) {
     if (presetContainer) {
       presetContainer.style.display = 'flex';
       presetContainer.innerHTML = `
-        <button class="preset-pill active" onclick="setDuration(25)">25m Focus (+5m break)</button>
-        <button class="preset-pill" onclick="setDuration(50)">50m</button>
+        <button class="preset-pill active" onclick="setDuration(25)">30m (25+5)</button>
+        <button class="preset-pill" onclick="setDuration(50)">60m (50+10)</button>
         <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
       `;
     }
+    const cycleIndicator = document.getElementById('timerCycleIndicator');
+    if (cycleIndicator) cycleIndicator.style.display = 'flex';
     setDuration(25);
   } else if (mode === 'custom') {
+    const cycleIndicator = document.getElementById('timerCycleIndicator');
+    if (cycleIndicator) cycleIndicator.style.display = 'none';
     if (presetContainer) {
       presetContainer.style.display = 'flex';
       presetContainer.innerHTML = `
@@ -221,6 +225,8 @@ function setTimerMode(mode) {
     }
     setDuration(45);
   } else if (mode === 'stopwatch') {
+    const cycleIndicator = document.getElementById('timerCycleIndicator');
+    if (cycleIndicator) cycleIndicator.style.display = 'none';
     if (presetContainer) presetContainer.style.display = 'none';
     elapsedSeconds = 0;
     updateDisplay();
@@ -264,7 +270,11 @@ function setDuration(mins, isBreak = false) {
   updateDisplay();
 
   document.querySelectorAll('.preset-pill').forEach(b => {
-    b.classList.toggle('active', b.textContent.startsWith(mins));
+    const isAct = (mins === 25 && b.textContent.includes('25')) ||
+                  (mins === 50 && b.textContent.includes('50')) ||
+                  (mins === 5 && isBreak && b.textContent.includes('break')) ||
+                  b.textContent.startsWith(mins);
+    b.classList.toggle('active', isAct);
   });
 }
 
@@ -369,6 +379,13 @@ function updateTimerVisualState(running) {
   }
   document.body.classList.toggle('timer-active-focus-mode', running && !isBreakSession);
   document.body.classList.toggle('timer-active-break-mode', running && isBreakSession);
+
+  const focusStep = document.querySelector('.timer-cycle-indicator .step-focus');
+  const breakStep = document.querySelector('.timer-cycle-indicator .step-break');
+  if (focusStep && breakStep) {
+    focusStep.classList.toggle('active', !isBreakSession);
+    breakStep.classList.toggle('active', isBreakSession);
+  }
 }
 
 function toggleTimer() {

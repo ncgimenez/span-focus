@@ -16,7 +16,7 @@
   <link rel="shortcut icon" href="favicon.ico?v=3.40">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3.40">
 
-  <link rel="stylesheet" href="style.css?v=3.38">
+  <link rel="stylesheet" href="style.css?v=3.41">
 </head>
 <body>
 
@@ -109,9 +109,15 @@
               </div>
 
               <div class="preset-pills" id="presetPills">
-                <button class="preset-pill active" onclick="setDuration(25)">25m</button>
-                <button class="preset-pill" onclick="setDuration(50)">50m</button>
+                <button class="preset-pill active" onclick="setDuration(25)">30m (25+5)</button>
+                <button class="preset-pill" onclick="setDuration(50)">60m (50+10)</button>
                 <button class="preset-pill" onclick="setDuration(5, true)">5m break</button>
+              </div>
+
+              <div class="timer-cycle-indicator" id="timerCycleIndicator">
+                <span class="step-focus active">🎯 25m Focus</span>
+                <span class="step-arrow">➔</span>
+                <span class="step-break">☕ 5m Pause</span>
               </div>
 
               <div class="controls">
@@ -564,11 +570,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.35"></script>
-  <script src="js/timer.js?v=3.35"></script>
-  <script src="js/tasks.js?v=3.35"></script>
-  <script src="js/track.js?v=3.35"></script>
-  <script src="js/sync.js?v=3.35"></script>
-  <script src="js/app.js?v=3.35"></script>
+  <script src="js/audio.js?v=3.41"></script>
+  <script src="js/timer.js?v=3.41"></script>
+  <script src="js/tasks.js?v=3.41"></script>
+  <script src="js/track.js?v=3.41"></script>
+  <script src="js/sync.js?v=3.41"></script>
+  <script src="js/app.js?v=3.41"></script>
 </body>
 </html>
