@@ -1002,6 +1002,7 @@ function renderTasks() {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       // Detect past time slots earlier today
+      // Detect past time slots earlier today
       const isItemPast = (item) => {
         if (currentDayOffset !== 0 || !item.scheduledTime) return false;
         const [h, m] = item.scheduledTime.split(':');
@@ -1010,6 +1011,17 @@ function renderTasks() {
         return (startMins + dur) <= currentMinutes;
       };
 
+      // Detect if an event/task is currently LIVE in progress right now
+      const isItemLive = (item) => {
+        if (currentDayOffset !== 0 || !item.scheduledTime || item.completed) return false;
+        const [h, m] = item.scheduledTime.split(':');
+        const startMins = parseInt(h, 10) * 60 + parseInt(m, 10);
+        const dur = item.duration || (item.estimate || 1) * 25;
+        const endMins = startMins + dur;
+        return (currentMinutes >= startMins && currentMinutes < endMins);
+      };
+
+      const anyItemLive = focusDayItems.some(isItemLive);
       const pastItems = focusDayItems.filter(isItemPast);
       const activeItems = focusDayItems.filter(i => !isItemPast(i));
 
@@ -1037,7 +1049,8 @@ function renderTasks() {
           });
         }
 
-        if (currentDayOffset === 0) {
+        // Place standalone red line between past and upcoming blocks ONLY if no event is currently live
+        if (currentDayOffset === 0 && !anyItemLive) {
           focusDayList.appendChild(createNowIndicatorElement());
         }
       } else if (pastItems.length > 0 && activeItems.length === 0) {
@@ -1045,11 +1058,13 @@ function renderTasks() {
           focusDayList.appendChild(renderItemAndSubtasks(item));
         });
 
-        if (currentDayOffset === 0) {
+        // Placed after all past items
+        if (currentDayOffset === 0 && !anyItemLive) {
           focusDayList.appendChild(createNowIndicatorElement());
         }
       } else if (pastItems.length === 0 && activeItems.length > 0) {
-        if (currentDayOffset === 0) {
+        // Placed before upcoming items only if not currently live in the first block
+        if (currentDayOffset === 0 && !anyItemLive) {
           focusDayList.appendChild(createNowIndicatorElement());
         }
       }
@@ -1291,19 +1306,34 @@ function createTaskDOMElement(task, isSubtask = false) {
     : '';
 
   const quickPlanBtnTooltip = currentDayOffset === 0 ? "Schedule for today" : (currentDayOffset === 1 ? "Schedule for tomorrow" : "Schedule for this date");
-  const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || durationMinutes) : null;
+  const taskEndTime = task.scheduledTime ? calculateEndTime(task.scheduledTime, task.duration || (task.estimate || 1) * 25) : null;
 
   let isLiveNow = false;
   let isPastBlock = false;
+  let liveProgressPct = 0;
+  let liveElapsedMinutes = 0;
+  let liveRemainingMinutes = 0;
+  let currentFormattedTime = '';
+
   if (task.scheduledTime && task.scheduledDate === todayRealStr && !task.completed) {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const hNow = String(now.getHours()).padStart(2, '0');
+    const mNow = String(now.getMinutes()).padStart(2, '0');
+    currentFormattedTime = `${hNow}:${mNow}`;
+
     const [hStr, mStr] = task.scheduledTime.split(':');
     const startMins = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
-    const dur = task.duration || durationMinutes;
+    const dur = task.duration || (task.estimate || 1) * 25;
     const endMins = startMins + dur;
     isLiveNow = (currentMinutes >= startMins && currentMinutes < endMins);
     isPastBlock = (endMins <= currentMinutes);
+
+    if (isLiveNow) {
+      liveElapsedMinutes = Math.max(0, currentMinutes - startMins);
+      liveRemainingMinutes = Math.max(0, endMins - currentMinutes);
+      liveProgressPct = Math.min(100, Math.max(0, Math.round((liveElapsedMinutes / Math.max(1, dur)) * 100)));
+    }
   }
 
   if (task.isEvent) {
@@ -1346,6 +1376,26 @@ function createTaskDOMElement(task, isSubtask = false) {
             </div>
           </div>
         </div>
+
+        ${isLiveNow ? `
+          <div class="live-event-progress-container" title="Live progress: ${currentFormattedTime} • ${liveElapsedMinutes}m elapsed, ${liveRemainingMinutes}m left (${liveProgressPct}%)">
+            <div class="live-event-progress-track">
+              <div class="live-event-progress-fill" style="width: ${liveProgressPct}%;"></div>
+              <div class="live-event-progress-marker" style="left: ${Math.min(92, Math.max(8, liveProgressPct))}%;">
+                <span class="live-marker-dot">●</span>
+                <span class="live-marker-time">${currentFormattedTime}</span>
+              </div>
+            </div>
+            <div class="live-event-progress-footer">
+              <span class="live-progress-edge-start">${task.scheduledTime}</span>
+              <span class="live-progress-stats">
+                <strong>${liveRemainingMinutes > 0 ? liveRemainingMinutes + 'm left' : 'Ending now'}</strong>
+                <span class="live-stats-pct">(${liveProgressPct}%)</span>
+              </span>
+              <span class="live-progress-edge-end">${taskEndTime || ''}</span>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- INTEGRATED SUBTASKS: Nested directly inside the event card case -->
         ${childSubtasks.length > 0 ? `
@@ -1441,6 +1491,26 @@ function createTaskDOMElement(task, isSubtask = false) {
             </div>
           </div>
         </div>
+
+        ${isLiveNow ? `
+          <div class="live-event-progress-container" title="Live progress: ${currentFormattedTime} • ${liveElapsedMinutes}m elapsed, ${liveRemainingMinutes}m left (${liveProgressPct}%)">
+            <div class="live-event-progress-track">
+              <div class="live-event-progress-fill" style="width: ${liveProgressPct}%;"></div>
+              <div class="live-event-progress-marker" style="left: ${Math.min(92, Math.max(8, liveProgressPct))}%;">
+                <span class="live-marker-dot">●</span>
+                <span class="live-marker-time">${currentFormattedTime}</span>
+              </div>
+            </div>
+            <div class="live-event-progress-footer">
+              <span class="live-progress-edge-start">${task.scheduledTime}</span>
+              <span class="live-progress-stats">
+                <strong>${liveRemainingMinutes > 0 ? liveRemainingMinutes + 'm left' : 'Ending now'}</strong>
+                <span class="live-stats-pct">(${liveProgressPct}%)</span>
+              </span>
+              <span class="live-progress-edge-end">${taskEndTime || ''}</span>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- INTEGRATED SUBTASKS FOR REGULAR PARENT TASK -->
         ${childSubtasks.length > 0 ? `
@@ -2340,16 +2410,27 @@ setInterval(() => {
   }
 }, 60000);
 
-// Keep the live Now indicator line time text updated in real time
+// Keep the live Now indicator line time text and in-progress progress bar updated in real time
 setInterval(() => {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const formatted = `${h}:${m}`;
+
   const timeEl = document.querySelector('.now-indicator-time');
-  if (timeEl) {
-    const now = new Date();
-    const h = String(now.getHours()).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    const formatted = `${h}:${m}`;
-    if (timeEl.textContent !== formatted) {
-      timeEl.textContent = formatted;
+  if (timeEl && timeEl.textContent !== formatted) {
+    timeEl.textContent = formatted;
+  }
+
+  const liveMarker = document.querySelector('.live-marker-time');
+  if (liveMarker && liveMarker.textContent !== formatted) {
+    liveMarker.textContent = formatted;
+    // Minute ticked over: refresh task list to update progress bar smoothly
+    const isDragging = document.querySelector('.dragging') !== null;
+    const modal = document.getElementById('taskDetailModal');
+    const isModalOpen = modal && modal.classList.contains('active');
+    if (!isDragging && !isModalOpen && typeof renderTasks === 'function') {
+      renderTasks();
     }
   }
 }, 5000);
