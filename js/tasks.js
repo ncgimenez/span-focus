@@ -1256,6 +1256,8 @@ function renderTasks() {
 function setupDragAndDropZones() {
   const taskList = document.getElementById('taskList');
   const backlogList = document.getElementById('backlogList');
+  const tabInbox = document.getElementById('tabBtnInbox');
+  const tabToday = document.getElementById('tabBtnToday');
 
   [taskList, backlogList].forEach(list => {
     if (!list || list._hasDnD) return;
@@ -1281,6 +1283,37 @@ function setupDragAndDropZones() {
       if (list.id === 'taskList') {
         moveTaskToToday(taskId);
       } else if (list.id === 'backlogList') {
+        moveTaskToBacklog(taskId);
+      }
+    });
+  });
+
+  // Also allow dropping directly on the header Tab Buttons!
+  [tabToday, tabInbox].forEach(btn => {
+    if (!btn || btn._hasDnD) return;
+    btn._hasDnD = true;
+
+    btn.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      btn.classList.add('tab-drag-hover');
+    });
+
+    btn.addEventListener('dragleave', (e) => {
+      if (!btn.contains(e.relatedTarget)) {
+        btn.classList.remove('tab-drag-hover');
+      }
+    });
+
+    btn.addEventListener('drop', (e) => {
+      e.preventDefault();
+      btn.classList.remove('tab-drag-hover');
+      const taskId = e.dataTransfer.getData('text/plain');
+      if (!taskId) return;
+
+      triggerHapticFeedback();
+      if (btn.id === 'tabBtnToday') {
+        moveTaskToSelectedDay(taskId);
+      } else if (btn.id === 'tabBtnInbox') {
         moveTaskToBacklog(taskId);
       }
     });
@@ -1829,6 +1862,7 @@ function setSpotlightTaskById(id) {
   switchTaskTab(isBacklogTask ? 'inbox' : 'today');
 
   saveTasks();
+  if (typeof updateDisplay === 'function') updateDisplay();
   if (typeof switchView === 'function' && window.innerWidth < 650) {
     switchView('focus', document.getElementById('nav-btn-focus'));
   }
@@ -1838,6 +1872,7 @@ function dismissSpotlightTask() {
   activeTask = null;
   window.SpanState.activeTask = null;
   saveTasks();
+  if (typeof updateDisplay === 'function') updateDisplay();
 }
 
 function completeSpotlightTask() {
@@ -1854,6 +1889,7 @@ function completeSpotlightTask() {
   activeTask = null;
   window.SpanState.activeTask = null;
   saveTasks();
+  if (typeof updateDisplay === 'function') updateDisplay();
 }
 
 function updateSpotlightUI() {

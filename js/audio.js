@@ -121,8 +121,47 @@ function playBell() {
   osc.stop(audioCtx.currentTime + 3);
 }
 
+let silentKeepaliveSource = null;
+
+function startSilentKeepalive() {
+  try {
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    if (!silentKeepaliveSource && audioCtx) {
+      // 1-second silent buffer looping continuously to prevent background tab CPU throttle
+      const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+      silentKeepaliveSource = audioCtx.createBufferSource();
+      silentKeepaliveSource.buffer = buffer;
+      silentKeepaliveSource.loop = true;
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.00001;
+      silentKeepaliveSource.connect(gain);
+      gain.connect(audioCtx.destination);
+      silentKeepaliveSource.start(0);
+    }
+  } catch (e) {}
+}
+
+function stopSilentKeepalive() {
+  if (silentKeepaliveSource) {
+    try {
+      silentKeepaliveSource.stop();
+      silentKeepaliveSource.disconnect();
+    } catch (e) {}
+    silentKeepaliveSource = null;
+  }
+}
+
 // Synchro automatique avec le timer
 function handleTimerAudioSync(running, isBreak) {
+  if (running) {
+    startSilentKeepalive();
+  } else {
+    stopSilentKeepalive();
+  }
+
   if (soundMode === 'auto') {
     if (running && !isBreak) startNoise();
     else stopNoise();

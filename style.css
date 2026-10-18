@@ -1659,72 +1659,148 @@ body {
 }
 
 /* ============================================================== */
-/* FULL-HEIGHT RIGHT-EDGE DROP ZONE FOR BACKLOG (DRAG TO THE RIGHT) */
+/* FLOATING RIGHT DROP DOCK FOR BACKLOG / INBOX                    */
 /* ============================================================== */
 .right-backlog-dropzone {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 130px;
+  width: 145px;
   z-index: 999;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(100%);
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s ease, background 0.2s ease;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(to left, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.04) 75%, transparent);
-  border-left: 2px dashed rgba(99, 102, 241, 0.45);
+  justify-content: flex-end;
+  padding-right: 14px;
 }
 
 body.is-dragging-task .right-backlog-dropzone {
   opacity: 1;
-  transform: translateX(0);
   pointer-events: auto;
 }
 
-.right-backlog-dropzone.drag-over {
-  width: 170px;
-  background: linear-gradient(to left, rgba(99, 102, 241, 0.42), rgba(99, 102, 241, 0.15) 80%, rgba(99, 102, 241, 0.05));
-  border-left: 2.5px solid var(--accent, #6366f1);
-  box-shadow: -10px 0 28px rgba(99, 102, 241, 0.25);
-}
-
-.right-dropzone-content {
+/* Floating Glass Shelf Card */
+.right-dropzone-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 7px;
-  padding: 16px 12px;
+  gap: 10px;
+  padding: 22px 14px;
+  width: 122px;
+  border-radius: 18px;
+  background: rgba(18, 19, 28, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px dashed rgba(129, 140, 248, 0.45);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  transform: translateX(35px);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
+              background 0.2s ease, 
+              border-color 0.2s ease, 
+              box-shadow 0.2s ease;
   user-select: none;
+  pointer-events: none;
+}
+
+body.is-dragging-task .right-dropzone-card {
+  transform: translateX(0);
+}
+
+.right-backlog-dropzone.drag-over .right-dropzone-card {
+  transform: translateX(-6px) scale(1.05);
+  background: rgba(99, 102, 241, 0.24);
+  border: 2px solid var(--accent, #6366f1);
+  box-shadow: 0 18px 45px rgba(99, 102, 241, 0.35), 0 0 24px rgba(99, 102, 241, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.right-dropzone-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.right-backlog-dropzone.drag-over .right-dropzone-icon-wrap {
+  transform: scale(1.18) rotate(-8deg);
+  background: rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.6);
 }
 
 .right-dropzone-icon {
-  font-size: 32px;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
-.right-backlog-dropzone.drag-over .right-dropzone-icon {
-  transform: scale(1.22) rotate(-8deg);
+.right-dropzone-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.right-dropzone-text {
+.right-dropzone-title {
   font-size: 13px;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .right-dropzone-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.2;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.25;
+}
+
+.right-backlog-dropzone.drag-over .right-dropzone-title {
+  color: #ffffff;
+}
+
+.right-backlog-dropzone.drag-over .right-dropzone-sub {
+  color: #cbd5e1;
+}
+
+/* Light Theme Drop Dock */
+[data-theme="light"] .right-dropzone-card {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .right-dropzone-icon-wrap {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="light"] .right-dropzone-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .right-dropzone-sub {
+  color: #64748b;
+}
+
+[data-theme="light"] .right-backlog-dropzone.drag-over .right-dropzone-card {
+  background: rgba(238, 242, 255, 0.96);
+  border-color: #6366f1;
+}
+
+/* Tab Header Drop Highlights */
+.tasks-tab-btn.tab-drag-hover {
+  background: var(--accent, #6366f1) !important;
+  color: #ffffff !important;
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
 }
 
 /* ============================================================== */

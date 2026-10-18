@@ -19,31 +19,43 @@ let wakeLock = null;
 // ==============================================================
 let timerWorker = null;
 try {
-  const workerBlob = new Blob([`
-    let interval = null;
-    self.onmessage = function(e) {
-      if (e.data === 'start') {
-        if (!interval) {
-          interval = setInterval(function() {
-            self.postMessage('tick');
-          }, 1000);
-        }
-      } else if (e.data === 'stop') {
-        if (interval) {
-          clearInterval(interval);
-          interval = null;
-        }
-      }
-    };
-  `], { type: 'application/javascript' });
-  timerWorker = new Worker(URL.createObjectURL(workerBlob));
+  timerWorker = new Worker('js/timer-worker.js?v=3.32');
   timerWorker.onmessage = function(e) {
     if (e.data === 'tick' && isRunning) {
       tickTimer();
     }
   };
+  timerWorker.onerror = function() {
+    timerWorker = null;
+  };
 } catch (e) {
-  console.warn('Web Worker ticker initialization failed, fallback to setInterval:', e);
+  try {
+    const workerBlob = new Blob([`
+      let interval = null;
+      self.onmessage = function(e) {
+        if (e.data === 'start') {
+          if (!interval) {
+            interval = setInterval(function() {
+              self.postMessage('tick');
+            }, 1000);
+          }
+        } else if (e.data === 'stop') {
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+        }
+      };
+    `], { type: 'application/javascript' });
+    timerWorker = new Worker(URL.createObjectURL(workerBlob));
+    timerWorker.onmessage = function(e) {
+      if (e.data === 'tick' && isRunning) {
+        tickTimer();
+      }
+    };
+  } catch (err) {
+    timerWorker = null;
+  }
 }
 
 function startTimerTicker() {
@@ -134,12 +146,31 @@ function updateDisplay() {
   
   if (display) display.textContent = formatted;
 
-  // Real-time dynamic document.title (running, paused, break, or focused task name)
+  // Real-time dynamic document.title (cleanly formatted for universal browser tab visibility)
   const activeTask = (window.SpanState && window.SpanState.activeTask) ? window.SpanState.activeTask : null;
-  const taskSnippet = (activeTask && activeTask.title) ? ` • ${activeTask.title.replace(/#[\w\-]+/g, '').trim().substring(0, 24)}` : '';
-  const statusPrefix = isRunning ? (isBreakSession ? '☕ ' : '▶ ') : (secondsLeft === durationMinutes * 60 ? '⏱ ' : '⏸ ');
-  const modeLabel = isBreakSession ? ' [Break]' : '';
-  document.title = `${statusPrefix}${formatted}${modeLabel}${taskSnippet} — Span Focus`;
+  const taskTitle = (activeTask && typeof activeTask.title === 'string')
+    ? activeTask.title.replace(/#[\w\-]+/g, '').trim().substring(0, 24)
+    : '';
+
+  if (isRunning) {
+    if (isBreakSession) {
+      document.title = `(${formatted}) ☕ Break — Span Focus`;
+    } else if (taskTitle) {
+      document.title = `(${formatted}) ▶ ${taskTitle} — Span Focus`;
+    } else {
+      document.title = `(${formatted}) ▶ Span Focus`;
+    }
+  } else if (secondsLeft === durationMinutes * 60) {
+    document.title = `(${formatted}) Span Focus`;
+  } else {
+    document.title = `(${formatted}) ⏸ Span Focus`;
+  }
+
+  // Also update live text on navigation bar Focus button
+  const navFocusSpan = document.querySelector('#nav-btn-focus span');
+  if (navFocusSpan) {
+    navFocusSpan.textContent = isRunning ? `Focus (${formatted})` : 'Focus';
+  }
 
   // Ring progress update
   let progress = 0;
@@ -257,9 +288,13 @@ function releaseWakeLock() {
   }
 }
 
+let lastTickTimestamp = 0;
+
 // 1-second ticker logic with automated 30m Pomodoro cycle (25m Focus -> 5m Break)
 function tickTimer() {
   const now = Date.now();
+  if (now - lastTickTimestamp < 450) return; // avoid duplicate worker/interval rapid double-tick
+  lastTickTimestamp = now;
 
   if (timerMode === 'stopwatch') {
     const totalElapsed = Math.floor((now - stopwatchStartTime) / 1000);
@@ -344,6 +379,7 @@ function toggleTimer() {
     updateTimerVisualState(false);
     releaseWakeLock();
     handleTimerAudioSync(false, isBreakSession);
+    updateDisplay();
   } else {
     if (isOvertime) {
       confirmCompletedSession();
@@ -360,6 +396,7 @@ function toggleTimer() {
     stopwatchStartTime = now - (elapsedSeconds * 1000);
 
     startTimerTicker();
+    updateDisplay();
   }
 }
 
