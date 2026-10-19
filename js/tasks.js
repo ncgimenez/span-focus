@@ -305,6 +305,16 @@ function toggleTaskActionMenu(taskId, event) {
     targetMenu.classList.add('show');
     const item = targetMenu.closest('.task-item');
     if (item) item.style.zIndex = '100';
+
+    // Auto-flip menu up if near bottom of viewport
+    const rect = targetMenu.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 20) {
+      targetMenu.style.top = 'auto';
+      targetMenu.style.bottom = 'calc(100% + 4px)';
+    } else {
+      targetMenu.style.top = 'calc(100% + 4px)';
+      targetMenu.style.bottom = 'auto';
+    }
   }
 }
 
@@ -1560,34 +1570,38 @@ function createTaskDOMElement(task, isSubtask = false) {
            ondblclick="openEditModalForTask('${task.id}')"
            title="Double-click to edit • Drag to reorder">
         
-        <!-- EVENT HEADER: NO CHECKBOX! -->
-        <div class="event-card-header">
-          <div class="event-header-left">
-            ${task.scheduledTime ? `
-              <div class="task-time-stacked" title="Scheduled slot: ${task.scheduledTime}${taskEndTime ? ' to ' + taskEndTime : ''}">
-                <span class="time-start">${task.scheduledTime}</span>
-                ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
-              </div>
-            ` : ''}
+        <!-- EVENT CARD: 2-LINE LAYOUT (TOP: TITLE • BOTTOM: METADATA & ACTIONS) -->
+        <div class="task-card-content is-event">
+          <div class="task-card-top-row">
             <span class="event-type-badge">📅</span>
             <span class="event-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
-          <div class="event-header-right">
-            <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}">🎯</button>
-            <button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>
-            ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
-            ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
-            
-            <div class="task-menu-container">
-              <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Event actions">⋮</button>
-              <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convert to simple task</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
-                <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+          <div class="task-card-bottom-row">
+            <div class="task-bottom-left">
+              ${task.scheduledTime ? `
+                <span class="task-time-pill" title="Scheduled slot: ${task.scheduledTime}${taskEndTime ? ' to ' + taskEndTime : ''}">
+                  🕒 ${task.scheduledTime}${taskEndTime ? '–' + taskEndTime : ''}
+                </span>
+              ` : `<span class="task-meta-time">⏱ ${durationMinutes}m</span>`}
+              ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
+              ${progressBadge}
+            </div>
+
+            <div class="task-bottom-right">
+              <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}">🎯</button>
+              <button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>
+              
+              <div class="task-menu-container">
+                <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Event actions">⋮</button>
+                <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus event' : 'Focus this event'}</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToTask('${task.id}')">📝 Convert to simple task</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
+                  <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1644,7 +1658,7 @@ function createTaskDOMElement(task, isSubtask = false) {
       </div>
     `;
   } else {
-    // STANDARD TASK CARD: WITH CHECKBOX
+    // STANDARD TASK CARD: 2-LINE LAYOUT (TOP: CHECKBOX + FULL TITLE • BOTTOM: METADATA & ACTIONS)
     wrapper.innerHTML = `
       <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''} ${isLiveNow ? 'is-live-now' : ''} ${isPastBlock ? 'is-past-slot' : ''}" 
            id="task-node-${task.id}" 
@@ -1652,53 +1666,57 @@ function createTaskDOMElement(task, isSubtask = false) {
            ondblclick="openEditModalForTask('${task.id}')"
            title="Double-click to edit • Drag to reorder">
         
-        <div class="parent-task-card-header">
-          <!-- LEFT AREA: CHECKBOX + EXPANDED TITLE (INLINE TAGS) -->
-          <div class="task-main-left">
+        <div class="task-card-content">
+          <!-- TOP ROW: CHECKBOX + EXPANDED FULL-WIDTH TITLE -->
+          <div class="task-card-top-row">
             ${isSubtask ? '<span class="subtask-indent-branch" aria-hidden="true">↳</span>' : ''}
             <div class="checkbox" onclick="event.stopPropagation(); toggleTaskById('${task.id}')">
               ${task.completed ? '✓' : ''}
             </div>
-            ${task.scheduledTime ? `
-              <div class="task-time-stacked" title="Scheduled slot: ${task.scheduledTime}${taskEndTime ? ' to ' + taskEndTime : ''}">
-                <span class="time-start">${task.scheduledTime}</span>
-                ${taskEndTime ? `<span class="time-end">${taskEndTime}</span>` : ''}
-              </div>
-            ` : ''}
-            ${isOverdue ? '<span class="task-overdue-badge">⚠️ Overdue</span>' : ''}
             <span class="task-title-text" title="${(task.title || '').replace(/"/g, '&quot;')}">${renderTitleWithTags(task.title)}</span>
           </div>
 
-          <!-- RIGHT AREA: DURATION + PRIORITY + FOCUS BADGE + COMPACT MENU ⋮ -->
-          <div class="task-right-meta">
-            <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}">🎯</button>
-            ${!isSubtask ? `<button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>` : ''}
-            ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
-              ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
-              : ''}
-            ${!task.completed && (task.scheduledDate === targetDateStr && !task.isEvent && !isSubtask)
-              ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Move to Inbox">📦</button>`
-              : ''}
-            ${(!task.scheduledTime) ? `<span class="task-meta-time">⏱ ${durationMinutes}m</span>` : ''}
-            ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
-            
-            <div class="task-menu-container">
-              <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
-              <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
-                ${(!task.scheduledDate || task.scheduledDate !== targetDateStr)
-                  ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Schedule for ${currentDayOffset === 0 ? "today" : "tomorrow"}</button>`
-                  : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Move to Inbox (no date)</button>`
-                }
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
-                <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToEvent('${task.id}')">📅 Convert to Event</button>
-                ${isSubtask 
-                  ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); detachSubtask('${task.id}')">📎 Detach from parent item</button>` 
-                  : ''
-                }
-                <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+          <!-- BOTTOM ROW: METADATA (LEFT) + QUICK ACTIONS & MENU (RIGHT) -->
+          <div class="task-card-bottom-row">
+            <div class="task-bottom-left">
+              ${task.scheduledTime ? `
+                <span class="task-time-pill" title="Scheduled slot: ${task.scheduledTime}${taskEndTime ? ' to ' + taskEndTime : ''}">
+                  🕒 ${task.scheduledTime}${taskEndTime ? '–' + taskEndTime : ''}
+                </span>
+              ` : `<span class="task-meta-time">⏱ ${durationMinutes}m</span>`}
+              ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
+              ${isOverdue ? '<span class="task-overdue-badge">⚠️ Overdue</span>' : ''}
+              ${progressBadge}
+            </div>
+
+            <div class="task-bottom-right">
+              <button class="btn-task-quick-action task-focus-btn ${isCurrentlyInFocus ? 'active' : ''}" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')" title="${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}">🎯</button>
+              ${!isSubtask ? `<button class="btn-task-quick-action btn-card-quick-subtask" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')" title="Add subtask">➕</button>` : ''}
+              ${!task.completed && (!task.scheduledDate || task.scheduledDate !== targetDateStr)
+                ? `<button class="btn-task-quick-action move-today" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')" title="${quickPlanBtnTooltip}">⚡</button>`
+                : ''}
+              ${!task.completed && (task.scheduledDate === targetDateStr && !task.isEvent && !isSubtask)
+                ? `<button class="btn-task-quick-action move-backlog" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')" title="Move to Inbox">📦</button>`
+                : ''}
+              
+              <div class="task-menu-container">
+                <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
+                <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
+                  ${(!task.scheduledDate || task.scheduledDate !== targetDateStr)
+                    ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToSelectedDay('${task.id}')">⚡ Schedule for ${currentDayOffset === 0 ? "today" : "tomorrow"}</button>`
+                    : `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); moveTaskToBacklog('${task.id}')">📦 Move to Inbox (no date)</button>`
+                  }
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openQuickSubtaskModal('${task.id}')">➕ Add subtask</button>
+                  <button class="dropdown-item" type="button" onclick="event.stopPropagation(); convertToEvent('${task.id}')">📅 Convert to Event</button>
+                  ${isSubtask 
+                    ? `<button class="dropdown-item" type="button" onclick="event.stopPropagation(); detachSubtask('${task.id}')">📎 Detach from parent item</button>` 
+                    : ''
+                  }
+                  <button class="dropdown-item danger" type="button" onclick="event.stopPropagation(); deleteTaskById('${task.id}')">✕ Delete</button>
+                </div>
               </div>
             </div>
           </div>

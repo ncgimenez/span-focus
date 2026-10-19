@@ -697,6 +697,40 @@ body {
   transform: rotate(-180deg) scale(0.92);
 }
 
+/* SKIP BREAK BUTTON */
+.btn-skip-break {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 20px;
+  border-radius: 36px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-skip-break:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.25);
+}
+
+.btn-skip-break:active {
+  transform: scale(0.96) translateY(0);
+}
+
+[data-theme="light"] .btn-skip-break {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #d97706;
+}
+
 /* TASKS STRUCTURE */
 .tasks-subview-container {
   display: flex;
@@ -932,7 +966,7 @@ body {
   min-height: 40px;
   border-radius: 12px;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.2s ease,
               box-shadow 0.2s ease,
@@ -1394,6 +1428,109 @@ body {
   box-sizing: border-box;
 }
 
+/* ============================================================== */
+/* 2-ROW TASK CARD LAYOUT (OPTION 1A)                             */
+/* ROW 1: 100% WIDTH TITLE | ROW 2: METADATA & ACTIONS (WITH ...) */
+/* ============================================================== */
+.task-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-card-top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+}
+
+.task-card-top-row .checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.task-card-top-row .event-type-badge {
+  font-size: 13.5px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.task-card-top-row .subtask-indent-branch {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.task-title-text,
+.event-title-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-main);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-title-text {
+  font-weight: 600;
+}
+
+.task-card-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 22px;
+}
+
+.task-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.task-bottom-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* TIME PILL IN BOTTOM ROW (CLEAN CALENDAR SLOT BADGE) */
+.task-time-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--streak, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 1px 6px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .task-time-pill {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
 .event-header-left {
   display: flex;
   align-items: center;
@@ -1415,17 +1552,6 @@ body {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-.event-title-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .event-progress-pill {
@@ -3535,8 +3661,13 @@ input[type="range"] {
   }
 
   .task-item {
-    padding: 6px 10px !important;
+    padding: 0 !important;
     font-size: 13px !important;
+  }
+
+  .task-card-content {
+    padding: 7px 10px 7px 10px !important;
+    gap: 4px !important;
   }
 
   .parent-task-card-header,

@@ -276,6 +276,7 @@ function setDuration(mins, isBreak = false) {
                   b.textContent.startsWith(mins);
     b.classList.toggle('active', isAct);
   });
+  updateTimerVisualState(isRunning);
 }
 
 async function requestWakeLock() {
@@ -377,6 +378,12 @@ function updateTimerVisualState(running) {
     circleWrap.classList.toggle('is-running', running);
     circleWrap.classList.toggle('is-break', isBreakSession);
   }
+
+  const skipBtn = document.getElementById('btnSkipBreak');
+  if (skipBtn) {
+    skipBtn.style.display = isBreakSession ? 'inline-flex' : 'none';
+  }
+
   document.body.classList.toggle('timer-active-focus-mode', running && !isBreakSession);
   document.body.classList.toggle('timer-active-break-mode', running && isBreakSession);
 
@@ -385,6 +392,26 @@ function updateTimerVisualState(running) {
   if (focusStep && breakStep) {
     focusStep.classList.toggle('active', !isBreakSession);
     breakStep.classList.toggle('active', isBreakSession);
+  }
+}
+
+function skipBreak() {
+  if (!isBreakSession) return;
+  stopTimerTicker();
+  isRunning = false;
+  isBreakSession = false;
+  isOvertime = false;
+  durationMinutes = 25;
+  secondsLeft = 25 * 60;
+  elapsedSeconds = 0;
+  updateTimerVisualState(false);
+  if (display) display.classList.remove('overtime');
+  if (toggleBtn) toggleBtn.textContent = 'Start Focus (25m)';
+  releaseWakeLock();
+  handleTimerAudioSync(false, false);
+  updateDisplay();
+  if (typeof showToast === 'function') {
+    showToast('Pause passée ⏩ Prêt pour le prochain focus (25m) !', '⚡');
   }
 }
 
