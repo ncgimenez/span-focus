@@ -1054,25 +1054,32 @@ function renderTasks() {
   };
 
   // Completed items (exclude nested subtasks and scheduled/event timeline items so timeline stays intact)
-  const doneToday = tasks.filter(t => t.completed && filterByCondition(t) && !isNestedSubtask(t) && !t.isEvent && !t.scheduledTime);
+  // For the selected day, only show tasks completed for that day
+  const doneToday = tasks.filter(t => {
+    if (!t.completed || !filterByCondition(t) || isNestedSubtask(t) || t.isEvent || t.scheduledTime) return false;
+    if (t.completedDate) return t.completedDate === targetDateStr;
+    return t.scheduledDate === targetDateStr;
+  });
 
   // Active items
   const activeTasks = tasks.filter(t => !t.completed && filterByCondition(t));
 
-  const matchesSelectedDay = (t) => {
+  // Vérifier si un élément est prévu strictement pour le jour sélectionné
+  const isItemForSelectedDay = (t) => {
     if (!t.scheduledDate) return false;
-    if (currentDayOffset === 0) {
-      // Pour aujourd'hui: la date d'aujourd'hui + les tâches non complétées en retard
-      return t.scheduledDate <= targetDateStr;
-    } else {
-      // Pour demain ou autre jour sélectionné: correspond exactement à la date cible
-      return t.scheduledDate === targetDateStr;
-    }
+    return t.scheduledDate === targetDateStr;
   };
 
-  // 1. FOCUS DAY: Événements ou Blocs minutés prévus pour le jour sélectionné
+  // Pour aujourd'hui uniquement: tâches non complétées en retard (rollover)
+  // Les événements (isEvent) ne sont JAMAIS des tâches en retard: ils restent sur leur date d'origine
+  const isOverdueTask = (t) => {
+    return currentDayOffset === 0 && !t.isEvent && !t.completed && !!t.scheduledDate && t.scheduledDate < targetDateStr;
+  };
+
+  // 1. FOCUS DAY: Événements ou Blocs minutés prévus STRICTEMENT pour le jour sélectionné
+  // Les événements passés d'hier ou blocs complétés restent sur leur journée et ne polluent pas le jour actuel
   const focusDayItems = tasks.filter(t => {
-    return matchesSelectedDay(t) && (t.isEvent || t.scheduledTime) && !isNestedSubtask(t) && filterByCondition(t);
+    return isItemForSelectedDay(t) && (t.isEvent || t.scheduledTime) && !isNestedSubtask(t) && filterByCondition(t);
   });
 
   // Tri chronologique des blocs du Focus Day (10h, 14h...)
@@ -1083,14 +1090,20 @@ function renderTasks() {
     return 0;
   });
 
-  // 2. PRIORITÉS: Tâches favorites du jour sélectionné
+  // 2. PRIORITÉS: Tâches favorites du jour sélectionné ou tâches favorites en retard
   const priorityItems = activeTasks.filter(t => {
-    return matchesSelectedDay(t) && t.isFavorite && !t.isEvent && !t.scheduledTime && !isNestedSubtask(t);
+    if (isNestedSubtask(t) || t.isEvent || !t.isFavorite) return false;
+    if (isItemForSelectedDay(t) && !t.scheduledTime) return true;
+    if (isOverdueTask(t)) return true;
+    return false;
   });
 
-  // 3. TÂCHES FLOTTANTES DU JOUR: Tâches du jour sans heure fixe
+  // 3. TÂCHES FLOTTANTES DU JOUR: Tâches du jour sans heure fixe ou tâches en retard non complétées
   const regularTodayItems = activeTasks.filter(t => {
-    return matchesSelectedDay(t) && !t.isEvent && !t.scheduledTime && !t.isFavorite && !isNestedSubtask(t);
+    if (isNestedSubtask(t) || t.isEvent || t.isFavorite) return false;
+    if (isItemForSelectedDay(t) && !t.scheduledTime) return true;
+    if (isOverdueTask(t)) return true;
+    return false;
   });
 
   // 4. BACKLOG: Tâches sans date programmée
@@ -1510,7 +1523,7 @@ function createTaskDOMElement(task, isSubtask = false) {
   const todayRealStr = getLocalDateString();
   const todayStr = todayRealStr;
   const targetDateStr = getSelectedDateStr();
-  const isOverdue = !task.completed && task.scheduledDate && task.scheduledDate < todayRealStr;
+  const isOverdue = !task.completed && !task.isEvent && task.scheduledDate && task.scheduledDate < todayRealStr;
 
   const childSubtasks = tasks.filter(t => String(t.parentEventId) === String(task.id));
   const doneSubCount = childSubtasks.filter(t => t.completed).length;
@@ -2675,6 +2688,7 @@ setInterval(() => {
   const isModalOpen = modal && modal.classList.contains('active');
   const isDragging = document.querySelector('.dragging') !== null;
   if (!isModalOpen && !isDragging && typeof renderTasks === 'function') {
+    if (typeof autoArchivePastDays === 'function') autoArchivePastDays();
     renderTasks();
   }
 }, 60000);

@@ -1,22 +1,22 @@
 // Span Focus Service Worker - Offline PWA Support
-const CACHE_NAME = 'span-focus-v3.41';
+const CACHE_NAME = 'span-focus-v3.43';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=3.41',
+  './style.css?v=3.43',
   './manifest.json',
   './favicon.ico',
   './span-logo.svg',
   './span-logo.png',
   './apple-touch-icon.png',
-  './js/audio.js?v=3.41',
-  './js/timer.js?v=3.41',
-  './js/timer-worker.js?v=3.41',
-  './js/tasks.js?v=3.41',
-  './js/track.js?v=3.41',
-  './js/sync.js?v=3.41',
-  './js/app.js?v=3.41'
+  './js/audio.js?v=3.43',
+  './js/timer.js?v=3.43',
+  './js/timer-worker.js?v=3.43',
+  './js/tasks.js?v=3.43',
+  './js/track.js?v=3.43',
+  './js/sync.js?v=3.43',
+  './js/app.js?v=3.43'
 ];
 
 // Install: pre-cache all core assets
