@@ -789,12 +789,17 @@ function syncWithSpanPlan() {
       if (!pTask || !pTask.id) return;
       if (deletedSet.has(String(pTask.id))) return;
       if (pTask.title && deletedSet.has('title:' + pTask.title.trim().toLowerCase())) return;
-      const existing = tasks.find(t => String(t.id) === String(pTask.id) || (t.planId && String(t.planId) === String(pTask.id)) || (pTask.focusId && String(t.id) === String(pTask.focusId)));
+      const existing = tasks.find(t => 
+        String(t.id) === String(pTask.id) || 
+        (t.planId && String(t.planId) === String(pTask.id)) || 
+        (pTask.focusId && String(t.id) === String(pTask.focusId)) ||
+        (pTask.title && t.title && pTask.title.trim().toLowerCase() === t.title.trim().toLowerCase())
+      );
       const isEv = pTask.type === 'event' || !!pTask.isEvent;
       
       if (!existing) {
         tasks.push({
-          id: pTask.id,
+          id: pTask.focusId || pTask.id,
           planId: pTask.id,
           title: pTask.title || 'Untitled',
           category: catMap[pTask.context] || 'Work',
@@ -809,6 +814,8 @@ function syncWithSpanPlan() {
         });
         modified = true;
       } else {
+        if (!existing.planId) existing.planId = pTask.id;
+        if (pTask.focusId && !existing.focusId) existing.focusId = pTask.focusId;
         const targetDate = pTask.date || null;
         if (existing.scheduledDate !== targetDate) {
           existing.scheduledDate = targetDate;
@@ -951,7 +958,8 @@ function exportAllTasksToSpanPlan() {
       const foundIdx = planTasks.findIndex(p => 
         String(p.id) === String(task.id) || 
         (task.planId && String(p.id) === String(task.planId)) ||
-        (p.focusId && String(p.focusId) === String(task.id))
+        (p.focusId && String(p.focusId) === String(task.id)) ||
+        (p.title && task.title && p.title.trim().toLowerCase() === task.title.trim().toLowerCase())
       );
 
       if (foundIdx >= 0) {
@@ -961,6 +969,7 @@ function exportAllTasksToSpanPlan() {
         if (task.duration) planTasks[foundIdx].duration = task.duration;
         planTasks[foundIdx].title = task.title;
         planTasks[foundIdx].focusId = task.id;
+        task.planId = planTasks[foundIdx].id;
         if (task.isEvent) planTasks[foundIdx].type = 'event';
 
         // Merge subtasks
@@ -972,15 +981,16 @@ function exportAllTasksToSpanPlan() {
           }
         });
         planTasks[foundIdx].subtasks = mergedSubs;
-      } else if (task.isEvent || task.scheduledDate || task.scheduledTime || formattedSubtasks.length > 0) {
-        // Nouvel événement ou tâche planifiée créée dans Span Focus -> Intégrer au planning
+      } else {
+        const pId = task.planId || ('p_' + task.id);
+        task.planId = pId;
         let subCtx = catReverseMap[task.category] || 'work';
         if (/#(life|perso|home)\b/i.test(task.title)) subCtx = 'life';
         else if (/#(fun|sport)\b/i.test(task.title)) subCtx = 'fun';
         else if (/#(work|code|pro)\b/i.test(task.title)) subCtx = 'work';
 
         planTasks.push({
-          id: task.id,
+          id: pId,
           focusId: task.id,
           title: task.title,
           type: task.isEvent ? 'event' : 'task',
@@ -997,6 +1007,12 @@ function exportAllTasksToSpanPlan() {
     });
 
     localStorage.setItem('span_plan_tasks', JSON.stringify(planTasks));
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const bridge = new BroadcastChannel('span_suite_bridge');
+        bridge.postMessage({ type: 'FOCUS_UPDATED', timestamp: Date.now() });
+      } catch (e) {}
+    }
   } catch (err) {
     console.warn("Export to Span Plan warning:", err);
   }
@@ -2678,9 +2694,30 @@ initTaskTargetDefault();
 updateTaskTabsUI();
 if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 
+// Cross-app & cross-tab real-time sync
+if (typeof BroadcastChannel !== 'undefined') {
+  try {
+    const focusSuiteBridge = new BroadcastChannel('span_suite_bridge');
+    focusSuiteBridge.onmessage = (event) => {
+      if (event.data && (event.data.type === 'PLAN_UPDATED' || event.data.type === 'PLAN_TASKS_SAVED')) {
+        if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
+        if (typeof renderTasks === 'function') renderTasks();
+      }
+    };
+  } catch (e) {}
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'span_plan_tasks' || e.key === 'span_tasks') {
+    if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
+    if (typeof renderTasks === 'function') renderTasks();
+  }
+});
+
 window.addEventListener('focus', () => {
   if (typeof syncWithSpanPlan === 'function') syncWithSpanPlan();
 });
+
 
 // Auto-refresh tasks every 60s so that "● LIVE" badge and current-time indicators update smoothly
 setInterval(() => {

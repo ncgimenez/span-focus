@@ -256,3 +256,22 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// Dynamically configure Plan bridge links based on environment and sync key
+function updateBridgeLinks() {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const syncKey = (typeof SYNC_USER_ID !== 'undefined' && SYNC_USER_ID) || localStorage.getItem('span_sync_user') || '';
+  const syncQuery = syncKey ? `?sync=${encodeURIComponent(syncKey)}` : '';
+  const targetUrl = isLocal 
+    ? `http://${window.location.hostname}:8000/${syncQuery}`
+    : `/span-plan/${syncQuery}`;
+
+  document.querySelectorAll('.plan-bridge-btn').forEach(btn => {
+    if (btn.tagName === 'A') {
+      btn.href = targetUrl;
+    }
+  });
+}
+window.addEventListener('DOMContentLoaded', updateBridgeLinks);
+window.updateBridgeLinks = updateBridgeLinks;
+

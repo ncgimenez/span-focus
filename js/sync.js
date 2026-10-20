@@ -7,9 +7,23 @@ const supabaseClient = (typeof supabase !== 'undefined')
   : null;
 
 function getOrCreateSyncId() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const syncParam = urlParams.get('sync');
+  if (syncParam && syncParam.trim()) {
+    const cleanSync = syncParam.trim();
+    localStorage.setItem('span_sync_user', cleanSync);
+    localStorage.setItem('span_sync_key_manually_set', 'true');
+    return cleanSync;
+  }
   let id = localStorage.getItem('span_sync_user');
-  if (!id) {
-    id = 'span_' + Math.random().toString(36).substring(2, 8) + '_' + Date.now().toString(36);
+  const isLocalhost = Boolean(
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0'
+  );
+  const manuallySet = localStorage.getItem('span_sync_key_manually_set') === 'true';
+  if (!id || (isLocalhost && !manuallySet)) {
+    id = isLocalhost ? 'span_local_user' : ('span_' + Math.random().toString(36).substring(2, 8) + '_' + Date.now().toString(36));
     localStorage.setItem('span_sync_user', id);
   }
   return id;
@@ -47,6 +61,8 @@ async function handleLinkClick() {
 
   SYNC_USER_ID = key;
   localStorage.setItem('span_sync_user', key);
+  localStorage.setItem('span_sync_key_manually_set', 'true');
+  if (typeof updateBridgeLinks === 'function') updateBridgeLinks();
   
   // Align secret password field for iOS Keychain prompt
   syncKeychainInputs(key);
@@ -115,8 +131,54 @@ async function saveStateToCloud() {
       });
     }
 
-    const cleanPlanItems = Array.from(planItemsMap.values());
     const cleanTasks = (window.SpanState.tasks || []).filter(t => !isDeletedItem(t));
+    const catReverseMap = { 'Work': 'work', 'Home': 'life', 'Fun': 'fun' };
+
+    // Mettre à jour planItemsMap avec les dates, heures, durées et statuts actuels de Span Focus
+    cleanTasks.forEach(task => {
+      if (!task || !task.id) return;
+      let matchingPlanItem = null;
+      for (const p of planItemsMap.values()) {
+        if (String(p.id) === String(task.id) || 
+            (task.planId && String(p.id) === String(task.planId)) ||
+            (p.focusId && String(p.focusId) === String(task.id)) ||
+            (p.title && task.title && p.title.trim().toLowerCase() === task.title.trim().toLowerCase())) {
+          matchingPlanItem = p;
+          break;
+        }
+      }
+
+      if (matchingPlanItem) {
+        matchingPlanItem.date = task.scheduledDate || null;
+        matchingPlanItem.time = task.scheduledTime || '';
+        if (task.duration) matchingPlanItem.duration = task.duration;
+        matchingPlanItem.completed = !task.isEvent && !!task.completed;
+        matchingPlanItem.title = task.title;
+        matchingPlanItem.focusId = task.id;
+        if (task.isEvent) matchingPlanItem.type = 'event';
+        task.planId = matchingPlanItem.id;
+      } else {
+        const pId = task.planId || ('p_' + task.id);
+        task.planId = pId;
+        planItemsMap.set(pId, {
+          id: pId,
+          focusId: task.id,
+          title: task.title,
+          type: task.isEvent ? 'event' : 'task',
+          date: task.scheduledDate || null,
+          time: task.scheduledTime || '',
+          duration: task.duration || (task.estimate ? task.estimate * 30 : 30),
+          context: catReverseMap[task.category] || 'work',
+          completed: !task.isEvent && !!task.completed,
+          isRollover: false,
+          fromFocus: true,
+          subtasks: []
+        });
+      }
+    });
+
+    const cleanPlanItems = Array.from(planItemsMap.values());
+
 
     const updatedTasksObj = {
       ...existingTasksObj,
