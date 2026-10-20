@@ -141,8 +141,7 @@ async function saveStateToCloud() {
       for (const p of planItemsMap.values()) {
         if (String(p.id) === String(task.id) || 
             (task.planId && String(p.id) === String(task.planId)) ||
-            (p.focusId && String(p.focusId) === String(task.id)) ||
-            (p.title && task.title && p.title.trim().toLowerCase() === task.title.trim().toLowerCase())) {
+            (p.focusId && String(p.focusId) === String(task.id))) {
           matchingPlanItem = p;
           break;
         }

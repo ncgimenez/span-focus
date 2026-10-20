@@ -788,12 +788,10 @@ function syncWithSpanPlan() {
     planTasks.forEach(pTask => {
       if (!pTask || !pTask.id) return;
       if (deletedSet.has(String(pTask.id))) return;
-      if (pTask.title && deletedSet.has('title:' + pTask.title.trim().toLowerCase())) return;
       const existing = tasks.find(t => 
-        String(t.id) === String(pTask.id) || 
+        (t.id && String(t.id) === String(pTask.id)) || 
         (t.planId && String(t.planId) === String(pTask.id)) || 
-        (pTask.focusId && String(t.id) === String(pTask.focusId)) ||
-        (pTask.title && t.title && pTask.title.trim().toLowerCase() === t.title.trim().toLowerCase())
+        (pTask.focusId && t.id && String(t.id) === String(pTask.focusId))
       );
       const isEv = pTask.type === 'event' || !!pTask.isEvent;
       
@@ -845,11 +843,27 @@ function syncWithSpanPlan() {
         }
       }
 
-      // Sync nested subtasks from Plan event if present
+      // Sync nested subtasks STRICTEMENT par ID
+      const parentFocusId = existing ? existing.id : (pTask.focusId || pTask.id);
+      const planSubIds = new Set((pTask.subtasks || []).map(s => String(s.id)));
+
+      // Nettoyer dans Focus les anciennes sous-tâches orphelines de cet événement
+      const prevTaskLen = tasks.length;
+      tasks = tasks.filter(t => {
+        if (!t || !t.parentEventId) return true;
+        const isChildOfThisEvent = String(t.parentEventId) === String(parentFocusId) || 
+                                   String(t.parentEventId) === String(pTask.id) ||
+                                   (existing && existing.planId && String(t.parentEventId) === String(existing.planId));
+        if (isChildOfThisEvent) {
+          return planSubIds.has(String(t.id));
+        }
+        return true;
+      });
+      if (tasks.length !== prevTaskLen) modified = true;
+
       if (Array.isArray(pTask.subtasks) && pTask.subtasks.length > 0) {
         pTask.subtasks.forEach(sub => {
           if (!sub || !sub.id || deletedSet.has(String(sub.id))) return;
-          if (sub.title && deletedSet.has('title:' + sub.title.trim().toLowerCase())) return;
 
           let subCat = 'Work';
           if (sub.context && catMap[sub.context]) subCat = catMap[sub.context];
@@ -870,7 +884,7 @@ function syncWithSpanPlan() {
               completed: !!sub.completed,
               isFavorite: false,
               isEvent: false,
-              parentEventId: String(pTask.id),
+              parentEventId: String(parentFocusId),
               scheduledDate: pTask.date || null,
               scheduledTime: null
             });
@@ -882,6 +896,10 @@ function syncWithSpanPlan() {
             }
             if (sub.title && existingSub.title !== sub.title) {
               existingSub.title = sub.title;
+              modified = true;
+            }
+            if (String(existingSub.parentEventId) !== String(parentFocusId)) {
+              existingSub.parentEventId = String(parentFocusId);
               modified = true;
             }
             if (subCat && existingSub.category !== subCat) {
@@ -929,7 +947,6 @@ function exportAllTasksToSpanPlan() {
       if (t.planId && deletedSet.has(String(t.planId))) return true;
       if (t.focusId && deletedSet.has(String(t.focusId))) return true;
       if (t.parentEventId && deletedSet.has(String(t.parentEventId))) return true;
-      if (t.title && deletedSet.has('title:' + t.title.trim().toLowerCase())) return true;
       return false;
     };
 
@@ -940,7 +957,10 @@ function exportAllTasksToSpanPlan() {
     const rootTasks = tasks.filter(t => t && !t.parentEventId && !isDeleted(t));
 
     rootTasks.forEach(task => {
-      const mySubtasks = childSubtasks.filter(c => String(c.parentEventId) === String(task.id));
+      const mySubtasks = childSubtasks.filter(c => 
+        String(c.parentEventId) === String(task.id) || 
+        (task.planId && String(c.parentEventId) === String(task.planId))
+      );
       const formattedSubtasks = mySubtasks.map(c => {
         let subCtx = catReverseMap[c.category] || 'work';
         if (/#(life|perso|home)\b/i.test(c.title)) subCtx = 'life';
@@ -951,15 +971,14 @@ function exportAllTasksToSpanPlan() {
           title: c.title,
           context: subCtx,
           completed: !!c.completed,
-          parentEventId: task.id
+          parentEventId: task.planId || task.id
         };
       });
 
       const foundIdx = planTasks.findIndex(p => 
         String(p.id) === String(task.id) || 
         (task.planId && String(p.id) === String(task.planId)) ||
-        (p.focusId && String(p.focusId) === String(task.id)) ||
-        (p.title && task.title && p.title.trim().toLowerCase() === task.title.trim().toLowerCase())
+        (p.focusId && String(p.focusId) === String(task.id))
       );
 
       if (foundIdx >= 0) {
@@ -972,11 +991,11 @@ function exportAllTasksToSpanPlan() {
         task.planId = planTasks[foundIdx].id;
         if (task.isEvent) planTasks[foundIdx].type = 'event';
 
-        // Merge subtasks
+        // Merge subtasks STRICTEMENT par ID
         const existingSubs = Array.isArray(planTasks[foundIdx].subtasks) ? planTasks[foundIdx].subtasks : [];
         const mergedSubs = [...formattedSubtasks];
         existingSubs.forEach(es => {
-          if (!deletedSet.has(String(es.id)) && !mergedSubs.some(m => String(m.id) === String(es.id) || (m.title && es.title && m.title.trim().toLowerCase() === es.title.trim().toLowerCase()))) {
+          if (!deletedSet.has(String(es.id)) && !mergedSubs.some(m => String(m.id) === String(es.id))) {
             mergedSubs.push(es);
           }
         });
@@ -1066,7 +1085,11 @@ function renderTasks() {
   };
 
   const isNestedSubtask = (t) => {
-    return !t.isEvent && t.parentEventId && tasks.some(parent => String(parent.id) === String(t.parentEventId));
+    return !t.isEvent && t.parentEventId && tasks.some(parent => 
+      String(parent.id) === String(t.parentEventId) ||
+      (parent.planId && String(parent.planId) === String(t.parentEventId)) ||
+      (parent.focusId && String(parent.focusId) === String(t.parentEventId))
+    );
   };
 
   // Completed items (exclude nested subtasks and scheduled/event timeline items so timeline stays intact)
@@ -1541,7 +1564,13 @@ function createTaskDOMElement(task, isSubtask = false) {
   const targetDateStr = getSelectedDateStr();
   const isOverdue = !task.completed && !task.isEvent && task.scheduledDate && task.scheduledDate < todayRealStr;
 
-  const childSubtasks = tasks.filter(t => String(t.parentEventId) === String(task.id));
+  const childSubtasks = tasks.filter(t => 
+    t && t.parentEventId && (
+      String(t.parentEventId) === String(task.id) ||
+      (task.planId && String(t.parentEventId) === String(task.planId)) ||
+      (task.focusId && String(t.parentEventId) === String(task.focusId))
+    )
+  );
   const doneSubCount = childSubtasks.filter(t => t.completed).length;
   const progressBadge = (childSubtasks.length > 0)
     ? `<span class="event-progress-pill" title="Completed subtasks">${doneSubCount}/${childSubtasks.length}</span>`
