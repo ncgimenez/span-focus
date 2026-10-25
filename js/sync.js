@@ -137,6 +137,7 @@ async function saveStateToCloud() {
     // Mettre à jour planItemsMap avec les dates, heures, durées et statuts actuels de Span Focus
     cleanTasks.forEach(task => {
       if (!task || !task.id) return;
+      if (task.parentEventId) return; // Les sous-tâches ne doivent pas être insérées comme tâches racines de Plan
       let matchingPlanItem = null;
       for (const p of planItemsMap.values()) {
         if (String(p.id) === String(task.id) || 
@@ -283,7 +284,9 @@ async function loadStateFromCloud() {
 
       if (!isDefaultMocks) {
         localTasks.forEach(t => {
-          if (!isDeletedItem(t)) taskMap.set(String(t.id), t);
+          if (!isDeletedItem(t) && !taskMap.has(String(t.id))) {
+            taskMap.set(String(t.id), t);
+          }
         });
       }
 
@@ -308,6 +311,9 @@ async function loadStateFromCloud() {
       // Synchroniser directement avec le planning Span Plan reçu du cloud
       if (typeof syncWithSpanPlan === 'function') {
         syncWithSpanPlan();
+      }
+      if (typeof autoArchivePastDays === 'function') {
+        autoArchivePastDays();
       }
 
       if (typeof renderTasks === 'function') renderTasks();

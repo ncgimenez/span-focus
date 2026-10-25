@@ -228,6 +228,7 @@ function autoArchivePastDays() {
   let changed = false;
   const stillActive = [];
 
+  // 1. Archiver les tâches complétées des jours passés
   tasks.forEach(t => {
     if (t.completed && t.completedDate && t.completedDate < todayStr) {
       archivedTasks.unshift({
@@ -238,6 +239,37 @@ function autoArchivePastDays() {
       changed = true;
     } else {
       stillActive.push(t);
+    }
+  });
+
+  // 2. Balayage automatique vers le Backlog (Inbox) :
+  // A. Tâches seules non terminées de la veille -> Remises dans le Backlog (sans date)
+  // B. Sous-tâches non faites restées dans des blocs du passé -> Détachées et remises dans le Backlog
+  stillActive.forEach(t => {
+    if (t.completed) return;
+
+    // A. Tâche seule du passé non réalisée -> Backlog (Inbox)
+    if (!t.isEvent && !t.parentEventId && t.scheduledDate && t.scheduledDate < todayStr) {
+      t.scheduledDate = null;
+      t.scheduledTime = null;
+      t.isFavorite = false;
+      changed = true;
+    }
+
+    // B. Sous-tâche non terminée d'un bloc/événement passé -> Extraite vers le Backlog (Inbox)
+    if (t.parentEventId) {
+      const parent = stillActive.find(p => p && (
+        String(p.id) === String(t.parentEventId) || 
+        (p.planId && String(p.planId) === String(t.parentEventId)) || 
+        (p.focusId && String(p.focusId) === String(t.parentEventId))
+      ));
+      const parentDate = parent ? parent.scheduledDate : t.scheduledDate;
+      if (parentDate && parentDate < todayStr) {
+        t.parentEventId = null;
+        t.scheduledDate = null;
+        t.scheduledTime = null;
+        changed = true;
+      }
     }
   });
 
@@ -1005,7 +1037,8 @@ function exportAllTasksToSpanPlan() {
         const existingSubs = Array.isArray(planTasks[foundIdx].subtasks) ? planTasks[foundIdx].subtasks : [];
         const mergedSubs = [...formattedSubtasks];
         existingSubs.forEach(es => {
-          if (!deletedSet.has(String(es.id)) && !mergedSubs.some(m => String(m.id) === String(es.id))) {
+          const isDetachedOrMovedInFocus = tasks.some(ft => ft && String(ft.id) === String(es.id) && String(ft.parentEventId) !== String(task.id) && String(ft.parentEventId) !== String(task.planId));
+          if (!deletedSet.has(String(es.id)) && !isDetachedOrMovedInFocus && !mergedSubs.some(m => String(m.id) === String(es.id))) {
             mergedSubs.push(es);
           }
         });
