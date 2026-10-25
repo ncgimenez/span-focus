@@ -49,6 +49,88 @@ let isPastOpen = false;
 let isPastFocusDayExpanded = false;
 let newlyAddedTaskId = null;
 let activeTagFilter = null;
+let activeInboxActionFilter = 'all';
+
+// Helper de détection intelligente du type d'action (Calls / Mails / Paiements)
+function getTaskActionType(task) {
+  if (!task) return 'other';
+  if (task.actionType) return task.actionType;
+  const title = (task.title || '').trim().toLowerCase();
+  
+  // 1. Tags explicites
+  if (/#(call|calls|appel|appels|phone)\b/i.test(title)) return 'call';
+  if (/#(mail|mails|email|emails|courriel)\b/i.test(title)) return 'mail';
+  if (/#(pay|paiement|paiements|facture|factures|virement|virements)\b/i.test(title)) return 'pay';
+
+  // 2. Mots-clés naturels
+  if (/\b(call|calls|appel|appels|appeler|téléphone|téléphoner|coup de fil|rdv|rendez-vous)\b/i.test(title)) {
+    return 'call';
+  }
+  if (/\b(mail|mails|email|emails|e-mail|courriel|newsletter|écrire à|envoyer mail)\b/i.test(title)) {
+    return 'mail';
+  }
+  if (/\b(payer|paiement|paiements|pay|virement|facture|factures|mutuelle|solidaris|poubelle|poubelles|banque|bank)\b/i.test(title)) {
+    return 'pay';
+  }
+  return 'other';
+}
+
+function setInboxActionFilter(filter) {
+  activeInboxActionFilter = filter;
+  document.querySelectorAll('.inbox-filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
+  });
+  renderTasks();
+}
+window.setInboxActionFilter = setInboxActionFilter;
+window.getTaskActionType = getTaskActionType;
+
+// Créer en un clic un bloc Focus pour le lot d'actions sélectionné (ex: lot de 3 appels)
+function scheduleActionBatch(type) {
+  const allBacklog = (tasks || []).filter(t => !t.completed && !t.isEvent && !t.parentEventId && !t.scheduledDate);
+  const matching = allBacklog.filter(t => getTaskActionType(t) === type);
+  if (matching.length === 0) return;
+
+  const typeConfig = {
+    call: { title: '📞 Session Appels', cat: 'Work' },
+    mail: { title: '✉️ Session Mails', cat: 'Work' },
+    pay: { title: '💳 Session Paiements & Admin', cat: 'Home' },
+    other: { title: '📦 Session Backlog', cat: 'Work' }
+  };
+  const cfg = typeConfig[type] || { title: 'Session Focus', cat: 'Work' };
+  const duration = Math.max(30, Math.min(120, Math.ceil((matching.length * 15) / 30) * 30));
+  const todayStr = getLocalDateString();
+
+  const newEventId = 'ev_' + Date.now();
+  const newEvent = {
+    id: newEventId,
+    title: cfg.title,
+    category: cfg.cat,
+    duration: duration,
+    estimate: Math.max(1, Math.round(duration / 30)),
+    completed: false,
+    isFavorite: false,
+    isEvent: true,
+    parentEventId: null,
+    scheduledDate: todayStr,
+    scheduledTime: null
+  };
+
+  tasks.unshift(newEvent);
+
+  matching.forEach(item => {
+    item.parentEventId = newEventId;
+    item.scheduledDate = todayStr;
+    item.scheduledTime = null;
+  });
+
+  saveTasks();
+  if (typeof showToast === 'function') {
+    showToast(`Bloc "${cfg.title}" créé avec ${matching.length} tâche(s) pour aujourd'hui !`, 'success');
+  }
+  switchTaskTab('today');
+}
+window.scheduleActionBatch = scheduleActionBatch;
 
 // Robust Local Date (YYYY-MM-DD) avoiding UTC day-lag across timezones
 function getLocalDateString(dateObj = new Date()) {
@@ -1189,8 +1271,35 @@ function renderTasks() {
   });
 
   // 4. BACKLOG: Tâches sans date programmée
-  const backlogItems = activeTasks.filter(t => {
+  const allBacklogItems = activeTasks.filter(t => {
     return !t.scheduledDate && !isNestedSubtask(t);
+  });
+
+  // Action counts for Inbox filter pills
+  let countCall = 0, countMail = 0, countPay = 0, countOther = 0;
+  allBacklogItems.forEach(t => {
+    const at = getTaskActionType(t);
+    if (at === 'call') countCall++;
+    else if (at === 'mail') countMail++;
+    else if (at === 'pay') countPay++;
+    else countOther++;
+  });
+
+  const elAll = document.getElementById('inboxCountAll');
+  if (elAll) elAll.textContent = allBacklogItems.length;
+  const elCall = document.getElementById('inboxCountCall');
+  if (elCall) elCall.textContent = countCall;
+  const elMail = document.getElementById('inboxCountMail');
+  if (elMail) elMail.textContent = countMail;
+  const elPay = document.getElementById('inboxCountPay');
+  if (elPay) elPay.textContent = countPay;
+  const elOther = document.getElementById('inboxCountOther');
+  if (elOther) elOther.textContent = countOther;
+
+  // Filtrage actif des items de l'Inbox selon le pill sélectionné
+  const backlogItems = allBacklogItems.filter(t => {
+    if (activeInboxActionFilter === 'all') return true;
+    return getTaskActionType(t) === activeInboxActionFilter;
   });
 
   // Counter badge for archives
@@ -1452,22 +1561,46 @@ function renderTasks() {
     }
   }
 
+  // Batch Plan prompt bar
+  const batchPlanContainer = document.getElementById('inboxBatchPlanContainer');
+  if (batchPlanContainer) {
+    if (activeInboxActionFilter !== 'all' && backlogItems.length > 0) {
+      const typeNames = { call: 'appels', mail: 'mails', pay: 'paiements / factures', other: 'tâches' };
+      const typeIcons = { call: '📞', mail: '✉️', pay: '💳', other: '📦' };
+      batchPlanContainer.innerHTML = `
+        <div class="inbox-batch-plan-bar">
+          <span>${typeIcons[activeInboxActionFilter] || '⚡'} <strong>${backlogItems.length} ${typeNames[activeInboxActionFilter] || 'éléments'}</strong> dans ce filtre</span>
+          <button type="button" class="inbox-batch-plan-btn" onclick="scheduleActionBatch('${activeInboxActionFilter}')">⚡ Planifier en bloc aujourd'hui</button>
+        </div>
+      `;
+    } else {
+      batchPlanContainer.innerHTML = '';
+    }
+  }
+
   // 4. Render BACKLOG / INBOX (Unscheduled tasks in rectangular drop container)
   if (groupBacklog && backlogList) {
     if (backlogItems.length > 0) {
       groupBacklog.style.display = 'flex';
-      if (backlogCountBadge) backlogCountBadge.textContent = backlogItems.length;
+      if (backlogCountBadge) backlogCountBadge.textContent = allBacklogItems.length;
       backlogItems.forEach(item => {
         backlogList.appendChild(createTaskDOMElement(item, false));
       });
     } else {
       groupBacklog.style.display = 'flex';
-      if (backlogCountBadge) backlogCountBadge.textContent = '0';
+      if (backlogCountBadge) backlogCountBadge.textContent = allBacklogItems.length;
+      const emptyMessages = {
+        call: 'Aucun appel en attente dans l\'Inbox',
+        mail: 'Aucun mail en attente dans l\'Inbox',
+        pay: 'Aucun paiement en attente dans l\'Inbox',
+        other: 'Aucune autre tâche en attente',
+        all: 'Inbox is empty'
+      };
       backlogList.innerHTML = `
         <li class="backlog-empty-state">
-          <span class="backlog-empty-icon">📦</span>
-          <span class="backlog-empty-text">Inbox is empty</span>
-          <span class="backlog-empty-sub">Drop tasks here or use input above to add</span>
+          <span class="backlog-empty-icon">${activeInboxActionFilter === 'call' ? '📞' : (activeInboxActionFilter === 'mail' ? '✉️' : (activeInboxActionFilter === 'pay' ? '💳' : '📦'))}</span>
+          <span class="backlog-empty-text">${emptyMessages[activeInboxActionFilter] || 'Inbox is empty'}</span>
+          <span class="backlog-empty-sub">${activeInboxActionFilter === 'all' ? 'Drop tasks here or use input above to add' : 'Cliquez sur "Tous" pour voir l\'ensemble de l\'inbox'}</span>
         </li>
       `;
     }
@@ -1759,6 +1892,13 @@ function createTaskDOMElement(task, isSubtask = false) {
       </div>
     `;
   } else {
+    // Action Type Badge (Calls / Mails / Paiements)
+    const actionType = getTaskActionType(task);
+    let actionBadge = '';
+    if (actionType === 'call') actionBadge = '<span class="task-action-tag-badge action-call" onclick="event.stopPropagation(); setInboxActionFilter(\'call\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Calls">📞 Call</span>';
+    else if (actionType === 'mail') actionBadge = '<span class="task-action-tag-badge action-mail" onclick="event.stopPropagation(); setInboxActionFilter(\'mail\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Mails">✉️ Mail</span>';
+    else if (actionType === 'pay') actionBadge = '<span class="task-action-tag-badge action-pay" onclick="event.stopPropagation(); setInboxActionFilter(\'pay\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Paiements">💳 Pay</span>';
+
     // STANDARD TASK CARD: 2-LINE LAYOUT (TOP: CHECKBOX + FULL TITLE • BOTTOM: METADATA & ACTIONS)
     wrapper.innerHTML = `
       <div class="task-item ${task.completed ? 'completed' : ''} ${isJustAdded ? 'just-added' : ''} ${isCurrentlyInFocus ? 'in-focus-active' : ''} ${isSubtask ? 'is-subtask-item' : ''} ${childSubtasks.length > 0 ? 'has-subtasks' : ''} ${isLiveNow ? 'is-live-now' : ''} ${isPastBlock ? 'is-past-slot' : ''}" 
@@ -1785,6 +1925,7 @@ function createTaskDOMElement(task, isSubtask = false) {
                   🕒 ${task.scheduledTime}${taskEndTime ? '–' + taskEndTime : ''}
                 </span>
               ` : `<span class="task-meta-time">⏱ ${durationMinutes}m</span>`}
+              ${actionBadge}
               ${(!task.completed && task.isFavorite) ? `<span class="task-meta-star" title="Priority">⭐</span>` : ''}
               ${isOverdue ? '<span class="task-overdue-badge">⚠️ Overdue</span>' : ''}
               ${progressBadge}

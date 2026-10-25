@@ -1825,6 +1825,168 @@ body {
   height: 100% !important;
 }
 
+/* INBOX ACTION FILTER PILLS (CALLS / MAILS / PAIEMENTS) */
+.inbox-action-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 10px 0;
+  padding: 2px 2px 4px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.inbox-action-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+.inbox-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.inbox-filter-pill:hover {
+  color: var(--text-main, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.inbox-filter-pill.active {
+  color: #fff !important;
+  background: var(--accent, #6366f1) !important;
+  border-color: var(--accent, #6366f1) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+.inbox-filter-pill .pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  min-width: 16px;
+}
+.inbox-filter-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+[data-theme="light"] .inbox-filter-pill {
+  color: #64748b;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .inbox-filter-pill:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+[data-theme="light"] .inbox-filter-pill.active {
+  color: #fff !important;
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+}
+[data-theme="light"] .inbox-filter-pill .pill-count {
+  background: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .inbox-filter-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Batch Plan bar when a specific filter is active */
+.inbox-batch-plan-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.09);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  font-size: 11.5px;
+  color: var(--text-main, #f8fafc);
+  animation: fadeIn 0.2s ease;
+}
+.inbox-batch-plan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: var(--accent, #6366f1);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.inbox-batch-plan-btn:hover {
+  opacity: 0.9;
+}
+[data-theme="light"] .inbox-batch-plan-bar {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+/* Badge on task items */
+.task-action-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.task-action-tag-badge:hover {
+  opacity: 0.85;
+}
+.task-action-tag-badge.action-call {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.task-action-tag-badge.action-mail {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.task-action-tag-badge.action-pay {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+[data-theme="light"] .task-action-tag-badge.action-call {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+[data-theme="light"] .task-action-tag-badge.action-mail {
+  background: #faf5ff;
+  color: #7c3aed;
+  border-color: #e9d5ff;
+}
+[data-theme="light"] .task-action-tag-badge.action-pay {
+  background: #fefce8;
+  color: #ca8a04;
+  border-color: #fef08a;
+}
+
 .backlog-dropzone-group {
   display: flex !important;
   flex-direction: column !important;

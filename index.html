@@ -263,6 +263,27 @@
                     <span style="font-size: 11.5px; color: var(--text-muted);">Unscheduled tasks</span>
                   </div>
 
+                  <!-- ACTION FILTER PILLS: CALLS / MAILS / PAIEMENTS -->
+                  <div class="inbox-action-filter-pills" id="inboxActionFilterPills">
+                    <button type="button" class="inbox-filter-pill active" data-filter="all" onclick="setInboxActionFilter('all')">
+                      <span>Tous</span> <span class="pill-count" id="inboxCountAll">0</span>
+                    </button>
+                    <button type="button" class="inbox-filter-pill" data-filter="call" onclick="setInboxActionFilter('call')">
+                      <span>📞 Calls</span> <span class="pill-count" id="inboxCountCall">0</span>
+                    </button>
+                    <button type="button" class="inbox-filter-pill" data-filter="mail" onclick="setInboxActionFilter('mail')">
+                      <span>✉️ Mails</span> <span class="pill-count" id="inboxCountMail">0</span>
+                    </button>
+                    <button type="button" class="inbox-filter-pill" data-filter="pay" onclick="setInboxActionFilter('pay')">
+                      <span>💳 Paiements</span> <span class="pill-count" id="inboxCountPay">0</span>
+                    </button>
+                    <button type="button" class="inbox-filter-pill" data-filter="other" onclick="setInboxActionFilter('other')">
+                      <span>📦 Autres</span> <span class="pill-count" id="inboxCountOther">0</span>
+                    </button>
+                  </div>
+
+                  <div id="inboxBatchPlanContainer"></div>
+
                   <!-- SECTION 4: UNPLANNED / SANS DATE (RECTANGULAR DROP ZONE) -->
                   <div class="tasks-group backlog-dropzone-group" id="groupBacklog">
                     <ul class="task-list" id="backlogList" style="display: flex;"></ul>
@@ -571,11 +592,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.45"></script>
-  <script src="js/timer.js?v=3.45"></script>
-  <script src="js/tasks.js?v=3.45"></script>
-  <script src="js/track.js?v=3.45"></script>
-  <script src="js/sync.js?v=3.45"></script>
-  <script src="js/app.js?v=3.45"></script>
+  <script src="js/audio.js?v=3.46"></script>
+  <script src="js/timer.js?v=3.46"></script>
+  <script src="js/tasks.js?v=3.46"></script>
+  <script src="js/track.js?v=3.46"></script>
+  <script src="js/sync.js?v=3.46"></script>
+  <script src="js/app.js?v=3.46"></script>
 </body>
 </html>
