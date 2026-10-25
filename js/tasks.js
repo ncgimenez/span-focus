@@ -814,6 +814,13 @@ function syncWithSpanPlan() {
       } else {
         if (!existing.planId) existing.planId = pTask.id;
         if (pTask.focusId && !existing.focusId) existing.focusId = pTask.focusId;
+        if (pTask.context && catMap[pTask.context]) {
+          const targetCat = catMap[pTask.context];
+          if (existing.category !== targetCat) {
+            existing.category = targetCat;
+            modified = true;
+          }
+        }
         const targetDate = pTask.date || null;
         if (existing.scheduledDate !== targetDate) {
           existing.scheduledDate = targetDate;
@@ -986,6 +993,9 @@ function exportAllTasksToSpanPlan() {
         planTasks[foundIdx].date = task.scheduledDate || null;
         planTasks[foundIdx].time = task.scheduledTime || '';
         if (task.duration) planTasks[foundIdx].duration = task.duration;
+        if (task.category && catReverseMap[task.category]) {
+          planTasks[foundIdx].context = catReverseMap[task.category];
+        }
         planTasks[foundIdx].title = task.title;
         planTasks[foundIdx].focusId = task.id;
         task.planId = planTasks[foundIdx].id;
