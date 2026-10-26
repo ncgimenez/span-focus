@@ -441,6 +441,15 @@
           <button type="button" class="cat-pill" data-cat="Fun" onclick="selectEditCategory('Fun')">Fun</button>
         </div>
 
+        <label class="modal-label">Type d'action</label>
+        <div class="category-pills" id="modalFocusActionPills" style="margin-bottom: 2px;">
+          <button type="button" class="cat-pill active" data-action="auto" onclick="selectEditActionType('auto')" title="Détection automatique via mots-clés ou tags">⚡ Auto</button>
+          <button type="button" class="cat-pill action-call" data-action="call" onclick="selectEditActionType('call')">📞 Call</button>
+          <button type="button" class="cat-pill action-mail" data-action="mail" onclick="selectEditActionType('mail')">✉️ Mail</button>
+          <button type="button" class="cat-pill action-pay" data-action="pay" onclick="selectEditActionType('pay')">💳 Pay</button>
+          <button type="button" class="cat-pill action-other" data-action="other" onclick="selectEditActionType('other')">📦 Standard</button>
+        </div>
+
         <label class="modal-label">Estimated Pomodoros</label>
         <div class="pomodoro-stepper">
           <button type="button" class="stepper-btn" onclick="stepEstimate(-1)">−</button>
@@ -592,11 +601,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.46"></script>
-  <script src="js/timer.js?v=3.46"></script>
-  <script src="js/tasks.js?v=3.46"></script>
-  <script src="js/track.js?v=3.46"></script>
-  <script src="js/sync.js?v=3.46"></script>
-  <script src="js/app.js?v=3.46"></script>
+  <script src="js/audio.js?v=3.47"></script>
+  <script src="js/timer.js?v=3.47"></script>
+  <script src="js/tasks.js?v=3.47"></script>
+  <script src="js/track.js?v=3.47"></script>
+  <script src="js/sync.js?v=3.47"></script>
+  <script src="js/app.js?v=3.47"></script>
 </body>
 </html>

@@ -3245,6 +3245,73 @@ input[type="range"] {
 .cat-pill.active[data-cat="Home"] { color: var(--cat-home); border-color: var(--cat-home); }
 .cat-pill.active[data-cat="Fun"]  { color: var(--cat-fun);  border-color: var(--cat-fun);  }
 
+/* Action pills in edit modal */
+.cat-pill.active[data-action="auto"]   { color: var(--text-main); border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.14); }
+.cat-pill.active[data-action="call"]   { color: #60a5fa; border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); }
+.cat-pill.active[data-action="mail"]   { color: #c084fc; border-color: #a855f7; background: rgba(168, 85, 247, 0.2); }
+.cat-pill.active[data-action="pay"]    { color: #facc15; border-color: #eab308; background: rgba(234, 179, 8, 0.2); }
+.cat-pill.active[data-action="other"]  { color: #94a3b8; border-color: #64748b; background: rgba(100, 116, 139, 0.2); }
+
+[data-theme="light"] .cat-pill.active[data-action="call"]  { color: #2563eb; border-color: #3b82f6; background: #eff6ff; }
+[data-theme="light"] .cat-pill.active[data-action="mail"]  { color: #7c3aed; border-color: #a855f7; background: #faf5ff; }
+[data-theme="light"] .cat-pill.active[data-action="pay"]   { color: #b45309; border-color: #eab308; background: #fefce8; }
+[data-theme="light"] .cat-pill.active[data-action="other"] { color: #475569; border-color: #64748b; background: #f1f5f9; }
+
+/* Subtask Action Quick Toggle Button in Integrated Subtasks */
+.btn-subtask-action-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  padding: 0;
+  margin-right: 4px;
+  flex-shrink: 0;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.btn-subtask-action-toggle:hover {
+  transform: scale(1.15);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.btn-subtask-action-toggle.action-call {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+.btn-subtask-action-toggle.action-mail {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.35);
+}
+.btn-subtask-action-toggle.action-pay {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+.btn-subtask-action-toggle.action-other {
+  background: rgba(100, 116, 139, 0.15);
+  border-color: rgba(100, 116, 139, 0.3);
+}
+[data-theme="light"] .btn-subtask-action-toggle {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.03);
+}
+[data-theme="light"] .btn-subtask-action-toggle.action-call {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+[data-theme="light"] .btn-subtask-action-toggle.action-mail {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+}
+[data-theme="light"] .btn-subtask-action-toggle.action-pay {
+  background: #fefce8;
+  border-color: #fef08a;
+}
+
 .pomodoro-stepper {
   display: flex;
   align-items: center;

@@ -151,6 +151,7 @@ async function saveStateToCloud() {
       if (matchingPlanItem) {
         matchingPlanItem.date = task.scheduledDate || null;
         matchingPlanItem.time = task.scheduledTime || '';
+        matchingPlanItem.actionType = task.actionType || null;
         if (task.duration) matchingPlanItem.duration = task.duration;
         matchingPlanItem.completed = !task.isEvent && !!task.completed;
         matchingPlanItem.title = task.title;
@@ -165,6 +166,7 @@ async function saveStateToCloud() {
           focusId: task.id,
           title: task.title,
           type: task.isEvent ? 'event' : 'task',
+          actionType: task.actionType || null,
           date: task.scheduledDate || null,
           time: task.scheduledTime || '',
           duration: task.duration || (task.estimate ? task.estimate * 30 : 30),

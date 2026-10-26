@@ -45,6 +45,7 @@ let editingTaskId = null;
 let editingCategory = 'Work';
 let editingEstimate = 1;
 let editingIsFavorite = false;
+let editingActionType = 'auto';
 let isPastOpen = false;
 let isPastFocusDayExpanded = false;
 let newlyAddedTaskId = null;
@@ -54,7 +55,7 @@ let activeInboxActionFilter = 'all';
 // Helper de détection intelligente du type d'action (Calls / Mails / Paiements)
 function getTaskActionType(task) {
   if (!task) return 'other';
-  if (task.actionType) return task.actionType;
+  if (task.actionType && task.actionType !== 'auto') return task.actionType;
   const title = (task.title || '').trim().toLowerCase();
   
   // 1. Tags explicites
@@ -74,6 +75,37 @@ function getTaskActionType(task) {
   }
   return 'other';
 }
+
+function selectEditActionType(type) {
+  editingActionType = type || 'auto';
+  document.querySelectorAll('#modalFocusActionPills .cat-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === editingActionType);
+  });
+}
+window.selectEditActionType = selectEditActionType;
+
+function cycleFocusSubtaskAction(taskId) {
+  const task = tasks.find(t => String(t.id) === String(taskId));
+  if (!task) return;
+  const current = task.actionType || 'auto';
+  const order = ['auto', 'call', 'mail', 'pay', 'other'];
+  const nextIdx = (order.indexOf(current) + 1) % order.length;
+  const nextType = order[nextIdx];
+  task.actionType = (nextType === 'auto') ? null : nextType;
+  saveTasks();
+  renderTasks();
+  if (typeof showToast === 'function') {
+    const labels = {
+      auto: '⚡ Action: Détection auto',
+      call: '📞 Action: Call',
+      mail: '✉️ Action: Mail',
+      pay: '💳 Action: Paiement',
+      other: '📦 Action: Standard'
+    };
+    showToast(labels[nextType] || 'Action modifiée', '💾');
+  }
+}
+window.cycleFocusSubtaskAction = cycleFocusSubtaskAction;
 
 function setInboxActionFilter(filter) {
   activeInboxActionFilter = filter;
@@ -1092,7 +1124,8 @@ function exportAllTasksToSpanPlan() {
           title: c.title,
           context: subCtx,
           completed: !!c.completed,
-          parentEventId: task.planId || task.id
+          parentEventId: task.planId || task.id,
+          actionType: c.actionType || null
         };
       });
 
@@ -1106,6 +1139,7 @@ function exportAllTasksToSpanPlan() {
         planTasks[foundIdx].completed = !task.isEvent && !!task.completed;
         planTasks[foundIdx].date = task.scheduledDate || null;
         planTasks[foundIdx].time = task.scheduledTime || '';
+        planTasks[foundIdx].actionType = task.actionType || null;
         if (task.duration) planTasks[foundIdx].duration = task.duration;
         if (task.category && catReverseMap[task.category]) {
           planTasks[foundIdx].context = catReverseMap[task.category];
@@ -1117,7 +1151,18 @@ function exportAllTasksToSpanPlan() {
 
         // Merge subtasks STRICTEMENT par ID
         const existingSubs = Array.isArray(planTasks[foundIdx].subtasks) ? planTasks[foundIdx].subtasks : [];
-        const mergedSubs = [...formattedSubtasks];
+        const mergedSubs = formattedSubtasks.map(fs => {
+          const es = existingSubs.find(e => String(e.id) === String(fs.id));
+          if (es) {
+            return {
+              ...es,
+              title: fs.title,
+              actionType: fs.actionType !== undefined ? fs.actionType : es.actionType,
+              completed: (typeof fs.completed === 'boolean') ? fs.completed : es.completed
+            };
+          }
+          return fs;
+        });
         existingSubs.forEach(es => {
           const isDetachedOrMovedInFocus = tasks.some(ft => ft && String(ft.id) === String(es.id) && String(ft.parentEventId) !== String(task.id) && String(ft.parentEventId) !== String(task.planId));
           if (!deletedSet.has(String(es.id)) && !isDetachedOrMovedInFocus && !mergedSubs.some(m => String(m.id) === String(es.id))) {
@@ -1138,6 +1183,7 @@ function exportAllTasksToSpanPlan() {
           focusId: task.id,
           title: task.title,
           type: task.isEvent ? 'event' : 'task',
+          actionType: task.actionType || null,
           date: task.scheduledDate || null,
           time: task.scheduledTime || '',
           duration: task.duration || (task.estimate ? task.estimate * 30 : 30),
@@ -1865,6 +1911,13 @@ function createTaskDOMElement(task, isSubtask = false) {
           <div class="event-integrated-subtasks">
             ${childSubtasks.map(sub => {
               const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
+              const subAction = getTaskActionType(sub);
+              let subActionIcon = '⚡';
+              let subActionLabel = 'Auto';
+              if (subAction === 'call') { subActionIcon = '📞'; subActionLabel = 'Call'; }
+              else if (subAction === 'mail') { subActionIcon = '✉️'; subActionLabel = 'Mail'; }
+              else if (subAction === 'pay') { subActionIcon = '💳'; subActionLabel = 'Paiement'; }
+              else if (sub.actionType === 'other') { subActionIcon = '📦'; subActionLabel = 'Standard'; }
               return `
               <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
                    id="task-node-${sub.id}" 
@@ -1872,8 +1925,14 @@ function createTaskDOMElement(task, isSubtask = false) {
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation(); document.body.classList.add('is-dragging-task');" 
                    ondragend="document.body.classList.remove('is-dragging-task');"
                    ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')" 
-                   title="Double-click to edit • Drag to detach">
+                   title="Double-cliquer pour modifier • Cliquer sur l'icône pour changer d'action">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
+                <button class="btn-subtask-action-toggle action-${subAction}" 
+                        type="button" 
+                        onclick="event.stopPropagation(); cycleFocusSubtaskAction('${sub.id}')" 
+                        title="Type d'action: ${subActionLabel} (cliquer pour changer)">
+                  ${subActionIcon}
+                </button>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Mark uncompleted' : 'Mark completed'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
@@ -1988,6 +2047,13 @@ function createTaskDOMElement(task, isSubtask = false) {
           <div class="event-integrated-subtasks">
             ${childSubtasks.map(sub => {
               const isSubInFocus = activeTask && String(activeTask.id) === String(sub.id);
+              const subAction = getTaskActionType(sub);
+              let subActionIcon = '⚡';
+              let subActionLabel = 'Auto';
+              if (subAction === 'call') { subActionIcon = '📞'; subActionLabel = 'Call'; }
+              else if (subAction === 'mail') { subActionIcon = '✉️'; subActionLabel = 'Mail'; }
+              else if (subAction === 'pay') { subActionIcon = '💳'; subActionLabel = 'Paiement'; }
+              else if (sub.actionType === 'other') { subActionIcon = '📦'; subActionLabel = 'Standard'; }
               return `
               <div class="integrated-subtask-row ${sub.completed ? 'completed' : ''} ${isSubInFocus ? 'in-focus-active' : ''}" 
                    id="task-node-${sub.id}" 
@@ -1995,8 +2061,14 @@ function createTaskDOMElement(task, isSubtask = false) {
                    ondragstart="event.dataTransfer.setData('text/plain', '${sub.id}'); event.stopPropagation(); document.body.classList.add('is-dragging-task');" 
                    ondragend="document.body.classList.remove('is-dragging-task');"
                    ondblclick="event.stopPropagation(); openEditModalForTask('${sub.id}')" 
-                   title="Double-click to edit • Drag to detach">
+                   title="Double-cliquer pour modifier • Cliquer sur l'icône pour changer d'action">
                 <span class="subtask-cat-bar subtask-cat-${(sub.category || 'Work').toLowerCase()}"></span>
+                <button class="btn-subtask-action-toggle action-${subAction}" 
+                        type="button" 
+                        onclick="event.stopPropagation(); cycleFocusSubtaskAction('${sub.id}')" 
+                        title="Type d'action: ${subActionLabel} (cliquer pour changer)">
+                  ${subActionIcon}
+                </button>
                 <div class="subtask-checkbox" onclick="event.stopPropagation(); toggleTaskById('${sub.id}')" title="${sub.completed ? 'Mark uncompleted' : 'Mark completed'}">
                   ${sub.completed ? '✓' : ''}
                 </div>
@@ -2754,10 +2826,12 @@ function openEditModalForTask(id) {
   const timeInput = document.getElementById('editScheduledTime');
   if (timeInput) timeInput.value = task.scheduledTime || '';
 
-  document.querySelectorAll('.cat-pill').forEach(btn => {
+  document.querySelectorAll('#modalCategoryPills .cat-pill').forEach(btn => {
     const catKey = btn.dataset.cat;
     btn.classList.toggle('active', catKey === editingCategory);
   });
+
+  selectEditActionType(task.actionType || 'auto');
 
   const favBtn = document.getElementById('modalFavToggleBtn');
   if (favBtn) {
@@ -2819,6 +2893,7 @@ function saveTaskModal() {
       task.duration = editingEstimate * 30;
     }
     task.isFavorite = editingIsFavorite;
+    task.actionType = (editingActionType === 'auto') ? null : editingActionType;
     task.scheduledDate = dateInput ? (dateInput.value || null) : null;
     task.scheduledTime = timeInput ? (timeInput.value.trim() || null) : null;
     task.isEvent = (editingItemType === 'event');
