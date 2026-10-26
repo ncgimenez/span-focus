@@ -84,14 +84,29 @@ function selectEditActionType(type) {
 }
 window.selectEditActionType = selectEditActionType;
 
-function cycleFocusSubtaskAction(taskId) {
+let quickAddAction = 'auto';
+let quickSubtaskAction = 'auto';
+
+function setQuickAddAction(action) {
+  quickAddAction = action || 'auto';
+  document.querySelectorAll('#quickAddActionChips .quick-action-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === quickAddAction);
+  });
+}
+window.setQuickAddAction = setQuickAddAction;
+
+function setQuickSubtaskAction(action) {
+  quickSubtaskAction = action || 'auto';
+  document.querySelectorAll('#quickSubtaskActionChips .quick-action-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === quickSubtaskAction);
+  });
+}
+window.setQuickSubtaskAction = setQuickSubtaskAction;
+
+function setFocusTaskAction(taskId, action) {
   const task = tasks.find(t => String(t.id) === String(taskId));
   if (!task) return;
-  const current = task.actionType || 'auto';
-  const order = ['auto', 'call', 'mail', 'pay', 'other'];
-  const nextIdx = (order.indexOf(current) + 1) % order.length;
-  const nextType = order[nextIdx];
-  task.actionType = (nextType === 'auto') ? null : nextType;
+  task.actionType = (action === 'auto') ? null : action;
   saveTasks();
   renderTasks();
   if (typeof showToast === 'function') {
@@ -102,8 +117,24 @@ function cycleFocusSubtaskAction(taskId) {
       pay: '💳 Action: Paiement',
       other: '📦 Action: Standard'
     };
-    showToast(labels[nextType] || 'Action modifiée', '💾');
+    showToast(labels[action] || 'Action modifiée', '💾');
   }
+}
+window.setFocusTaskAction = setFocusTaskAction;
+
+function cycleFocusTaskAction(taskId) {
+  const task = tasks.find(t => String(t.id) === String(taskId));
+  if (!task) return;
+  const current = task.actionType || 'auto';
+  const order = ['auto', 'call', 'mail', 'pay', 'other'];
+  const nextIdx = (order.indexOf(current) + 1) % order.length;
+  const nextType = order[nextIdx];
+  setFocusTaskAction(taskId, nextType);
+}
+window.cycleFocusTaskAction = cycleFocusTaskAction;
+
+function cycleFocusSubtaskAction(taskId) {
+  cycleFocusTaskAction(taskId);
 }
 window.cycleFocusSubtaskAction = cycleFocusSubtaskAction;
 
@@ -112,6 +143,9 @@ function setInboxActionFilter(filter) {
   document.querySelectorAll('.inbox-filter-pill').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.filter === filter);
   });
+  if (filter === 'call' || filter === 'mail' || filter === 'pay') {
+    setQuickAddAction(filter);
+  }
   renderTasks();
 }
 window.setInboxActionFilter = setInboxActionFilter;
@@ -1951,12 +1985,18 @@ function createTaskDOMElement(task, isSubtask = false) {
       </div>
     `;
   } else {
-    // Action Type Badge (Calls / Mails / Paiements)
+    // Action Type Badge (Calls / Mails / Paiements) - Clic = changer d'action, Shift-Clic = filtrer
     const actionType = getTaskActionType(task);
     let actionBadge = '';
-    if (actionType === 'call') actionBadge = '<span class="task-action-tag-badge action-call" onclick="event.stopPropagation(); setInboxActionFilter(\'call\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Calls">📞 Call</span>';
-    else if (actionType === 'mail') actionBadge = '<span class="task-action-tag-badge action-mail" onclick="event.stopPropagation(); setInboxActionFilter(\'mail\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Mails">✉️ Mail</span>';
-    else if (actionType === 'pay') actionBadge = '<span class="task-action-tag-badge action-pay" onclick="event.stopPropagation(); setInboxActionFilter(\'pay\'); switchTaskTab(\'inbox\');" title="Filtre Inbox: Paiements">💳 Pay</span>';
+    if (actionType === 'call') {
+      actionBadge = `<span class="task-action-tag-badge action-call" onclick="event.stopPropagation(); cycleFocusTaskAction('${task.id}')" title="Action: Call (cliquer pour changer)">📞 Call</span>`;
+    } else if (actionType === 'mail') {
+      actionBadge = `<span class="task-action-tag-badge action-mail" onclick="event.stopPropagation(); cycleFocusTaskAction('${task.id}')" title="Action: Mail (cliquer pour changer)">✉️ Mail</span>`;
+    } else if (actionType === 'pay') {
+      actionBadge = `<span class="task-action-tag-badge action-pay" onclick="event.stopPropagation(); cycleFocusTaskAction('${task.id}')" title="Action: Paiement (cliquer pour changer)">💳 Pay</span>`;
+    } else {
+      actionBadge = `<span class="task-action-tag-badge action-none" onclick="event.stopPropagation(); cycleFocusTaskAction('${task.id}')" title="Définir une action (Call, Mail, Pay)">+ Action</span>`;
+    }
 
     // STANDARD TASK CARD: 2-LINE LAYOUT (TOP: CHECKBOX + FULL TITLE • BOTTOM: METADATA & ACTIONS)
     wrapper.innerHTML = `
@@ -2003,6 +2043,16 @@ function createTaskDOMElement(task, isSubtask = false) {
               <div class="task-menu-container">
                 <button class="btn-task-menu" type="button" onclick="toggleTaskActionMenu('${task.id}', event)" title="Task actions">⋮</button>
                 <div class="task-actions-dropdown" id="menu-dropdown-${task.id}">
+                  <div class="dropdown-action-picker">
+                    <span class="dropdown-section-title">Type d'action :</span>
+                    <div class="dropdown-action-btns">
+                      <button class="btn-dropdown-action ${task.actionType === 'call' ? 'active' : ''}" type="button" onclick="event.stopPropagation(); setFocusTaskAction('${task.id}', 'call')">📞 Call</button>
+                      <button class="btn-dropdown-action ${task.actionType === 'mail' ? 'active' : ''}" type="button" onclick="event.stopPropagation(); setFocusTaskAction('${task.id}', 'mail')">✉️ Mail</button>
+                      <button class="btn-dropdown-action ${task.actionType === 'pay' ? 'active' : ''}" type="button" onclick="event.stopPropagation(); setFocusTaskAction('${task.id}', 'pay')">💳 Pay</button>
+                      <button class="btn-dropdown-action ${task.actionType === 'other' ? 'active' : ''}" type="button" onclick="event.stopPropagation(); setFocusTaskAction('${task.id}', 'other')">📦 Standard</button>
+                      <button class="btn-dropdown-action ${!task.actionType ? 'active' : ''}" type="button" onclick="event.stopPropagation(); setFocusTaskAction('${task.id}', 'auto')">⚡ Auto</button>
+                    </div>
+                  </div>
                   <button class="dropdown-item" type="button" onclick="event.stopPropagation(); openEditModalForTask('${task.id}')">👁️ View details &amp; Edit</button>
                   <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleTaskFocus('${task.id}')">🎯 ${isCurrentlyInFocus ? 'Unfocus task' : 'Focus this task'}</button>
                   <button class="dropdown-item" type="button" onclick="event.stopPropagation(); toggleFavorite('${task.id}')">${task.isFavorite ? '☆ Remove priority' : '⭐ Set as priority'}</button>
@@ -2209,6 +2259,7 @@ function addTask() {
     id: 't_' + Date.now(),
     title: text,
     category: category,
+    actionType: (quickAddAction === 'auto') ? null : quickAddAction,
     estimate: 1,
     duration: 30,
     completed: false,
@@ -2690,6 +2741,7 @@ function openQuickSubtaskModal(eventId) {
     input.value = '';
     input.placeholder = parent && parent.isEvent ? 'Task title... (Press Enter)' : 'Subtask title... (Press Enter)';
   }
+  setQuickSubtaskAction('auto');
   if (modal) {
     modal.style.display = 'flex';
     setTimeout(() => {
@@ -2731,6 +2783,7 @@ function submitQuickSubtaskModal() {
     id: 't_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
     title: val,
     category: subCat,
+    actionType: (quickSubtaskAction === 'auto') ? null : quickSubtaskAction,
     estimate: 1,
     duration: 30,
     completed: false,

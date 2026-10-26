@@ -1987,6 +1987,28 @@ body {
   border-color: #fef08a;
 }
 
+.task-action-tag-badge.action-none {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  opacity: 0.6;
+}
+.task-action-tag-badge.action-none:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.1);
+}
+[data-theme="light"] .task-action-tag-badge.action-none {
+  background: rgba(0, 0, 0, 0.03);
+  color: #64748b;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .task-action-tag-badge.action-none:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
 .backlog-dropzone-group {
   display: flex !important;
   flex-direction: column !important;
@@ -3310,6 +3332,140 @@ input[type="range"] {
 [data-theme="light"] .btn-subtask-action-toggle.action-pay {
   background: #fefce8;
   border-color: #fef08a;
+}
+
+/* Quick action chips under input */
+.quick-add-action-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+.quick-action-chips-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+.quick-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.quick-action-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.quick-action-chip.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.quick-action-chip.active.action-call {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+.quick-action-chip.active.action-mail {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+.quick-action-chip.active.action-pay {
+  background: rgba(234, 179, 8, 0.2);
+  border-color: #eab308;
+  color: #facc15;
+}
+.quick-action-chip.active.action-other {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: #64748b;
+  color: #94a3b8;
+}
+
+[data-theme="light"] .quick-action-chip {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #64748b;
+}
+[data-theme="light"] .quick-action-chip:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+[data-theme="light"] .quick-action-chip.active {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+[data-theme="light"] .quick-action-chip.active.action-call {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+[data-theme="light"] .quick-action-chip.active.action-mail {
+  background: #faf5ff;
+  border-color: #a855f7;
+  color: #7c3aed;
+}
+[data-theme="light"] .quick-action-chip.active.action-pay {
+  background: #fefce8;
+  border-color: #eab308;
+  color: #b45309;
+}
+[data-theme="light"] .quick-action-chip.active.action-other {
+  background: #f1f5f9;
+  border-color: #64748b;
+  color: #475569;
+}
+
+/* Quick Action Picker in Task Dropdown */
+.dropdown-action-picker {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--card-border);
+}
+.dropdown-action-picker .dropdown-section-title {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+.dropdown-action-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.btn-dropdown-action {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.btn-dropdown-action:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.btn-dropdown-action.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
 }
 
 .pomodoro-stepper {

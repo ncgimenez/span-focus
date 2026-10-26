@@ -154,6 +154,16 @@
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
+              <!-- QUICK ACTION TYPE SELECTOR CHIPS (CALL / MAIL / PAY) -->
+              <div class="quick-add-action-chips" id="quickAddActionChips">
+                <span class="quick-action-chips-label">Type:</span>
+                <button type="button" class="quick-action-chip active" data-action="auto" onclick="setQuickAddAction('auto')" title="Détection automatique">⚡ Auto</button>
+                <button type="button" class="quick-action-chip action-call" data-action="call" onclick="setQuickAddAction('call')" title="Marquer comme Appel">📞 Call</button>
+                <button type="button" class="quick-action-chip action-mail" data-action="mail" onclick="setQuickAddAction('mail')" title="Marquer comme Email">✉️ Mail</button>
+                <button type="button" class="quick-action-chip action-pay" data-action="pay" onclick="setQuickAddAction('pay')" title="Marquer comme Paiement / Facture">💳 Pay</button>
+                <button type="button" class="quick-action-chip action-other" data-action="other" onclick="setQuickAddAction('other')" title="Tâche standard sans mot-clé">📦 Standard</button>
+              </div>
+
               <!-- UNIFIED TOOLBAR: QUICK CATEGORY FILTERS (LEFT) + COMPACT SUBVIEW SHORTCUTS (RIGHT) -->
               <div class="tasks-toolbar-unified">
                 <div class="quick-category-filters" id="quickCategoryFilters">
@@ -500,6 +510,15 @@
       <div class="modal-body" style="padding-top: 10px;">
         <label class="modal-label" id="quickSubtaskParentLabel" style="color: var(--cat-home); font-weight: 600;">Event: </label>
         <input type="text" class="modal-input" id="quickSubtaskInput" placeholder="Task title... (Press Enter)" onkeydown="if(event.key==='Enter') submitQuickSubtaskModal()">
+        
+        <label class="modal-label" style="margin-top: 10px;">Type d'action</label>
+        <div class="quick-add-action-chips" id="quickSubtaskActionChips">
+          <button type="button" class="quick-action-chip active" data-action="auto" onclick="setQuickSubtaskAction('auto')">⚡ Auto</button>
+          <button type="button" class="quick-action-chip action-call" data-action="call" onclick="setQuickSubtaskAction('call')">📞 Call</button>
+          <button type="button" class="quick-action-chip action-mail" data-action="mail" onclick="setQuickSubtaskAction('mail')">✉️ Mail</button>
+          <button type="button" class="quick-action-chip action-pay" data-action="pay" onclick="setQuickSubtaskAction('pay')">💳 Pay</button>
+          <button type="button" class="quick-action-chip action-other" data-action="other" onclick="setQuickSubtaskAction('other')">📦 Standard</button>
+        </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn-cancel" onclick="closeQuickSubtaskModal()">Cancel</button>
@@ -601,11 +620,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.47"></script>
-  <script src="js/timer.js?v=3.47"></script>
-  <script src="js/tasks.js?v=3.47"></script>
-  <script src="js/track.js?v=3.47"></script>
-  <script src="js/sync.js?v=3.47"></script>
-  <script src="js/app.js?v=3.47"></script>
+  <script src="js/audio.js?v=3.48"></script>
+  <script src="js/timer.js?v=3.48"></script>
+  <script src="js/tasks.js?v=3.48"></script>
+  <script src="js/track.js?v=3.48"></script>
+  <script src="js/sync.js?v=3.48"></script>
+  <script src="js/app.js?v=3.48"></script>
 </body>
 </html>
