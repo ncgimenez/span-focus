@@ -51,6 +51,30 @@ let isPastFocusDayExpanded = false;
 let newlyAddedTaskId = null;
 let activeTagFilter = null;
 let activeInboxActionFilter = 'all';
+let focusHideActionsInAll = localStorage.getItem('span_focus_hide_actions_in_all') !== 'false'; // default true
+
+function updateFocusHideActionsToggleUI() {
+  const btn = document.getElementById('btnToggleHideActionsFocus');
+  const badge = document.getElementById('focusToggleBadgeText');
+  if (btn) btn.classList.toggle('active', focusHideActionsInAll);
+  if (badge) badge.textContent = focusHideActionsInAll ? 'ON' : 'OFF';
+}
+window.updateFocusHideActionsToggleUI = updateFocusHideActionsToggleUI;
+
+function toggleFocusHideActionsInAll(forceVal) {
+  if (typeof forceVal === 'boolean') {
+    focusHideActionsInAll = forceVal;
+  } else {
+    focusHideActionsInAll = !focusHideActionsInAll;
+  }
+  localStorage.setItem('span_focus_hide_actions_in_all', focusHideActionsInAll ? 'true' : 'false');
+  updateFocusHideActionsToggleUI();
+  renderTasks();
+  if (typeof showToast === 'function') {
+    showToast(focusHideActionsInAll ? 'Actions (Calls/Mails/Pay) masquées dans "Tous"' : 'Actions affichées dans "Tous"', 'info');
+  }
+}
+window.toggleFocusHideActionsInAll = toggleFocusHideActionsInAll;
 
 // Helper de détection intelligente du type d'action (Calls / Mails / Paiements)
 function getTaskActionType(task) {
@@ -1365,8 +1389,10 @@ function renderTasks() {
     else countOther++;
   });
 
+  updateFocusHideActionsToggleUI();
+
   const elAll = document.getElementById('inboxCountAll');
-  if (elAll) elAll.textContent = allBacklogItems.length;
+  if (elAll) elAll.textContent = focusHideActionsInAll ? countOther : allBacklogItems.length;
   const elCall = document.getElementById('inboxCountCall');
   if (elCall) elCall.textContent = countCall;
   const elMail = document.getElementById('inboxCountMail');
@@ -1378,8 +1404,14 @@ function renderTasks() {
 
   // Filtrage actif des items de l'Inbox selon le pill sélectionné
   const backlogItems = allBacklogItems.filter(t => {
-    if (activeInboxActionFilter === 'all') return true;
-    return getTaskActionType(t) === activeInboxActionFilter;
+    const act = getTaskActionType(t);
+    if (activeInboxActionFilter === 'all') {
+      if (focusHideActionsInAll) {
+        return act === 'other';
+      }
+      return true;
+    }
+    return act === activeInboxActionFilter;
   });
 
   // Counter badge for archives
@@ -1676,11 +1708,29 @@ function renderTasks() {
         other: 'Aucune autre tâche en attente',
         all: 'Inbox is empty'
       };
+      const totalCategorized = countCall + countMail + countPay;
+      let emptyText = emptyMessages[activeInboxActionFilter] || 'Inbox is empty';
+      let emptySub = activeInboxActionFilter === 'all' ? 'Drop tasks here or use input above to add' : 'Cliquez sur "Tous" pour voir l\'ensemble de l\'inbox';
+      let quickPillsHtml = '';
+
+      if (activeInboxActionFilter === 'all' && focusHideActionsInAll && totalCategorized > 0) {
+        emptyText = 'Aucune tâche standard en attente';
+        emptySub = `${totalCategorized} action(s) masquée(s) de "Tous" :`;
+        quickPillsHtml = `
+          <div style="display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap;">
+            ${countCall > 0 ? `<button type="button" class="inbox-filter-pill" onclick="setInboxActionFilter('call')" style="font-size:11px; padding:3px 8px;">📞 ${countCall} Calls</button>` : ''}
+            ${countMail > 0 ? `<button type="button" class="inbox-filter-pill" onclick="setInboxActionFilter('mail')" style="font-size:11px; padding:3px 8px;">✉️ ${countMail} Mails</button>` : ''}
+            ${countPay > 0 ? `<button type="button" class="inbox-filter-pill" onclick="setInboxActionFilter('pay')" style="font-size:11px; padding:3px 8px;">💳 ${countPay} Pay</button>` : ''}
+          </div>
+        `;
+      }
+
       backlogList.innerHTML = `
         <li class="backlog-empty-state">
           <span class="backlog-empty-icon">${activeInboxActionFilter === 'call' ? '📞' : (activeInboxActionFilter === 'mail' ? '✉️' : (activeInboxActionFilter === 'pay' ? '💳' : '📦'))}</span>
-          <span class="backlog-empty-text">${emptyMessages[activeInboxActionFilter] || 'Inbox is empty'}</span>
-          <span class="backlog-empty-sub">${activeInboxActionFilter === 'all' ? 'Drop tasks here or use input above to add' : 'Cliquez sur "Tous" pour voir l\'ensemble de l\'inbox'}</span>
+          <span class="backlog-empty-text">${emptyText}</span>
+          <span class="backlog-empty-sub">${emptySub}</span>
+          ${quickPillsHtml}
         </li>
       `;
     }
