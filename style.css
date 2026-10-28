@@ -1,7 +1,7 @@
 :root {
   --bg: #0d0d0f;
   --card-bg: #18181b;
-  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border: rgba(255, 255, 255, 0.05);
   --text-main: #f4f4f6;
   --text-muted: #9da3af;
   --accent: #e4e4e7; 
@@ -12,7 +12,7 @@
   /* SPAN UNIFIED TRI-CATEGORY PALETTE */
   --cat-work: #818cf8; /* Indigo */
   --cat-home: #10b981; /* Emerald */
-  --cat-fun: #fb7185;  /* Coral */
+  --cat-fun: #f59e0b;  /* Warm Amber */
   --cat-none: #71717a;
 
   --ring-bg: rgba(255, 255, 255, 0.08);
@@ -24,7 +24,7 @@
 [data-theme="light"] {
   --bg: #f8f8fa;
   --card-bg: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.09);
+  --card-border: rgba(0, 0, 0, 0.06);
   --text-main: #111827;
   --text-muted: #6b7280;
   --accent: #1f2937;
@@ -186,10 +186,10 @@ body {
 
 /* DAILY GOAL */
 .goal-tracker {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 4px 12px 4px;
+  padding: 6px 4px 10px 4px;
   cursor: pointer;
   transition: opacity 0.2s ease;
 }
@@ -197,16 +197,16 @@ body {
 .goal-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-muted);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
 }
 
 .progress-bar-bg {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--card-border);
   border-radius: 999px;
@@ -222,20 +222,12 @@ body {
 }
 
 .goal-tracker.goal-reached .progress-bar-fill {
-  background: linear-gradient(90deg, #e2b340, #fef08a, #e2b340);
-  background-size: 200% 100%;
-  animation: goldShimmer 2.2s infinite linear;
-  box-shadow: 0 0 14px rgba(226, 179, 64, 0.5);
+  background: #10b981;
 }
 
 .goal-tracker.goal-reached #goalPercent {
-  color: var(--streak);
+  color: #10b981;
   font-weight: 700;
-}
-
-@keyframes goldShimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
 }
 
 /* WORKSPACE */
@@ -755,6 +747,59 @@ body {
 .task-input-container:focus-within {
   border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 0 0 16px rgba(0, 0, 0, 0.45);
+}
+
+.btn-focus-action-select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.btn-focus-action-select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: scale(1.05);
+}
+
+.btn-focus-action-select.action-call {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.btn-focus-action-select.action-mail {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.btn-focus-action-select.action-pay {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.btn-focus-action-select.action-other {
+  background: rgba(168, 85, 247, 0.14);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+[data-theme="light"] .btn-focus-action-select {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 .task-input {
@@ -2479,7 +2524,7 @@ body.is-dragging-task .backlog-drop-hint {
   background: var(--cat-fun);
   color: #ffffff;
   border-color: var(--cat-fun);
-  box-shadow: 0 2px 12px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
 }
 
 .cat-filter-btn[data-filter="Work"].active .cat-dot-indicator,

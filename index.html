@@ -40,7 +40,7 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="style.css?v=3.42">
+  <link rel="stylesheet" href="style.css?v=3.51">
 </head>
 <body>
 
@@ -80,8 +80,8 @@
       </div>
     </header>
 
-    <!-- DAILY GOAL PROGRESS TRACKER -->
-    <div class="goal-tracker" onclick="toggleTrackModal()" title="Click to view & edit daily target">
+    <!-- DAILY GOAL PROGRESS TRACKER (Optional on home - hidden by default for visual peace) -->
+    <div class="goal-tracker" id="homeGoalTracker" style="display: none;" onclick="toggleTrackModal()" title="Cliquer pour voir et modifier l'objectif quotidien">
       <div class="goal-meta">
         <span>Daily Goal</span>
         <span id="goalPercent">0%</span>
@@ -165,12 +165,15 @@
               </div>
 
               <div class="task-input-container">
-                <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (Press Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
+                <button type="button" class="btn-focus-action-select" id="btnFocusActionSelect" onclick="cycleFocusQuickAddAction()" title="Type d'action : ⚡ Auto (Cliquer pour changer : Call, Mail, Pay, Standard)">
+                  <span id="focusActionSelectIcon">⚡</span>
+                </button>
+                <input type="text" class="task-input" id="taskInput" placeholder="Add a task... (#work, #home, #fun) (Enter)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)" onkeydown="if(event.key==='Enter') addTask()">
                 <select class="target-select" id="taskTarget" title="Save destination (Inbox or Today)" onchange="handleTaskTargetChange()">
                   <option value="inbox" selected>📥 Inbox</option>
                   <option value="today">⚡ Today</option>
                 </select>
-                <select class="category-select" id="taskCategory">
+                <select class="category-select" id="taskCategory" title="Catégorie">
                   <option value="Work">Work</option>
                   <option value="Home">Home</option>
                   <option value="Fun">Fun</option>
@@ -178,8 +181,8 @@
                 <button class="btn-add" onclick="addTask()">Add</button>
               </div>
 
-              <!-- QUICK ACTION TYPE SELECTOR CHIPS (CALL / MAIL / PAY) -->
-              <div class="quick-add-action-chips" id="quickAddActionChips">
+              <!-- QUICK ACTION TYPE SELECTOR CHIPS (Hidden by default for visual calm; action button integrated into input) -->
+              <div class="quick-add-action-chips" id="quickAddActionChips" style="display: none;">
                 <span class="quick-action-chips-label">Type:</span>
                 <button type="button" class="quick-action-chip active" data-action="auto" onclick="setQuickAddAction('auto')" title="Détection automatique">⚡ Auto</button>
                 <button type="button" class="quick-action-chip action-call" data-action="call" onclick="setQuickAddAction('call')" title="Marquer comme Appel">📞 Call</button>
@@ -428,10 +431,17 @@
       <div class="modal-body">
         <div class="stat-card" style="padding: 14px;">
           <div class="stat-header">
-            <span class="stat-sub">Daily Target</span>
+            <span class="stat-sub">Objectif quotidien</span>
             <span id="modalTargetSummary" style="font-size: 14px; font-weight: 600;">100 min</span>
           </div>
-          <div class="target-setting-row" style="margin-top: 6px;">
+          <div class="modal-goal-meta" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 8px; margin-bottom: 5px;">
+            <span>Progression du jour</span>
+            <span id="modalGoalPercent" style="font-weight: 600; color: var(--text-main);">0%</span>
+          </div>
+          <div class="progress-bar-bg" style="height: 6px; border-radius: 999px;">
+            <div class="progress-bar-fill" id="modalGoalBar" style="border-radius: 999px;"></div>
+          </div>
+          <div class="target-setting-row" style="margin-top: 12px;">
             <input type="range" id="modalGoalRangeInput" min="25" max="360" step="25" value="100" oninput="updateDailyGoalTarget(this.value)">
             <div class="target-labels">
               <span>25m</span>
@@ -578,6 +588,14 @@
           <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()">Dark</button>
         </div>
 
+        <div class="setting-item" style="margin-top: 10px;">
+          <div>
+            <div style="font-size: 14px; font-weight: 500;">Barre d'objectif quotidien</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Afficher la jauge sur l'écran d'accueil</div>
+          </div>
+          <button class="btn-theme-toggle" id="btnToggleGoalTracker" onclick="toggleDailyGoalOnHome()">Masqué</button>
+        </div>
+
         <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Multi-Device Sync</div>
         
         <!-- SEMENTIC FORM TO TRIGGER BROWSER / KEYCHAIN PASSWORD SAVER -->
@@ -655,11 +673,11 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/audio.js?v=3.49"></script>
-  <script src="js/timer.js?v=3.49"></script>
-  <script src="js/tasks.js?v=3.49"></script>
-  <script src="js/track.js?v=3.49"></script>
-  <script src="js/sync.js?v=3.49"></script>
-  <script src="js/app.js?v=3.49"></script>
+  <script src="js/audio.js?v=3.50"></script>
+  <script src="js/timer.js?v=3.50"></script>
+  <script src="js/tasks.js?v=3.50"></script>
+  <script src="js/track.js?v=3.50"></script>
+  <script src="js/sync.js?v=3.50"></script>
+  <script src="js/app.js?v=3.50"></script>
 </body>
 </html>
