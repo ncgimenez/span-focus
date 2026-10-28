@@ -275,3 +275,33 @@ function updateBridgeLinks() {
 window.addEventListener('DOMContentLoaded', updateBridgeLinks);
 window.updateBridgeLinks = updateBridgeLinks;
 
+// Unobtrusive Event Delegation for [data-action] attributes
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.getAttribute('data-action');
+  switch (action) {
+    case 'toggle-theme':
+      toggleTheme();
+      break;
+    case 'toggle-track':
+      toggleTrackModal();
+      break;
+    case 'open-settings':
+      openSettingsModal();
+      break;
+    case 'close-settings':
+      closeSettingsModal();
+      break;
+    case 'toggle-shortcuts':
+      if (typeof toggleShortcutsModal === 'function') toggleShortcutsModal();
+      break;
+    case 'toggle-picker':
+      if (typeof toggleTaskPicker === 'function') toggleTaskPicker();
+      break;
+    case 'toggle-timer':
+      if (typeof toggleTimer === 'function') toggleTimer();
+      break;
+  }
+});
+

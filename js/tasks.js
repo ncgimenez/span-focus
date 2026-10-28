@@ -12,6 +12,18 @@ window.SpanState.tasks = JSON.parse(localStorage.getItem('span_tasks')) || [
   { id: 't_2', title: "Grocery shopping #home", category: "Home", estimate: 1, completed: false, isFavorite: false }
 ];
 
+// Reactive Store Anchor
+window.SpanFocusStore = (typeof SpanCore !== 'undefined' && SpanCore.createStore)
+  ? SpanCore.createStore('span_tasks')
+  : null;
+
+if (window.SpanFocusStore && window.SpanFocusStore.tasks.length > 0) {
+  window.SpanState.tasks = window.SpanFocusStore.tasks;
+} else if (Array.isArray(window.SpanState.tasks)) {
+  window.SpanState.tasks = window.SpanState.tasks.map(t => (typeof SpanCore !== 'undefined' && SpanCore.normalizeTask) ? SpanCore.normalizeTask(t) : t);
+  if (window.SpanFocusStore) window.SpanFocusStore.tasks = window.SpanState.tasks;
+}
+
 window.SpanState.archivedTasks = JSON.parse(localStorage.getItem('span_archived_tasks')) || [];
 window.SpanState.activeTask = JSON.parse(localStorage.getItem('span_active_task')) || null;
 
@@ -484,7 +496,12 @@ function saveTasks() {
   window.SpanState.archivedTasks = archivedTasks;
   window.SpanState.activeTask = activeTask;
 
-  localStorage.setItem('span_tasks', JSON.stringify(tasks));
+  if (window.SpanFocusStore) {
+    window.SpanFocusStore.tasks = tasks;
+    window.SpanFocusStore.save();
+  } else {
+    localStorage.setItem('span_tasks', JSON.stringify(tasks));
+  }
   localStorage.setItem('span_archived_tasks', JSON.stringify(archivedTasks));
   localStorage.setItem('span_active_task', JSON.stringify(activeTask));
 
@@ -493,9 +510,9 @@ function saveTasks() {
   }
 
   renderTasks();
-  renderArchivedTasks();
-  renderPlannedTasks();
-  updateSpotlightUI();
+  if (typeof renderArchivedTasks === 'function') renderArchivedTasks();
+  if (typeof renderPlannedTasks === 'function') renderPlannedTasks();
+  if (typeof updateSpotlightUI === 'function') updateSpotlightUI();
   if (typeof updateStats === 'function') updateStats();
   if (typeof saveStateToCloud === 'function') saveStateToCloud();
 }
