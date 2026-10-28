@@ -1444,15 +1444,15 @@ body {
 /* ============================================================== */
 .task-item.is-event-card,
 .task-item.has-subtasks {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
   border-left-width: 4px;
   background: #18181b;
   border-color: rgba(255, 255, 255, 0.1);
   min-height: auto;
-  overflow: visible !important;
+  overflow: visible;
 }
 
 [data-theme="light"] .task-item.is-event-card,
@@ -2118,9 +2118,9 @@ body {
 }
 
 .backlog-dropzone-group {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 160px;
   border: 1.5px dashed rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -2132,15 +2132,15 @@ body {
 
 /* Elongates all the way down to the bottom when dragging a task */
 body.is-dragging-task .backlog-dropzone-group {
-  min-height: calc(100vh - 280px) !important;
+  min-height: calc(100vh - 280px);
   border-color: rgba(99, 102, 241, 0.4);
   background: rgba(99, 102, 241, 0.035);
 }
 
 /* Active drop hover: vibrant glow and dashed accent border */
 .backlog-dropzone-group.drag-over {
-  border: 2px dashed var(--accent, #6366f1) !important;
-  background: rgba(99, 102, 241, 0.1) !important;
+  border: 2px dashed var(--accent, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
   box-shadow: 0 0 24px rgba(99, 102, 241, 0.18), inset 0 0 16px rgba(99, 102, 241, 0.06);
 }
 
@@ -2223,8 +2223,8 @@ body.is-dragging-task .backlog-drop-hint {
 }
 
 [data-theme="light"] .backlog-dropzone-group.drag-over {
-  border-color: #6366f1 !important;
-  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
 }
 
 /* Tab Header Drop Highlights */
@@ -2378,9 +2378,9 @@ body.is-dragging-task .backlog-drop-hint {
 
 /* Event Card Drop Highlight when dragging task over it */
 .task-item.is-event-card.event-drop-highlight {
-  border-color: var(--cat-work) !important;
-  background: rgba(129, 140, 248, 0.15) !important;
-  box-shadow: 0 0 16px rgba(129, 140, 248, 0.35) !important;
+  border-color: var(--cat-work);
+  background: rgba(129, 140, 248, 0.15);
+  box-shadow: 0 0 16px rgba(129, 140, 248, 0.35);
   transform: scale(1.02);
 }
 
@@ -2792,22 +2792,22 @@ body.is-dragging-task .backlog-drop-hint {
 
 /* WORKSPACE: SINGLE-COLUMN OR SIDE-BY-SIDE SPLIT */
 .tasks-sections-wrapper {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-  width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
 }
 
 .tasks-sections-wrapper.is-split-view {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 16px !important;
-  align-items: stretch !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
 }
 
 @media (max-width: 850px) {
   .tasks-sections-wrapper.is-split-view {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2891,10 +2891,10 @@ body.is-dragging-task .backlog-drop-hint {
 }
 
 .focus-day-header {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding-bottom: 8px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
   margin-bottom: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -2914,17 +2914,17 @@ body.is-dragging-task .backlog-drop-hint {
 }
 
 .focus-day-title {
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  color: var(--text-main) !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .focus-day-badge {
-  background: rgba(226, 179, 64, 0.18) !important;
-  color: var(--streak) !important;
-  border: 1px solid rgba(226, 179, 64, 0.3) !important;
+  background: rgba(226, 179, 64, 0.18);
+  color: var(--streak);
+  border: 1px solid rgba(226, 179, 64, 0.3);
 }
 
 .focus-day-subtitle {
@@ -3676,29 +3676,29 @@ input[type="range"] {
 
 /* FIXED BOTTOM NAV */
 .mobile-nav {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  height: calc(54px + env(safe-area-inset-bottom, 14px)) !important;
-  background: rgba(13, 13, 15, 0.96) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  padding-top: 6px !important;
-  padding-bottom: env(safe-area-inset-bottom, 14px) !important;
-  z-index: 9999 !important;
-  box-sizing: border-box !important;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  margin: 0;
+  height: calc(54px + env(safe-area-inset-bottom, 14px));
+  background: rgba(13, 13, 15, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: env(safe-area-inset-bottom, 14px);
+  z-index: 9999;
+  box-sizing: border-box;
 }
 
 [data-theme="light"] .mobile-nav {
-  background: #f8f8fa !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: #f8f8fa;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .nav-items {
@@ -3736,36 +3736,36 @@ input[type="range"] {
 /* DESKTOP DASHBOARD (>= 650px) */
 @media (min-width: 650px) {
   .mobile-nav {
-    display: none !important;
+    display: none;
   }
 
   .views-slider {
-    width: 100% !important;
-    transform: none !important;
-    display: grid !important;
-    grid-template-columns: 275px 1fr !important;
-    gap: 20px !important;
-    height: 100% !important;
+    width: 100%;
+    transform: none;
+    display: grid;
+    grid-template-columns: 275px 1fr;
+    gap: 20px;
+    height: 100%;
     transition: grid-template-columns 0.4s cubic-bezier(0.16, 1, 0.3, 1), gap 0.4s ease;
   }
 
   .view-panel {
-    width: auto !important;
-    padding: 0 8px 16px 8px !important;
+    width: auto;
+    padding: 0 8px 16px 8px;
   }
 
   #view-stats {
-    display: none !important;
+    display: none;
   }
 
   .btn-track-desktop {
-    display: inline-flex !important;
+    display: inline-flex;
   }
 
   #view-focus {
     border-right: 1px solid var(--card-border);
-    padding-right: 20px !important;
-    justify-content: flex-start !important;
+    padding-right: 20px;
+    justify-content: flex-start;
     align-items: center;
   }
 
@@ -3851,51 +3851,51 @@ input[type="range"] {
 /* ZEN FOCUS IMMERSION MODE (DESKTOP >= 650px) */
 @media (min-width: 650px) {
   body.timer-active-focus-mode .views-slider {
-    grid-template-columns: 1fr 340px !important;
-    gap: 20px !important;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
   }
 
   body.timer-active-focus-mode .views-slider:has(#view-tasks:hover) {
-    grid-template-columns: 1fr 370px !important;
+    grid-template-columns: 1fr 370px;
   }
 
   body.timer-active-focus-mode #view-focus {
     border-right: 1px solid var(--card-border);
-    padding-right: 20px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   body.timer-active-focus-mode .timer-circle-wrapper {
-    width: 250px !important;
-    height: 250px !important;
-    margin-bottom: 20px !important;
+    width: 250px;
+    height: 250px;
+    margin-bottom: 20px;
     transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   body.timer-active-focus-mode .time-display {
-    font-size: 68px !important;
+    font-size: 68px;
   }
 
   body.timer-active-focus-mode .spotlight-container {
-    max-width: 440px !important;
-    width: 100% !important;
-    margin-bottom: 20px !important;
+    max-width: 440px;
+    width: 100%;
+    margin-bottom: 20px;
   }
 
   body.timer-active-focus-mode .spotlight-card.compact {
-    padding: 12px 20px !important;
-    font-size: 15px !important;
-    border-color: rgba(129, 140, 248, 0.4) !important;
-    background: rgba(129, 140, 248, 0.08) !important;
-    box-shadow: 0 4px 24px rgba(129, 140, 248, 0.2) !important;
+    padding: 12px 20px;
+    font-size: 15px;
+    border-color: rgba(129, 140, 248, 0.4);
+    background: rgba(129, 140, 248, 0.08);
+    box-shadow: 0 4px 24px rgba(129, 140, 248, 0.2);
   }
 
   body.timer-active-focus-mode .spotlight-title {
-    font-size: 15px !important;
-    font-weight: 700 !important;
+    font-size: 15px;
+    font-weight: 700;
   }
 
   body.timer-active-focus-mode .mode-switch,
@@ -3911,307 +3911,307 @@ input[type="range"] {
   }
 
   body.timer-active-focus-mode .btn-main {
-    padding: 14px 48px !important;
-    font-size: 16px !important;
-    box-shadow: 0 6px 24px rgba(129, 140, 248, 0.32) !important;
+    padding: 14px 48px;
+    font-size: 16px;
+    box-shadow: 0 6px 24px rgba(129, 140, 248, 0.32);
   }
 
   /* Right-hand Task section: comfortable focus sidebar */
   body.timer-active-focus-mode #view-tasks {
     opacity: 0.34;
     filter: blur(0.35px);
-    overflow-x: hidden !important;
-    padding-right: 6px !important;
+    overflow-x: hidden;
+    padding-right: 6px;
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
   }
 
   body.timer-active-focus-mode #view-tasks:hover,
   body.timer-active-focus-mode #view-tasks:focus-within {
-    opacity: 1 !important;
-    filter: none !important;
+    opacity: 1;
+    filter: none;
   }
 
   body.timer-active-focus-mode .tasks-sections-wrapper {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 14px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   body.timer-active-focus-mode .task-item {
-    box-sizing: border-box !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 6px 12px !important;
-    min-height: 40px !important;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    padding: 6px 12px;
+    min-height: 40px;
   }
 
   body.timer-active-focus-mode .task-right-meta {
-    gap: 5px !important;
+    gap: 5px;
   }
 
   body.timer-active-focus-mode .btn-task-quick-action {
-    padding: 2.5px 7px !important;
-    font-size: 11px !important;
+    padding: 2.5px 7px;
+    font-size: 11px;
   }
 }
 
 @media (min-width: 980px) {
   body.timer-active-focus-mode .views-slider {
-    grid-template-columns: 1fr 380px !important;
-    gap: 28px !important;
+    grid-template-columns: 1fr 380px;
+    gap: 28px;
   }
 
   body.timer-active-focus-mode .views-slider:has(#view-tasks:hover) {
-    grid-template-columns: 1fr 410px !important;
+    grid-template-columns: 1fr 410px;
   }
 
   body.timer-active-focus-mode .timer-circle-wrapper {
-    width: 280px !important;
-    height: 280px !important;
+    width: 280px;
+    height: 280px;
   }
 
   body.timer-active-focus-mode .time-display {
-    font-size: 76px !important;
+    font-size: 76px;
   }
 }
 
 @media (min-width: 1200px) {
   body.timer-active-focus-mode .views-slider {
-    grid-template-columns: 1fr 420px !important;
-    gap: 32px !important;
+    grid-template-columns: 1fr 420px;
+    gap: 32px;
   }
 }
 
 @media (max-width: 649px) {
   html, body {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    max-width: 100vw !important;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
 
   body {
-    justify-content: flex-start !important;
-    align-items: center !important;
+    justify-content: flex-start;
+    align-items: center;
   }
 
   .desktop-shell {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding: env(safe-area-inset-top, 8px) 12px 0 12px !important;
-    overflow-x: hidden !important;
+    width: 100%;
+    max-width: 100vw;
+    padding: env(safe-area-inset-top, 8px) 12px 0 12px;
+    overflow-x: hidden;
   }
 
   .app-header {
-    padding: 6px 0 !important;
-    gap: 8px !important;
-    overflow: hidden !important;
+    padding: 6px 0;
+    gap: 8px;
+    overflow: hidden;
   }
 
   .brand {
-    gap: 6px !important;
-    flex-shrink: 0 !important;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .brand-logo {
-    width: 28px !important;
-    height: 28px !important;
+    width: 28px;
+    height: 28px;
   }
 
   .brand-name,
   .brand-app {
-    font-size: 14px !important;
+    font-size: 14px;
   }
 
   .header-actions {
-    gap: 5px !important;
-    flex-shrink: 0 !important;
+    gap: 5px;
+    flex-shrink: 0;
   }
 
   .header-actions .icon-btn,
   .header-actions .plan-bridge-btn {
-    padding: 5px 9px !important;
-    font-size: 12px !important;
-    border-radius: 9px !important;
+    padding: 5px 9px;
+    font-size: 12px;
+    border-radius: 9px;
   }
 
   .btn-track-desktop {
-    display: none !important;
+    display: none;
   }
 
   .goal-tracker {
-    padding: 4px 0 8px 0 !important;
+    padding: 4px 0 8px 0;
   }
 
   .workspace-main {
-    width: 100% !important;
-    overflow: hidden !important;
+    width: 100%;
+    overflow: hidden;
   }
 
   .views-viewport {
-    width: 100% !important;
-    overflow: hidden !important;
+    width: 100%;
+    overflow: hidden;
   }
 
   .views-slider {
-    width: 300% !important;
-    display: flex !important;
+    width: 300%;
+    display: flex;
   }
 
   .view-panel {
-    width: 33.333333% !important;
-    max-width: 100vw !important;
-    padding: 4px 4px calc(72px + env(safe-area-inset-bottom, 20px)) 4px !important;
-    box-sizing: border-box !important;
+    width: 33.333333%;
+    max-width: 100vw;
+    padding: 4px 4px calc(72px + env(safe-area-inset-bottom, 20px)) 4px;
+    box-sizing: border-box;
   }
 
   #view-focus {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    padding-top: 6px !important;
-    gap: 10px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 6px;
+    gap: 10px;
   }
 
   .spotlight-container {
-    max-width: 330px !important;
-    width: 100% !important;
-    margin-bottom: 2px !important;
+    max-width: 330px;
+    width: 100%;
+    margin-bottom: 2px;
   }
 
   .spotlight-card.compact {
-    padding: 8px 14px !important;
+    padding: 8px 14px;
   }
 
   .spotlight-empty-btn.compact {
-    padding: 10px 16px !important;
-    font-size: 13.5px !important;
+    padding: 10px 16px;
+    font-size: 13.5px;
   }
 
   .mode-switch {
-    padding: 3px !important;
-    gap: 3px !important;
-    margin-bottom: 10px !important;
-    border-radius: 20px !important;
+    padding: 3px;
+    gap: 3px;
+    margin-bottom: 10px;
+    border-radius: 20px;
   }
 
   .mode-btn {
-    font-size: 12.5px !important;
-    padding: 6px 12px !important;
-    min-height: 32px !important;
-    border-radius: 16px !important;
+    font-size: 12.5px;
+    padding: 6px 12px;
+    min-height: 32px;
+    border-radius: 16px;
   }
 
   .timer-circle-wrapper {
-    width: 220px !important;
-    height: 220px !important;
-    margin-bottom: 12px !important;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 12px;
   }
 
   .time-display {
-    font-size: 60px !important;
+    font-size: 60px;
   }
 
   .preset-pills {
-    gap: 6px !important;
-    margin-bottom: 14px !important;
+    gap: 6px;
+    margin-bottom: 14px;
   }
 
   .preset-pill {
-    font-size: 12.5px !important;
-    padding: 5px 12px !important;
-    min-height: 30px !important;
-    border-radius: 12px !important;
+    font-size: 12.5px;
+    padding: 5px 12px;
+    min-height: 30px;
+    border-radius: 12px;
   }
 
   .controls {
-    gap: 12px !important;
+    gap: 12px;
   }
 
   .btn-main {
-    padding: 12px 42px !important;
-    font-size: 15px !important;
+    padding: 12px 42px;
+    font-size: 15px;
   }
 
   .btn-reset {
-    width: 42px !important;
-    height: 42px !important;
-    font-size: 15px !important;
+    width: 42px;
+    height: 42px;
+    font-size: 15px;
   }
 
   .tasks-sections-wrapper {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 14px !important;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 14px;
   }
 
   .tasks-column {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100%;
+    max-width: 100%;
   }
 
   .task-item {
-    padding: 0 !important;
-    font-size: 13px !important;
+    padding: 0;
+    font-size: 13px;
   }
 
   .task-card-content {
-    padding: 7px 10px 7px 10px !important;
-    gap: 4px !important;
+    padding: 7px 10px 7px 10px;
+    gap: 4px;
   }
 
   .parent-task-card-header,
   .event-card-header {
-    padding: 5px 8px !important;
-    gap: 6px !important;
+    padding: 5px 8px;
+    gap: 6px;
   }
 
   .task-main-left {
-    gap: 7px !important;
+    gap: 7px;
   }
 
   .task-right-meta {
-    gap: 5px !important;
+    gap: 5px;
   }
 
   /* On mobile, keep title breathing room by relying on ⋮ menu for move actions */
   .btn-task-quick-action.move-backlog,
   .btn-task-quick-action.move-today {
-    display: none !important;
+    display: none;
   }
 
   .btn-task-quick-action.task-focus-btn {
-    opacity: 0.85 !important;
-    width: 22px !important;
-    height: 22px !important;
-    font-size: 11px !important;
+    opacity: 0.85;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
   }
 
   .btn-subtask-focus {
-    opacity: 0.85 !important;
+    opacity: 0.85;
   }
 
   .live-pulse-badge {
-    font-size: 7.5px !important;
-    padding: 1px 4.5px !important;
+    font-size: 7.5px;
+    padding: 1px 4.5px;
   }
 
   .now-indicator-pill {
-    padding: 2px 6.5px !important;
-    font-size: 10px !important;
+    padding: 2px 6.5px;
+    font-size: 10px;
   }
 
 
   body.timer-active-focus-mode .timer-circle-wrapper {
-    width: 210px !important;
-    height: 210px !important;
+    width: 210px;
+    height: 210px;
   }
 
   body.timer-active-focus-mode .time-display {
-    font-size: 56px !important;
+    font-size: 56px;
   }
 }
 
