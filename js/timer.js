@@ -319,11 +319,11 @@ function tickTimer() {
       // Reached 0: handle cycle transitions
       if (timerMode === 'pomodoro') {
         if (!isBreakSession) {
-          // 25m Focus cycle finished: automatically trigger 5m break!
+          // 25m Focus cycle finished: record real focus session and trigger 5m break
+          recordCompletedFocusSession(durationMinutes || 25);
           if (typeof playBell === 'function') playBell();
-          if (typeof triggerCelebration === 'function') triggerCelebration();
           if (typeof showToast === 'function') {
-            showToast('25m Focus finished! 5m break starts now ☕', '🎉');
+            showToast('25m Focus terminé ! 5m de pause ☕', '☕');
           }
 
           isBreakSession = true;
@@ -444,7 +444,26 @@ function toggleTimer() {
   }
 }
 
+function recordCompletedFocusSession(durationMins) {
+  try {
+    const todayStr = (typeof getLocalDateString === 'function') ? getLocalDateString() : new Date().toLocaleDateString('en-CA');
+    const sessions = JSON.parse(localStorage.getItem('span_focus_sessions') || '[]');
+    sessions.push({
+      date: todayStr,
+      duration: durationMins || 25,
+      timestamp: Date.now()
+    });
+    if (sessions.length > 500) sessions.splice(0, sessions.length - 500);
+    localStorage.setItem('span_focus_sessions', JSON.stringify(sessions));
+    if (typeof updateStats === 'function') updateStats();
+  } catch (e) {
+    console.warn('Could not record focus session:', e);
+  }
+}
+window.recordCompletedFocusSession = recordCompletedFocusSession;
+
 function confirmCompletedSession() {
+  recordCompletedFocusSession(durationMinutes || 25);
   stopTimerTicker();
   isRunning = false;
   isOvertime = false;

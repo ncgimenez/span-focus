@@ -1,6 +1,7 @@
 window.SpanState = window.SpanState || {};
 
 let dailyGoalMinutes = parseInt(localStorage.getItem('span_daily_goal_minutes')) || 100;
+let showDailyGoalOnHome = localStorage.getItem('span_show_daily_goal_tracker') === 'true';
 let showTimeInChart = false;
 
 // Color definition aligned with Span Plan DNA
@@ -10,6 +11,29 @@ const TRACK_COLORS = {
   Fun: '#fb7185'
 };
 
+function updateGoalTrackerVisibility() {
+  const goalTracker = document.getElementById('homeGoalTracker') || document.querySelector('.goal-tracker');
+  const toggleBtn = document.getElementById('btnToggleGoalTracker');
+  if (goalTracker) {
+    goalTracker.style.display = showDailyGoalOnHome ? 'flex' : 'none';
+  }
+  if (toggleBtn) {
+    toggleBtn.textContent = showDailyGoalOnHome ? 'Visible' : 'Masqué';
+    toggleBtn.classList.toggle('active', showDailyGoalOnHome);
+  }
+}
+
+function toggleDailyGoalOnHome() {
+  showDailyGoalOnHome = !showDailyGoalOnHome;
+  localStorage.setItem('span_show_daily_goal_tracker', showDailyGoalOnHome ? 'true' : 'false');
+  updateGoalTrackerVisibility();
+  if (typeof showToast === 'function') {
+    showToast(showDailyGoalOnHome ? "Objectif quotidien visible sur l'accueil" : "Objectif quotidien masqué de l'accueil", "⚙️");
+  }
+}
+window.toggleDailyGoalOnHome = toggleDailyGoalOnHome;
+window.updateGoalTrackerVisibility = updateGoalTrackerVisibility;
+
 function initTrack() {
   const goalRange = document.getElementById('goalRangeInput');
   const modalGoalRange = document.getElementById('modalGoalRangeInput');
@@ -17,6 +41,7 @@ function initTrack() {
   if (goalRange) goalRange.value = dailyGoalMinutes;
   if (modalGoalRange) modalGoalRange.value = dailyGoalMinutes;
 
+  updateGoalTrackerVisibility();
   updateDailyGoalDisplays();
   updateStats();
 }
@@ -60,18 +85,32 @@ function toggleTrackModal() {
 
 // Compute total completed focus time today
 function calculateTodayFocusMinutes() {
-  const tasks = window.SpanState.tasks || [];
-  const archived = window.SpanState.archivedTasks || [];
   const todayStr = (typeof getLocalDateString === 'function') ? getLocalDateString() : new Date().toLocaleDateString('en-CA');
 
+  // Real focus sessions recorded by timer today
+  let timerMinutesToday = 0;
+  try {
+    const sessions = JSON.parse(localStorage.getItem('span_focus_sessions') || '[]');
+    timerMinutesToday = sessions
+      .filter(s => s && s.date === todayStr)
+      .reduce((sum, s) => sum + (s.duration || 25), 0);
+  } catch (e) {}
+
+  const tasks = window.SpanState.tasks || [];
+  const archived = window.SpanState.archivedTasks || [];
   const doneToday = [
     ...tasks.filter(t => t.completed && (!t.completedDate || t.completedDate === todayStr)),
     ...archived.filter(t => t.archivedDate === todayStr || (t.archivedAt && t.archivedAt.slice(0, 10) === todayStr))
   ];
 
-  return doneToday.reduce((total, task) => {
-    return total + ((task.estimate || 1) * 25);
+  // Completed tasks: use explicit duration or realistic estimate (15 min per checkbox if not specified)
+  const taskMinutes = doneToday.reduce((total, task) => {
+    const mins = task.duration ? parseInt(task.duration) : (task.estimate ? task.estimate * 25 : 15);
+    return total + mins;
   }, 0);
+
+  // Return the highest between timer sessions and completed tasks
+  return Math.max(timerMinutesToday, taskMinutes);
 }
 
 // Compute category breakdown minutes
@@ -94,7 +133,8 @@ function calculateCategoryBreakdown() {
   doneToday.forEach(task => {
     let cat = task.category || 'Work';
     if (!breakdown.hasOwnProperty(cat)) cat = 'Work';
-    breakdown[cat] += ((task.estimate || 1) * 25);
+    const mins = task.duration ? parseInt(task.duration) : (task.estimate ? task.estimate * 25 : 15);
+    breakdown[cat] += mins;
   });
 
   return breakdown;
@@ -107,23 +147,23 @@ function updateStats() {
   const pct = Math.min(100, Math.round((totalMinutes / dailyGoalMinutes) * 100));
   const goalPercent = document.getElementById('goalPercent');
   const goalBar = document.getElementById('goalBar');
-  const goalTracker = document.querySelector('.goal-tracker');
+  const modalGoalPercent = document.getElementById('modalGoalPercent');
+  const modalGoalBar = document.getElementById('modalGoalBar');
+  const goalTracker = document.getElementById('homeGoalTracker') || document.querySelector('.goal-tracker');
+
+  const label = (pct >= 100 && totalMinutes > 0) ? `100% (Atteint)` : `${pct}%`;
+
+  if (goalPercent) goalPercent.textContent = label;
+  if (modalGoalPercent) modalGoalPercent.textContent = `${pct}% (${totalMinutes} / ${dailyGoalMinutes}m)`;
+  
+  if (goalBar) goalBar.style.width = `${pct}%`;
+  if (modalGoalBar) modalGoalBar.style.width = `${pct}%`;
 
   if (pct >= 100 && totalMinutes > 0) {
-    if (goalPercent) goalPercent.textContent = `100% 🎉 Goal reached!`;
     if (goalTracker) goalTracker.classList.add('goal-reached');
-    if (!window._hasCelebratedDailyGoal) {
-      window._hasCelebratedDailyGoal = true;
-      if (typeof triggerCelebration === 'function') triggerCelebration();
-      if (typeof showToast === 'function') showToast("Daily Goal Reached! 🏆 Amazing focus today!", "🎉");
-    }
   } else {
-    if (goalPercent) goalPercent.textContent = `${pct}%`;
     if (goalTracker) goalTracker.classList.remove('goal-reached');
-    if (pct < 100) window._hasCelebratedDailyGoal = false;
   }
-
-  if (goalBar) goalBar.style.width = `${pct}%`;
 
   // Update Category Pie / Donut Chart
   const breakdown = calculateCategoryBreakdown();
@@ -139,7 +179,7 @@ function renderDonutChart(chartId, legendId, breakdown, totalMinutes) {
 
   if (totalMinutes === 0) {
     chartEl.style.background = 'conic-gradient(rgba(255, 255, 255, 0.08) 0deg 360deg)';
-    legendEl.innerHTML = `<span style="font-size: 13px; color: var(--text-muted);">No completed tasks today</span>`;
+    legendEl.innerHTML = `<span style="font-size: 13px; color: var(--text-muted);">Aucune tâche complétée aujourd'hui</span>`;
     return;
   }
 

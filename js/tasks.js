@@ -111,11 +111,46 @@ window.selectEditActionType = selectEditActionType;
 let quickAddAction = 'auto';
 let quickSubtaskAction = 'auto';
 
+const FOCUS_ACTION_CYCLE = ['auto', 'call', 'mail', 'pay', 'other'];
+const FOCUS_ACTION_ICONS = {
+  auto: '⚡',
+  call: '📞',
+  mail: '✉️',
+  pay: '💳',
+  other: '📦'
+};
+const FOCUS_ACTION_TITLES = {
+  auto: "Type d'action : ⚡ Auto (Détection auto)",
+  call: "Type d'action : 📞 Call (Appel)",
+  mail: "Type d'action : ✉️ Mail (Email)",
+  pay: "Type d'action : 💳 Pay (Paiement)",
+  other: "Type d'action : 📦 Standard"
+};
+
+function updateFocusActionSelectButton() {
+  const btn = document.getElementById('btnFocusActionSelect');
+  const iconSpan = document.getElementById('focusActionSelectIcon');
+  if (btn && iconSpan) {
+    iconSpan.textContent = FOCUS_ACTION_ICONS[quickAddAction] || '⚡';
+    btn.title = FOCUS_ACTION_TITLES[quickAddAction] || "Type d'action";
+    btn.className = `btn-focus-action-select action-${quickAddAction}`;
+  }
+}
+window.updateFocusActionSelectButton = updateFocusActionSelectButton;
+
+function cycleFocusQuickAddAction() {
+  const currentIndex = FOCUS_ACTION_CYCLE.indexOf(quickAddAction);
+  const nextIndex = (currentIndex + 1) % FOCUS_ACTION_CYCLE.length;
+  setQuickAddAction(FOCUS_ACTION_CYCLE[nextIndex]);
+}
+window.cycleFocusQuickAddAction = cycleFocusQuickAddAction;
+
 function setQuickAddAction(action) {
   quickAddAction = action || 'auto';
   document.querySelectorAll('#quickAddActionChips .quick-action-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.action === quickAddAction);
   });
+  updateFocusActionSelectButton();
 }
 window.setQuickAddAction = setQuickAddAction;
 
