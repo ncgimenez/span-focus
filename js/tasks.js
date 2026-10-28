@@ -3145,24 +3145,15 @@ window.addEventListener('focus', () => {
 });
 
 
-// Auto-refresh tasks every 60s so that "● LIVE" badge and current-time indicators update smoothly
-setInterval(() => {
-  const modal = document.getElementById('taskDetailModal');
-  const isModalOpen = modal && modal.classList.contains('active');
-  const isDragging = document.querySelector('.dragging') !== null;
-  if (!isModalOpen && !isDragging && typeof renderTasks === 'function') {
-    if (typeof autoArchivePastDays === 'function') autoArchivePastDays();
-    renderTasks();
-  }
-}, 60000);
-
-// Keep the live Now indicator line time text and in-progress progress bar updated in real time
+// Unified live time indicator & background task refresher
+let lastFocusMinuteStr = '';
 setInterval(() => {
   const now = new Date();
   const h = String(now.getHours()).padStart(2, '0');
   const m = String(now.getMinutes()).padStart(2, '0');
   const formatted = `${h}:${m}`;
 
+  // Update text labels directly without full list re-renders
   const timeEl = document.querySelector('.now-indicator-time');
   if (timeEl && timeEl.textContent !== formatted) {
     timeEl.textContent = formatted;
@@ -3171,14 +3162,19 @@ setInterval(() => {
   const liveMarker = document.querySelector('.live-marker-time');
   if (liveMarker && liveMarker.textContent !== formatted) {
     liveMarker.textContent = formatted;
-    // Minute ticked over: refresh task list to update progress bar smoothly
-    const isDragging = document.querySelector('.dragging') !== null;
+  }
+
+  // Once per minute when time changes, check if tasks need soft update
+  if (formatted !== lastFocusMinuteStr) {
+    lastFocusMinuteStr = formatted;
     const modal = document.getElementById('taskDetailModal');
     const isModalOpen = modal && modal.classList.contains('active');
-    if (!isDragging && !isModalOpen && typeof renderTasks === 'function') {
+    const isDragging = document.querySelector('.dragging') !== null;
+    if (!isModalOpen && !isDragging && typeof renderTasks === 'function') {
+      if (typeof autoArchivePastDays === 'function') autoArchivePastDays();
       renderTasks();
     }
   }
-}, 5000);
+}, 10000);
 
 
