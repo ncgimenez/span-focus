@@ -1,5 +1,5 @@
 // Span Focus Service Worker - Offline PWA Support
-const CACHE_NAME = 'span-focus-v3.43';
+const CACHE_NAME = 'span-focus-v3.51';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -9,6 +9,9 @@ const ASSETS_TO_CACHE = [
   './favicon.ico',
   './span-logo.svg',
   './span-logo.png',
+  './span-logo-192.png',
+  './span-logo-32.png',
+  './span-logo-16.png',
   './apple-touch-icon.png',
   './js/audio.js?v=3.43',
   './js/timer.js?v=3.43',
